@@ -192,11 +192,7 @@
                     <div>
                         <label class="filter-label">المدينة *</label>
                         <select name="adCity" class="form-select" required>
-                            <option value="الرياض">الرياض</option>
-                            <option value="جدة">جدة</option>
-                            <option value="الدمام">الدمام</option>
-                            <option value="الخبر">الخبر</option>
-                            <option value="مكة المكرمة">مكة المكرمة</option>
+                            <!-- Populated dynamically -->
                         </select>
                     </div>
                 </div>
@@ -212,19 +208,26 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
-                    <div>
-                        <label class="filter-label">الحالة</label>
-                        <select name="adCondition" class="form-select">
-                            <option value="new">جديد بالكامل</option>
-                            <option value="like_new" selected>استعمال شبه جديد</option>
-                            <option value="good">استعمال نظيف</option>
-                        </select>
+                <div style="margin-bottom: 16px;">
+                    <label class="filter-label">الحالة</label>
+                    <select name="adCondition" class="form-select">
+                        <option value="new">جديد بالكامل</option>
+                        <option value="like_new" selected>استعمال شبه جديد</option>
+                        <option value="good">استعمال نظيف</option>
+                    </select>
+                </div>
+
+                <!-- Direct Image File Upload Dropzone -->
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">رفع صور المنتج المباشرة *</label>
+                    <div class="upload-dropzone">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <h4 style="font-size: 15px; font-weight: 800; color: var(--color-primary);">اضغط هنا لاختيار صور من جهازك أو اسحب الصور هنا</h4>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">يمكنك اختيار صورة أو عدة صور (PNG, JPG, WEBP)</p>
+                        <input type="file" id="adFileInput" accept="image/*" multiple onchange="app.handleImageFileUpload(event)">
                     </div>
-                    <div>
-                        <label class="filter-label">رابط صورة المنتج</label>
-                        <input type="url" name="adImageUrl" class="form-input" placeholder="https://images.unsplash.com/...">
-                    </div>
+                    <!-- Live Image Thumbs Preview Grid -->
+                    <div class="preview-thumbs-grid" id="imagePreviewContainer"></div>
                 </div>
 
                 <div style="margin-bottom: 16px;">

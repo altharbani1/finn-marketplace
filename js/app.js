@@ -18,7 +18,8 @@ class FinnMarketApp {
             viewMode: 'grid',
             showFavoritesOnly: false,
             currentDetailListing: null,
-            activeImageIdx: 0
+            activeImageIdx: 0,
+            uploadedImages: [] // Array of Data URLs for newly uploaded files
         };
 
         this.init();
@@ -67,6 +68,40 @@ class FinnMarketApp {
         if (postAdCitySelect) {
             postAdCitySelect.innerHTML = postAdOptionsHTML;
         }
+    }
+
+    handleImageFileUpload(event) {
+        const files = Array.from(event.target.files);
+        if (!files.length) return;
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.state.uploadedImages.push(e.target.result);
+                this.renderImagePreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    renderImagePreviews() {
+        const container = document.getElementById('imagePreviewContainer');
+        if (!container) return;
+
+        container.innerHTML = this.state.uploadedImages.map((imgDataUrl, idx) => `
+            <div class="preview-thumb-card">
+                <img src="${imgDataUrl}" alt="صورة الإعلان ${idx + 1}">
+                <button class="remove-thumb-btn" onclick="event.stopPropagation(); app.removeUploadedImage(${idx})" title="حذف الصورة">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    removeUploadedImage(index) {
+        this.state.uploadedImages.splice(index, 1);
+        this.renderImagePreviews();
     }
 
     applyFiltersAndRender() {
@@ -268,12 +303,18 @@ class FinnMarketApp {
     }
 
     openPostAdModal() {
+        this.state.uploadedImages = [];
+        this.renderImagePreviews();
         document.getElementById('postAdModal').classList.add('active');
     }
 
     submitNewAd(event) {
         event.preventDefault();
         const form = event.target;
+
+        const imagesToUse = this.state.uploadedImages.length > 0 
+            ? [...this.state.uploadedImages] 
+            : ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'];
 
         const newAd = {
             id: 'list-' + Date.now(),
@@ -283,14 +324,12 @@ class FinnMarketApp {
             price: form.adIsFree.checked ? 0 : parseFloat(form.adPrice.value || 0),
             isFree: form.adIsFree.checked,
             city: form.adCity.value,
-            neighborhood: form.adNeighborhood ? form.adNeighborhood.value : 'وسط المدينة',
+            neighborhood: 'وسط المدينة',
             condition: form.adCondition.value,
             timeAgo: 'الآن',
             views: 1,
             favoritesCount: 0,
-            images: [
-                form.adImageUrl.value || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'
-            ],
+            images: imagesToUse,
             seller: {
                 name: form.sellerName.value || 'بائع جديد',
                 avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
@@ -309,8 +348,10 @@ class FinnMarketApp {
         this.listings = finnDB.getListings();
         this.closeModal('postAdModal');
         form.reset();
+        this.state.uploadedImages = [];
+        this.renderImagePreviews();
         this.applyFiltersAndRender();
-        alert('🎉 تم نشر إعلانك بنجاح! يظهر الآن فوراً في منصة FinnMarket.');
+        alert('🎉 تم نشر إعلانك وبنظامه الخاص بصورك المرفوعة بنجاح! يظهر الآن فوراً في المنصة.');
     }
 
     openChatForListing(listingId) {
