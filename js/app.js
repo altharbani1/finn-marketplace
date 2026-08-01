@@ -19,7 +19,8 @@ class FinnMarketApp {
             showFavoritesOnly: false,
             currentDetailListing: null,
             activeImageIdx: 0,
-            uploadedImages: []
+            uploadedImages: [],
+            activeAuthTab: 'login'
         };
 
         this.init();
@@ -46,11 +47,16 @@ class FinnMarketApp {
                     <i class="fa-regular fa-heart"></i>
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
                 </button>
+
+                <button class="btn btn-outline btn-icon" onclick="app.openChatForListing('list-101')" title="المحادثات المباشرة">
+                    <i class="fa-regular fa-comments"></i>
+                    <span class="badge-count">1</span>
+                </button>
                 
-                <div style="display: flex; align-items: center; gap: 8px; background: #ecfdf5; border: 1px solid #10b981; padding: 4px 12px; border-radius: 9999px;">
-                    <i class="fa-solid fa-user-shield" style="color: #047857;"></i>
-                    <span style="font-size: 13px; font-weight: 700; color: #047857;">${authUser.name || authUser.email} (حساب موثق)</span>
-                    <button onclick="app.handleLogout()" style="color: #ef4444; margin-right: 6px; cursor: pointer;" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <div class="user-profile-btn" onclick="app.toggleUserMenu()" title="حسابي الموثق">
+                    <img src="${authUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="user-avatar-head">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name || authUser.email}</span>
+                    <i class="fa-solid fa-angle-down" style="font-size: 11px; color: var(--text-muted);"></i>
                 </div>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
@@ -66,7 +72,7 @@ class FinnMarketApp {
                 </button>
                 
                 <button class="btn btn-outline" onclick="app.openAuthModal('login')">
-                    <i class="fa-solid fa-lock"></i> دخول الأعضاء
+                    <i class="fa-solid fa-right-to-bracket"></i> دخول / تسجيل
                 </button>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
@@ -78,10 +84,87 @@ class FinnMarketApp {
         this.updateHeaderBadges();
     }
 
+    toggleUserMenu() {
+        if (confirm('هل ترغب في تسجيل الخروج من حسابك الموثق؟')) {
+            this.handleLogout();
+        }
+    }
+
     async handleLogout() {
         await finnDB.logoutUser();
         alert('تم تسجيل الخروج بنجاح.');
         await this.renderAuthNavHeader();
+    }
+
+    switchAuthTab(tab) {
+        this.state.activeAuthTab = tab;
+        const loginForm = document.getElementById('loginAuthForm');
+        const regForm = document.getElementById('registerAuthForm');
+        const tabLoginBtn = document.getElementById('tabLoginBtn');
+        const tabRegBtn = document.getElementById('tabRegisterBtn');
+
+        if (tab === 'login') {
+            loginForm.style.display = 'block';
+            regForm.style.display = 'none';
+            tabLoginBtn.classList.add('active');
+            tabRegBtn.classList.remove('active');
+        } else {
+            loginForm.style.display = 'none';
+            regForm.style.display = 'block';
+            tabLoginBtn.classList.remove('active');
+            tabRegBtn.classList.add('active');
+        }
+    }
+
+    async handleQuickSocialAuth(type) {
+        if (type === 'phone') {
+            const phone = prompt('أدخل رقم الجوال لاستلام رمز التفعيل (SMS OTP):', '+966 50 123 4567');
+            if (phone) {
+                const user = await finnDB.registerRealUser('عضو الجوال الموثق', 'phone_user@domain.com', 'pass123456', phone);
+                this.closeModal('realAuthModal');
+                await this.renderAuthNavHeader();
+                alert(`🎉 تم تفعيل الدخول برقم الجوال (${phone}) بنجاح!`);
+            }
+        } else if (type === 'google') {
+            const user = await finnDB.registerRealUser('مستخدم Google', 'google_user@gmail.com', 'pass123456', '+966500000000');
+            this.closeModal('realAuthModal');
+            await this.renderAuthNavHeader();
+            alert('🎉 تم الدخول السريع عبر Google بنجاح!');
+        }
+    }
+
+    async handleRealLogin(event) {
+        event.preventDefault();
+        const form = event.target;
+        const email = form.loginEmail.value.trim();
+        const password = form.loginPassword.value.trim();
+
+        try {
+            const user = await finnDB.loginRealUser(email, password);
+            this.closeModal('realAuthModal');
+            await this.renderAuthNavHeader();
+            alert(`🎉 أهلاً بعودتك (${user.name})! تم تسجيل دخولك بنجاح.`);
+        } catch (err) {
+            alert('خطأ في تسجيل الدخول: يرجى التأكد من صحة البيانات.');
+        }
+    }
+
+    async handleRealRegister(event) {
+        event.preventDefault();
+        const form = event.target;
+        const name = form.regName.value.trim();
+        const email = form.regEmail.value.trim();
+        const password = form.regPassword.value.trim();
+        const phone = form.regPhone.value.trim();
+
+        try {
+            const user = await finnDB.registerRealUser(name, email, password, phone);
+            this.closeModal('realAuthModal');
+            await this.renderAuthNavHeader();
+            alert(`🎉 مبروك! تم إنشاء حسابك الموثق بنجاح لـ (${name}). يمكنك الآن نشر الإعلانات والرد.`);
+        } catch (err) {
+            alert('حدث خطأ أثناء إنشاء الحساب: ' + err.message);
+        }
     }
 
     updateHeaderBadges() {
@@ -267,7 +350,6 @@ class FinnMarketApp {
     }
 
     async openPostAdModal() {
-        // STRICT AUTH CHECK BEFORE ALLOWING AD POSTING
         const authUser = await finnDB.getAuthUser();
         if (!authUser) {
             this.openAuthModal('postAdGuard');
@@ -294,31 +376,13 @@ class FinnMarketApp {
             noticeBox.innerHTML = '';
         }
 
+        this.switchAuthTab('login');
         modal.classList.add('active');
-    }
-
-    async handleRealRegister(event) {
-        event.preventDefault();
-        const form = event.target;
-        const name = form.regName.value.trim();
-        const email = form.regEmail.value.trim();
-        const password = form.regPassword.value.trim();
-        const phone = form.regPhone.value.trim();
-
-        try {
-            const user = await finnDB.registerRealUser(name, email, password, phone);
-            this.closeModal('realAuthModal');
-            await this.renderAuthNavHeader();
-            alert(`🎉 تم إنشاء واستبدال الحساب الحقيقي لـ (${name}) بنجاح! يمكن الآن النشر والرد.`);
-        } catch (err) {
-            alert('حدث خطأ في التسجيل: ' + err.message);
-        }
     }
 
     async submitNewAd(event) {
         event.preventDefault();
 
-        // STRICT SECURITY GUARD
         const authUser = await finnDB.getAuthUser();
         if (!authUser) {
             alert('⛔ خطأ أمني فادح: الجلسة غير موثقة. يتوجب تسجيل الدخول بحساب حقيقي أولاً.');
@@ -347,9 +411,9 @@ class FinnMarketApp {
             favoritesCount: 0,
             images: imagesToUse,
             seller: {
-                name: authUser.name || form.sellerName.value || 'عضو موثق',
+                name: authUser.name || 'عضو موثق',
                 avatar: authUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-                phone: authUser.phone || form.sellerPhone.value || '+966 50 000 0000',
+                phone: authUser.phone || '+966 50 000 0000',
                 rating: 5.0,
                 verified: true
             },

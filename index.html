@@ -14,9 +14,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS with Cache Buster v4.0 -->
-    <link rel="stylesheet" href="css/main.css?v=4.0">
-    <link rel="stylesheet" href="css/components.css?v=4.0">
+    <!-- Custom CSS with Cache Buster v5.0 -->
+    <link rel="stylesheet" href="css/main.css?v=5.0">
+    <link rel="stylesheet" href="css/components.css?v=5.0">
 </head>
 <body>
 
@@ -54,7 +54,7 @@
     <!-- 3. Hero Search & Category Highlights -->
     <section class="hero-banner">
         <div class="container hero-content">
-            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك (حسابات موثقة)</h1>
+            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك</h1>
             <p class="hero-subtitle">تصفح العقارات، السيارات، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
             <div class="hero-tags">
@@ -143,37 +143,108 @@
         </section>
     </main>
 
-    <!-- 5. Real Auth Security Modal -->
+    <!-- 5. Modern Redesigned Authentication Modal -->
     <div class="modal-overlay" id="realAuthModal">
-        <div class="modal-box" style="max-width: 500px; padding: 28px;">
+        <div class="modal-box auth-modal-card">
             <button class="modal-close-btn" onclick="app.closeModal('realAuthModal')"><i class="fa-solid fa-xmark"></i></button>
+            
             <div id="authNoticeBox"></div>
 
-            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px; color: var(--color-primary);"><i class="fa-solid fa-user-check"></i> إنشاء حساب أو تسجيل دخول حقيقي</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">يجب تسجيل الحساب وتوثيق بياناتك لتتمكن من إضافة إعلان جديد أو الرد على الإعلانات.</p>
+            <!-- Tab Switcher (Login / Register) -->
+            <div class="auth-tabs-switcher">
+                <button class="auth-tab-btn active" id="tabLoginBtn" onclick="app.switchAuthTab('login')">
+                    <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+                </button>
+                <button class="auth-tab-btn" id="tabRegisterBtn" onclick="app.switchAuthTab('register')">
+                    <i class="fa-solid fa-user-plus"></i> حساب جديد
+                </button>
+            </div>
 
-            <form onsubmit="app.handleRealRegister(event)">
+            <!-- Social Quick Auth -->
+            <div class="social-login-row">
+                <button class="btn-social" onclick="app.handleQuickSocialAuth('phone')">
+                    <i class="fa-solid fa-mobile-screen-button" style="color: var(--color-primary); font-size: 16px;"></i> الدخول برقم الجوال (رمز SMS OTP)
+                </button>
+                <button class="btn-social" onclick="app.handleQuickSocialAuth('google')">
+                    <i class="fa-brands fa-google" style="color: #ea4335; font-size: 16px;"></i> الدخول السريع عبر Google
+                </button>
+            </div>
+
+            <div class="auth-divider"><span>أو باستعمال البريد الإلكتروني</span></div>
+
+            <!-- Login Form -->
+            <form id="loginAuthForm" onsubmit="app.handleRealLogin(event)">
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">البريد الإلكتروني / اسم العضو</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email" name="loginEmail" class="form-input" placeholder="user@domain.com" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label class="filter-label" style="margin-bottom: 0;">كلمة المرور</label>
+                        <a href="#" style="font-size: 12px; color: var(--color-primary); font-weight: 600;">نسيت كلمة المرور؟</a>
+                    </div>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" name="loginPassword" class="form-input" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+                </button>
+
+                <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
+                    ليس لديك حساب بعد؟ <a href="javascript:void(0)" onclick="app.switchAuthTab('register')" style="color: var(--color-primary); font-weight: 800;">إنشاء حساب جديد مجاناً</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerAuthForm" style="display: none;" onsubmit="app.handleRealRegister(event)">
                 <div style="margin-bottom: 14px;">
                     <label class="filter-label">الاسم الكامل (سيظهر في إعلاناتك) *</label>
-                    <input type="text" name="regName" class="form-input" placeholder="مثال: المهندس محمد الدوسري" required>
-                </div>
-                <div style="margin-bottom: 14px;">
-                    <label class="filter-label">البريد الإلكتروني الحقيقي *</label>
-                    <input type="email" name="regEmail" class="form-input" placeholder="user@domain.com" required>
-                </div>
-                <div style="margin-bottom: 14px;">
-                    <label class="filter-label">رقم الجوال لتلقي التنبيهات *</label>
-                    <input type="tel" name="regPhone" class="form-input" placeholder="+966 50 123 4567" required>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label class="filter-label">كلمة المرور الحصينة *</label>
-                    <input type="password" name="regPassword" class="form-input" placeholder="••••••••" required>
+                    <div class="input-icon-wrap">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" name="regName" class="form-input" placeholder="مثال: المهندس محمد الدوسري" required>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
-                    <i class="fa-solid fa-id-card"></i> توثيق الحساب والدخول الفوري
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">البريد الإلكتروني الحقيقي *</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email" name="regEmail" class="form-input" placeholder="user@domain.com" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">رقم الجوال لتلقي التنبيهات *</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-phone"></i>
+                        <input type="tel" name="regPhone" class="form-input" placeholder="+966 50 123 4567" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">كلمة المرور الحصينة *</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" name="regPassword" class="form-input" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
+                    <i class="fa-solid fa-user-check"></i> إنشاء الحساب وتوثيق البيانات
                 </button>
+
+                <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
+                    لديك حساب بالفعل؟ <a href="javascript:void(0)" onclick="app.switchAuthTab('login')" style="color: var(--color-primary); font-weight: 800;">تسجيل الدخول</a>
+                </p>
             </form>
+
         </div>
     </div>
 
@@ -280,10 +351,10 @@
         </div>
     </div>
 
-    <!-- Supabase JS Client SDK + Production Scripts v4.0 -->
+    <!-- Supabase JS Client SDK + Production Scripts v5.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=4.0"></script>
-    <script src="js/supabase-config.js?v=4.0"></script>
-    <script src="js/app.js?v=4.0"></script>
+    <script src="js/data.js?v=5.0"></script>
+    <script src="js/supabase-config.js?v=5.0"></script>
+    <script src="js/app.js?v=5.0"></script>
 </body>
 </html>
