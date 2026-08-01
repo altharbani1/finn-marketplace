@@ -132,8 +132,8 @@
                     </div>
 
                     <div class="view-mode-switch">
-                        <button class="view-mode-btn active" id="viewGridBtn" title="عرض شبكي"><i class="fa-solid fa-border-all"></i></button>
-                        <button class="view-mode-btn" id="viewListBtn" title="عرض قائمة"><i class="fa-solid fa-list"></i></button>
+                        <button class="view-mode-btn active" id="viewGridBtn" title="عرض شبكي" aria-label="عرض الإعلانات بشكل شبكي"><i class="fa-solid fa-border-all" aria-hidden="true"></i></button>
+                        <button class="view-mode-btn" id="viewListBtn" title="عرض قائمة" aria-label="عرض الإعلانات كقائمة"><i class="fa-solid fa-list" aria-hidden="true"></i></button>
                     </div>
                 </div>
             </div>
@@ -148,7 +148,7 @@
     <!-- 5. Real Auth Security Modal -->
     <div class="modal-overlay" id="realAuthModal">
         <div class="modal-box auth-modal-card">
-            <button class="modal-close-btn" onclick="app.closeModal('realAuthModal')"><i class="fa-solid fa-xmark"></i></button>
+            <button class="modal-close-btn" onclick="app.closeModal('realAuthModal')" aria-label="إغلاق نافذة الحساب"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             
             <div id="authNoticeBox"></div>
 
@@ -187,7 +187,7 @@
                 </button>
 
                 <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
-                    ليس لديك حساب بعد؟ <a href="javascript:void(0)" onclick="app.switchAuthTab('register')" style="color: var(--color-primary); font-weight: 800;">إنشاء حساب جديد مجاناً</a>
+                    ليس لديك حساب بعد؟ <button type="button" onclick="app.switchAuthTab('register')" style="border: 0; padding: 0; background: none; color: var(--color-primary); font: inherit; font-weight: 800; cursor: pointer;">إنشاء حساب جديد مجاناً</button>
                 </p>
             </form>
 
@@ -230,7 +230,7 @@
                 </button>
 
                 <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
-                    لديك حساب بالفعل؟ <a href="javascript:void(0)" onclick="app.switchAuthTab('login')" style="color: var(--color-primary); font-weight: 800;">تسجيل الدخول</a>
+                    لديك حساب بالفعل؟ <button type="button" onclick="app.switchAuthTab('login')" style="border: 0; padding: 0; background: none; color: var(--color-primary); font: inherit; font-weight: 800; cursor: pointer;">تسجيل الدخول</button>
                 </p>
             </form>
 
@@ -240,7 +240,7 @@
     <!-- 6. Detail View Modal -->
     <div class="modal-overlay" id="detailModal">
         <div class="modal-box">
-            <button class="modal-close-btn" onclick="app.closeModal('detailModal')"><i class="fa-solid fa-xmark"></i></button>
+            <button class="modal-close-btn" onclick="app.closeModal('detailModal')" aria-label="إغلاق تفاصيل الإعلان"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             <div id="detailModalContent">
                 <!-- Rendered dynamically -->
             </div>
@@ -250,7 +250,7 @@
     <!-- 7. Post Ad Modal ("أضف إعلانك") -->
     <div class="modal-overlay" id="postAdModal">
         <div class="modal-box" style="max-width: 650px; padding: 28px;">
-            <button class="modal-close-btn" onclick="app.closeModal('postAdModal')"><i class="fa-solid fa-xmark"></i></button>
+            <button class="modal-close-btn" onclick="app.closeModal('postAdModal')" aria-label="إغلاق نافذة إضافة الإعلان"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
             
             <form onsubmit="app.submitNewAd(event)">
@@ -329,7 +329,7 @@
     <!-- 8. Live Chat Modal -->
     <div class="modal-overlay" id="chatModal">
         <div class="modal-box" style="max-width: 550px; padding: 24px;">
-            <button class="modal-close-btn" onclick="app.closeModal('chatModal')"><i class="fa-solid fa-xmark"></i></button>
+            <button class="modal-close-btn" onclick="app.closeModal('chatModal')" aria-label="إغلاق المحادثة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--color-primary);"><i class="fa-regular fa-comments"></i> المحادثة المباشرة مع البائع</h3>
             
             <div class="chat-messages-container" id="chatMessagesBox">
@@ -338,15 +338,16 @@
 
             <div class="chat-input-row">
                 <input type="text" class="form-input" id="chatInput" placeholder="اكتب رسالتك للبائع هنا..." onkeypress="if(event.key==='Enter') app.sendChatMessage()">
-                <button class="btn btn-primary" onclick="app.sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                <button class="btn btn-primary" onclick="app.sendChatMessage()" aria-label="إرسال الرسالة"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
             </div>
         </div>
     </div>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=6.0"></script>
-    <script src="js/supabase-config.js?v=6.0"></script>
-    <script src="js/app.js?v=6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="js/data.js?v=7.0"></script>
+    <script src="js/security.js?v=7.0"></script>
+    <script src="js/supabase-config.js?v=7.0"></script>
+    <script src="js/app.js?v=7.0"></script>
 </body>
 </html>

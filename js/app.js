@@ -88,13 +88,13 @@ class FinnMarketApp {
                     <span class="badge-count">1</span>
                 </button>
                 
-                <a href="admin.html" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" title="لوحة التحكّم الإدارية">
+                ${authUser.role === 'admin' ? `<a href="admin.html" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" title="لوحة التحكّم الإدارية">
                     <i class="fa-solid fa-shield-halved"></i> الإدارة
-                </a>
+                </a>` : ''}
 
                 <div class="user-profile-btn" onclick="window.location.href='profile.html'" title="بروفايلي وإعلاناتي">
-                    <img src="${authUser.avatar}" class="user-avatar-head">
-                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name}</span>
+                    <img src="${escapeHTML(safeHttpUrl(authUser.avatar, DEFAULT_AVATAR))}" class="user-avatar-head">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${escapeHTML(authUser.name)}</span>
                 </div>
 
                 <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="app.handleLogout()" title="تسجيل الخروج">
@@ -346,24 +346,24 @@ class FinnMarketApp {
             const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
 
             return `
-                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
+                <div class="listing-card" data-listing-id="${escapeHTML(item.id)}">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" alt="${item.title}" class="listing-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
-                        <span class="badge-tag ${badgeClass}">${badgeText}</span>
-                        <button class="btn-fav-card ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); app.toggleFav('${item.id}')">
+                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" alt="${escapeHTML(item.title)}" class="listing-thumb" loading="lazy" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                        <span class="badge-tag ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
+                        <button class="btn-fav-card ${isFav ? 'active' : ''}" data-favorite-id="${escapeHTML(item.id)}">
                             <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
                         </button>
                     </div>
                     <div class="listing-body">
                         <div class="listing-meta-sub">
                             <i class="fa-solid fa-location-dot"></i>
-                            <span>${item.city} - ${item.neighborhood || ''}</span>
+                            <span>${escapeHTML(item.city)} - ${escapeHTML(item.neighborhood || '')}</span>
                         </div>
-                        <h3 class="listing-card-title">${item.title}</h3>
+                        <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
                         <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
                         <div class="listing-footer-info">
-                            <span><i class="fa-regular fa-clock"></i> ${item.timeAgo}</span>
-                            <span><i class="fa-regular fa-eye"></i> ${item.views} مشاهدة</span>
+                            <span><i class="fa-regular fa-clock"></i> ${escapeHTML(item.timeAgo)}</span>
+                            <span><i class="fa-regular fa-eye"></i> ${Number(item.views) || 0} مشاهدة</span>
                         </div>
                     </div>
                 </div>
@@ -466,14 +466,19 @@ class FinnMarketApp {
             comments: []
         };
 
-        await finnDB.saveListing(newAd);
-        this.listings = await finnDB.getListings();
+        try {
+            const saved = await finnDB.saveListing(newAd);
+            this.listings.unshift(saved);
+        } catch (error) {
+            alert(error.message || 'تعذر حفظ الإعلان.');
+            return;
+        }
         this.closeModal('postAdModal');
         form.reset();
         this.state.uploadedImages = [];
         this.renderImagePreviews();
         this.applyFiltersAndRender();
-        alert('🎉 تم إرسال وحفظ إعلانك الحقيقي بنجاح في قاعدة بيانات Supabase السحابية!');
+        alert('تم حفظ الإعلان بنجاح في Supabase.');
     }
 
     async openChatForListing(listingId) {
@@ -519,6 +524,17 @@ class FinnMarketApp {
     }
 
     setupEventListeners() {
+        document.getElementById('listingsFeed')?.addEventListener('click', (event) => {
+            const favoriteButton = event.target.closest('[data-favorite-id]');
+            if (favoriteButton) {
+                event.stopPropagation();
+                this.toggleFav(favoriteButton.dataset.favoriteId);
+                return;
+            }
+            const card = event.target.closest('[data-listing-id]');
+            if (card) window.location.href = `listing.html?id=${encodeURIComponent(card.dataset.listingId)}`;
+        });
+
         const searchInput = document.getElementById('globalSearch');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {

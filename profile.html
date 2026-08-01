@@ -193,9 +193,10 @@
     </main>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=6.0"></script>
-    <script src="js/supabase-config.js?v=6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="js/data.js?v=7.0"></script>
+    <script src="js/security.js?v=7.0"></script>
+    <script src="js/supabase-config.js?v=7.0"></script>
     <script>
         let currentUser = null;
 
@@ -218,12 +219,12 @@
             const heroContainer = document.getElementById('profileHeroCard');
             heroContainer.innerHTML = `
                 <div class="profile-user-info">
-                    <img src="${currentUser.avatar}" class="profile-avatar-large" alt="${currentUser.name}">
+                    <img src="${escapeHTML(safeHttpUrl(currentUser.avatar, DEFAULT_AVATAR))}" class="profile-avatar-large" alt="${escapeHTML(currentUser.name)}">
                     <div>
                         <h2 style="font-size: 26px; font-weight: 900; margin-bottom: 4px;">
-                            ${currentUser.name} <i class="fa-solid fa-circle-check" style="color: #60a5fa;" title="عضو موثق"></i>
+                            ${escapeHTML(currentUser.name)} ${currentUser.verified ? '<i class="fa-solid fa-circle-check" style="color: #60a5fa;" title="عضو موثق"></i>' : ''}
                         </h2>
-                        <p style="opacity: 0.9; font-size: 14px;"><i class="fa-regular fa-envelope"></i> ${currentUser.email} &nbsp;•&nbsp; <i class="fa-solid fa-phone"></i> ${currentUser.phone || 'غير مدخل'}</p>
+                        <p style="opacity: 0.9; font-size: 14px;"><i class="fa-regular fa-envelope"></i> ${escapeHTML(currentUser.email)} &nbsp;•&nbsp; <i class="fa-solid fa-phone"></i> ${escapeHTML(currentUser.phone || 'غير مدخل')}</p>
                         <span style="display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.2); padding: 3px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700;">عضوية موثقة سحابية</span>
                     </div>
                 </div>
@@ -261,20 +262,20 @@
 
         async function renderMyAds() {
             const allListings = await finnDB.getListings();
-            const myAds = allListings.filter(l => l.seller && l.seller.name === currentUser.name) || allListings.slice(0, 3);
+            const myAds = allListings.filter((listing) => listing.userId === currentUser.id);
             
             document.getElementById('myAdsCount').textContent = myAds.length;
             document.getElementById('statAdsCount').textContent = myAds.length;
 
             const grid = document.getElementById('myAdsGrid');
             grid.innerHTML = myAds.map(item => `
-                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
+                <div class="listing-card" onclick="window.location.href='listing.html?id=${encodeURIComponent(item.id)}'">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" class="listing-thumb" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
-                        <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
+                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                        <span class="badge-tag badge-${escapeHTML(item.category)}">${escapeHTML(item.subCategory)}</span>
                     </div>
                     <div class="listing-body">
-                        <h3 class="listing-card-title">${item.title}</h3>
+                        <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
                         <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
                         <div style="display: flex; gap: 8px; margin-top: 10px;">
                             <button class="btn btn-outline" style="flex: 1; height: 36px; font-size: 12px; color: var(--color-danger);" onclick="event.stopPropagation(); deleteMyAd('${item.id}')">
@@ -295,13 +296,13 @@
             const grid = document.getElementById('myFavsGrid');
 
             grid.innerHTML = favListings.map(item => `
-                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
+                <div class="listing-card" onclick="window.location.href='listing.html?id=${encodeURIComponent(item.id)}'">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" class="listing-thumb" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
-                        <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
+                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                        <span class="badge-tag badge-${escapeHTML(item.category)}">${escapeHTML(item.subCategory)}</span>
                     </div>
                     <div class="listing-body">
-                        <h3 class="listing-card-title">${item.title}</h3>
+                        <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
                         <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
                     </div>
                 </div>
@@ -317,21 +318,22 @@
 
         async function saveProfileSettings(e) {
             e.preventDefault();
-            currentUser.name = document.getElementById('editName').value;
-            currentUser.email = document.getElementById('editEmail').value;
-            currentUser.phone = document.getElementById('editPhone').value;
-            currentUser.avatar = document.getElementById('editAvatar').value || currentUser.avatar;
-
-            localStorage.setItem('finn_active_session_v3', JSON.stringify(currentUser));
-            alert('🎉 تم تحديث بيانات بروفايلك بنجاح!');
-            renderProfileHero();
+            try {
+                currentUser = await finnDB.updateProfile({
+                    name: document.getElementById('editName').value,
+                    phone: document.getElementById('editPhone').value,
+                    avatar: document.getElementById('editAvatar').value
+                });
+                alert('تم تحديث بيانات الملف الشخصي بنجاح.');
+                renderProfileHero();
+            } catch (error) {
+                alert(error.message || 'تعذر تحديث الملف الشخصي.');
+            }
         }
 
         async function deleteMyAd(id) {
             if (confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان نهائياً؟')) {
-                const listings = await finnDB.getListings();
-                const filtered = listings.filter(l => l.id !== id);
-                localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(filtered));
+                await finnDB.deleteListing(id);
                 await renderMyAds();
                 alert('تم حذف الإعلان بنجاح.');
             }
