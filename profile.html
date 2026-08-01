@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الملف الشخصي والعضوية | FinnMarket</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/main.css?v=5.0">
+    <link rel="stylesheet" href="css/components.css?v=5.0">
+
+    <style>
+        .profile-hero-card {
+            background: linear-gradient(135deg, #0052d4 0%, #4364f7 100%);
+            border-radius: var(--radius-xl);
+            color: white;
+            padding: 36px 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .profile-hero-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        .profile-user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-avatar-large {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .profile-stats-row {
+            display: flex;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .profile-stat-box {
+            text-align: center;
+        }
+
+        .profile-stat-num {
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .profile-stat-lbl {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .profile-tabs-bar {
+            display: flex;
+            gap: 12px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 28px;
+        }
+
+        .profile-tab-item {
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-tab-item.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="brand-logo">
+                <i class="fa-solid fa-shapes"></i>
+                <span>FinnMarket</span>
+                <span class="brand-badge">بروفايل العضو</span>
+            </a>
+
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-outline">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container" style="margin-top: 32px; padding-bottom: 60px;">
+        <!-- User Profile Hero Banner -->
+        <div class="profile-hero-card" id="profileHeroCard">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Dashboard Navigation Tabs -->
+        <div class="profile-tabs-bar">
+            <div class="profile-tab-item active" id="tabMyAds" onclick="switchProfileTab('myAds')">
+                <i class="fa-solid fa-layer-group"></i> إعلاناتي النشطة (<span id="myAdsCount">0</span>)
+            </div>
+            <div class="profile-tab-item" id="tabFavs" onclick="switchProfileTab('favs')">
+                <i class="fa-solid fa-heart"></i> المفضلة (<span id="myFavsCount">0</span>)
+            </div>
+            <div class="profile-tab-item" id="tabSettings" onclick="switchProfileTab('settings')">
+                <i class="fa-solid fa-gear"></i> إعدادات الحساب والتوثيق
+            </div>
+        </div>
+
+        <!-- Tab 1: My Active Ads Grid -->
+        <section id="sectionMyAds">
+            <div class="listings-grid" id="myAdsGrid">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- Tab 2: Saved Favorites Grid -->
+        <section id="sectionFavs" style="display: none;">
+            <div class="listings-grid" id="myFavsGrid">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- Tab 3: Account Settings Form -->
+        <section id="sectionSettings" style="display: none;">
+            <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 32px; max-width: 600px;">
+                <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);">
+                    <i class="fa-solid fa-user-pen"></i> تعديل بيانات الملف الشخصي
+                </h3>
+
+                <form onsubmit="saveProfileSettings(event)">
+                    <div style="margin-bottom: 16px;">
+                        <label class="filter-label">الاسم الكامل (سيظهر للمستفيدين) *</label>
+                        <input type="text" id="editName" class="form-input" required>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label class="filter-label">البريد الإلكتروني *</label>
+                        <input type="email" id="editEmail" class="form-input" required>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label class="filter-label">رقم الجوال لتلقي الاتصالات *</label>
+                        <input type="tel" id="editPhone" class="form-input" required>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label class="filter-label">رابط صورة البروفايل</label>
+                        <input type="url" id="editAvatar" class="form-input">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="height: 48px; font-size: 15px;">
+                        <i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات فوراً
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- JS Scripts -->
+    <script src="js/data.js?v=5.0"></script>
+    <script src="js/supabase-config.js?v=5.0"></script>
+    <script>
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = await finnDB.getAuthUser();
+            
+            if (!currentUser) {
+                alert('يرجى تسجيل الدخول أولاً للوصول لملفك الشخصي.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            renderProfileHero();
+            renderMyAds();
+            renderMyFavs();
+            populateSettingsForm();
+        });
+
+        function renderProfileHero() {
+            const heroContainer = document.getElementById('profileHeroCard');
+            heroContainer.innerHTML = `
+                <div class="profile-user-info">
+                    <img src="${currentUser.avatar}" class="profile-avatar-large" alt="${currentUser.name}">
+                    <div>
+                        <h2 style="font-size: 26px; font-weight: 900; margin-bottom: 4px;">
+                            ${currentUser.name} <i class="fa-solid fa-circle-check" style="color: #60a5fa;" title="عضو موثق"></i>
+                        </h2>
+                        <p style="opacity: 0.9; font-size: 14px;"><i class="fa-regular fa-envelope"></i> ${currentUser.email} &nbsp;•&nbsp; <i class="fa-solid fa-phone"></i> ${currentUser.phone || 'غير مدخل'}</p>
+                        <span style="display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.2); padding: 3px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700;">عضوية موثقة سحابية</span>
+                    </div>
+                </div>
+
+                <div class="profile-stats-row">
+                    <div class="profile-stat-box">
+                        <div class="profile-stat-num" id="statAdsCount">0</div>
+                        <div class="profile-stat-lbl">إعلانات نشطة</div>
+                    </div>
+                    <div class="profile-stat-box" style="border-right: 1px solid rgba(255,255,255,0.3); padding-right: 16px;">
+                        <div class="profile-stat-num">5.0 ★</div>
+                        <div class="profile-stat-lbl">تقييم الأعضاء</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchProfileTab(tab) {
+            document.querySelectorAll('.profile-tab-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('sectionMyAds').style.display = 'none';
+            document.getElementById('sectionFavs').style.display = 'none';
+            document.getElementById('sectionSettings').style.display = 'none';
+
+            if (tab === 'myAds') {
+                document.getElementById('tabMyAds').classList.add('active');
+                document.getElementById('sectionMyAds').style.display = 'block';
+            } else if (tab === 'favs') {
+                document.getElementById('tabFavs').classList.add('active');
+                document.getElementById('sectionFavs').style.display = 'block';
+            } else if (tab === 'settings') {
+                document.getElementById('tabSettings').classList.add('active');
+                document.getElementById('sectionSettings').style.display = 'block';
+            }
+        }
+
+        async function renderMyAds() {
+            const allListings = await finnDB.getListings();
+            // Filter user ads
+            const myAds = allListings.filter(l => l.seller && l.seller.name === currentUser.name) || allListings.slice(0, 3);
+            
+            document.getElementById('myAdsCount').textContent = myAds.length;
+            document.getElementById('statAdsCount').textContent = myAds.length;
+
+            const grid = document.getElementById('myAdsGrid');
+            grid.innerHTML = myAds.map(item => `
+                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
+                    <div class="listing-thumb-wrap">
+                        <img src="${item.images[0]}" class="listing-thumb">
+                        <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
+                    </div>
+                    <div class="listing-body">
+                        <h3 class="listing-card-title">${item.title}</h3>
+                        <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
+                        <div style="display: flex; gap: 8px; margin-top: 10px;">
+                            <button class="btn btn-outline" style="flex: 1; height: 36px; font-size: 12px; color: var(--color-danger);" onclick="event.stopPropagation(); deleteMyAd('${item.id}')">
+                                <i class="fa-solid fa-trash"></i> حذف الإعلان
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderMyFavs() {
+            const allListings = await finnDB.getListings();
+            const favIds = finnDB.getFavorites();
+            const favListings = allListings.filter(l => favIds.includes(l.id));
+
+            document.getElementById('myFavsCount').textContent = favListings.length;
+            const grid = document.getElementById('myFavsGrid');
+
+            grid.innerHTML = favListings.map(item => `
+                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
+                    <div class="listing-thumb-wrap">
+                        <img src="${item.images[0]}" class="listing-thumb">
+                        <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
+                    </div>
+                    <div class="listing-body">
+                        <h3 class="listing-card-title">${item.title}</h3>
+                        <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateSettingsForm() {
+            document.getElementById('editName').value = currentUser.name || '';
+            document.getElementById('editEmail').value = currentUser.email || '';
+            document.getElementById('editPhone').value = currentUser.phone || '';
+            document.getElementById('editAvatar').value = currentUser.avatar || '';
+        }
+
+        async function saveProfileSettings(e) {
+            e.preventDefault();
+            currentUser.name = document.getElementById('editName').value;
+            currentUser.email = document.getElementById('editEmail').value;
+            currentUser.phone = document.getElementById('editPhone').value;
+            currentUser.avatar = document.getElementById('editAvatar').value || currentUser.avatar;
+
+            localStorage.setItem('finn_active_session_v3', JSON.stringify(currentUser));
+            alert('🎉 تم تحديث بيانات بروفايلك بنجاح!');
+            renderProfileHero();
+        }
+
+        async function deleteMyAd(id) {
+            if (confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان نهائياً؟')) {
+                const listings = await finnDB.getListings();
+                const filtered = listings.filter(l => l.id !== id);
+                localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(filtered));
+                renderMyAds();
+                alert('تم حذف الإعلان بنجاح.');
+            }
+        }
+    </script>
+</body>
+</html>

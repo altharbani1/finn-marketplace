@@ -55,10 +55,10 @@ class FinnMarketApp {
                     <span class="badge-count">1</span>
                 </button>
                 
-                <div class="user-profile-btn" onclick="app.toggleUserMenu()" title="حسابي الموثق السحابي">
+                <div class="user-profile-btn" onclick="window.location.href='profile.html'" title="بروفايلي وإعلاناتي">
                     <img src="${authUser.avatar}" class="user-avatar-head">
                     <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name}</span>
-                    <i class="fa-solid fa-angle-down" style="font-size: 11px; color: var(--text-muted);"></i>
+                    <i class="fa-solid fa-user-gear" style="font-size: 12px; color: var(--color-primary);"></i>
                 </div>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
@@ -84,12 +84,6 @@ class FinnMarketApp {
             `;
         }
         this.updateHeaderBadges();
-    }
-
-    async toggleUserMenu() {
-        if (confirm('هل ترغب في تسجيل الخروج من حسابك الموثق في Supabase؟')) {
-            await this.handleLogout();
-        }
     }
 
     async handleLogout() {
