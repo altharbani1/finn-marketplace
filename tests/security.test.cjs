@@ -27,3 +27,9 @@ test('safeHttpUrl rejects script and data URLs', () => {
 test('safeTel strips characters that cannot be dialed', () => {
     assert.equal(context.safeTel('+966 50 123 4567;alert(1)'), '+966 50 123 4567(1)');
 });
+
+test('validatePassword requires length plus letters and numbers', () => {
+    assert.match(context.validatePassword('short1'), /8/);
+    assert.match(context.validatePassword('abcdefgh'), /حرفًا واحدًا ورقمًا/);
+    assert.equal(context.validatePassword('secure123'), '');
+});

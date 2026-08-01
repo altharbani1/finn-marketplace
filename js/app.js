@@ -29,6 +29,7 @@ class FinnMarketApp {
     }
 
     async init() {
+        this.setupAuthLifecycle();
         this.renderLoadingState();
         try {
             this.listings = await finnDB.getListings();
@@ -143,35 +144,85 @@ class FinnMarketApp {
         this.state.activeAuthTab = tab;
         const loginForm = document.getElementById('loginAuthForm');
         const regForm = document.getElementById('registerAuthForm');
+        const forgotForm = document.getElementById('forgotPasswordForm');
+        const updatePasswordForm = document.getElementById('updatePasswordForm');
         const tabLoginBtn = document.getElementById('tabLoginBtn');
         const tabRegBtn = document.getElementById('tabRegisterBtn');
 
-        if (tab === 'login') {
-            loginForm.style.display = 'block';
-            regForm.style.display = 'none';
-            tabLoginBtn?.classList.add('active');
-            tabRegBtn?.classList.remove('active');
-        } else {
-            loginForm.style.display = 'none';
-            regForm.style.display = 'block';
-            tabLoginBtn?.classList.remove('active');
-            tabRegBtn?.classList.add('active');
+        [loginForm, regForm, forgotForm, updatePasswordForm].forEach(form => {
+            if (form) form.style.display = 'none';
+        });
+        tabLoginBtn?.classList.toggle('active', tab === 'login');
+        tabRegBtn?.classList.toggle('active', tab === 'register');
+
+        if (tab === 'login' && loginForm) loginForm.style.display = 'block';
+        if (tab === 'register' && regForm) regForm.style.display = 'block';
+        if (tab === 'forgot' && forgotForm) forgotForm.style.display = 'block';
+        if (tab === 'recovery' && updatePasswordForm) updatePasswordForm.style.display = 'block';
+    }
+
+    setupAuthLifecycle() {
+        try {
+            finnDB.onAuthStateChange((event) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    window.setTimeout(() => this.openAuthModal('recovery'), 0);
+                } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                    window.setTimeout(() => this.renderAuthNavHeader(), 0);
+                }
+            });
+        } catch (_) {}
+
+        const callbackParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const callbackError = callbackParams.get('error_description');
+        if (callbackError) {
+            window.setTimeout(() => {
+                this.openAuthModal('login');
+                this.setAuthNotice('رابط المصادقة غير صالح أو انتهت صلاحيته. حاول مرة أخرى.', 'error');
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }, 0);
         }
+    }
+
+    getAuthRedirectUrl() {
+        return `${window.location.origin}${window.location.pathname}`;
+    }
+
+    setAuthNotice(message = '', type = 'info') {
+        const noticeBox = document.getElementById('authNoticeBox');
+        if (!noticeBox) return;
+        noticeBox.innerHTML = message
+            ? `<div class="auth-notice ${type}" role="status">${escapeHTML(message)}</div>`
+            : '';
+    }
+
+    setFormLoading(form, isLoading, loadingText) {
+        const button = form.querySelector('button[type="submit"]');
+        if (!button) return;
+        if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+        button.disabled = isLoading;
+        button.innerHTML = isLoading
+            ? `<i class="fa-solid fa-circle-notch fa-spin"></i> ${escapeHTML(loadingText)}`
+            : button.dataset.originalHtml;
     }
 
     async handleRealLogin(event) {
         event.preventDefault();
         const form = event.target;
         const email = form.loginEmail.value.trim();
-        const password = form.loginPassword.value.trim();
+        const password = form.loginPassword.value;
 
+        this.setAuthNotice();
+        this.setFormLoading(form, true, 'جاري تسجيل الدخول...');
         try {
             const user = await finnDB.loginRealUser(email, password);
+            form.reset();
             this.closeModal('realAuthModal');
             await this.renderAuthNavHeader();
-            alert(`🎉 تم التحقق وتسجيل الدخول بنجاح لحساب (${user.name}) عبر سيرفر Supabase!`);
+            alert(`مرحبًا ${user.name}، تم تسجيل دخولك بنجاح.`);
         } catch (err) {
-            alert('⚠️ ' + err.message);
+            this.setAuthNotice(err.message, 'error');
+        } finally {
+            this.setFormLoading(form, false);
         }
     }
 
@@ -180,16 +231,74 @@ class FinnMarketApp {
         const form = event.target;
         const name = form.regName.value.trim();
         const email = form.regEmail.value.trim();
-        const password = form.regPassword.value.trim();
+        const password = form.regPassword.value;
+        const passwordConfirm = form.regPasswordConfirm.value;
         const phone = form.regPhone.value.trim();
 
+        const passwordError = validatePassword(password);
+        if (passwordError) return this.setAuthNotice(passwordError, 'error');
+        if (password !== passwordConfirm) return this.setAuthNotice('كلمتا المرور غير متطابقتين.', 'error');
+
+        this.setAuthNotice();
+        this.setFormLoading(form, true, 'جاري إنشاء الحساب...');
         try {
-            const user = await finnDB.registerRealUser(name, email, password, phone);
-            this.closeModal('realAuthModal');
-            await this.renderAuthNavHeader();
-            alert(`🎉 تم إنشاء وتوثيق حسابك السحابي بنجاح باسم (${name})!`);
+            const user = await finnDB.registerRealUser(name, email, password, phone, this.getAuthRedirectUrl());
+            form.reset();
+            if (user.requiresEmailConfirmation) {
+                this.switchAuthTab('login');
+                document.querySelector('[name="loginEmail"]').value = email;
+                this.setAuthNotice('تم إنشاء الحساب. افتح رسالة التأكيد المرسلة إلى بريدك، ثم سجّل الدخول.', 'success');
+            } else {
+                this.closeModal('realAuthModal');
+                await this.renderAuthNavHeader();
+                alert(`مرحبًا ${name}، تم إنشاء حسابك وتسجيل دخولك بنجاح.`);
+            }
         } catch (err) {
-            alert('⚠️ ' + err.message);
+            this.setAuthNotice(err.message, 'error');
+        } finally {
+            this.setFormLoading(form, false);
+        }
+    }
+
+    async handlePasswordResetRequest(event) {
+        event.preventDefault();
+        const form = event.target;
+        const email = form.resetEmail.value.trim();
+        this.setAuthNotice();
+        this.setFormLoading(form, true, 'جاري إرسال الرابط...');
+        try {
+            await finnDB.requestPasswordReset(email, this.getAuthRedirectUrl());
+            form.reset();
+            this.setAuthNotice('إذا كان البريد مسجلًا، ستصلك رسالة الاستعادة خلال دقائق. افحص البريد غير المرغوب أيضًا.', 'success');
+        } catch (err) {
+            this.setAuthNotice(err.message, 'error');
+        } finally {
+            this.setFormLoading(form, false);
+        }
+    }
+
+    async handleRecoveredPasswordUpdate(event) {
+        event.preventDefault();
+        const form = event.target;
+        const password = form.newPassword.value;
+        const passwordConfirm = form.newPasswordConfirm.value;
+        const passwordError = validatePassword(password);
+        if (passwordError) return this.setAuthNotice(passwordError, 'error');
+        if (password !== passwordConfirm) return this.setAuthNotice('كلمتا المرور غير متطابقتين.', 'error');
+
+        this.setAuthNotice();
+        this.setFormLoading(form, true, 'جاري حفظ كلمة المرور...');
+        try {
+            await finnDB.updateRecoveredPassword(password);
+            await finnDB.logoutUser();
+            form.reset();
+            this.switchAuthTab('login');
+            this.setAuthNotice('تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.', 'success');
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch (err) {
+            this.setAuthNotice(err.message, 'error');
+        } finally {
+            this.setFormLoading(form, false);
         }
     }
 
@@ -405,11 +514,11 @@ class FinnMarketApp {
                     <p style="color: #7f1d1d; font-size: 13px; margin-top: 4px;">لا يمكن نشر إعلان بدون تسجيل دخول حقيقي وتوثيق البيانات عبر السيرفر.</p>
                 </div>
             `;
-        } else {
+        } else if (reason !== 'recovery') {
             noticeBox.innerHTML = '';
         }
 
-        this.switchAuthTab('login');
+        this.switchAuthTab(reason === 'recovery' ? 'recovery' : 'login');
         modal?.classList.add('active');
     }
 

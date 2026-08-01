@@ -14,9 +14,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS with Cache Buster v6.0 -->
+    <!-- Custom CSS with Cache Buster v8.0 -->
     <link rel="stylesheet" href="css/main.css?v=6.0">
-    <link rel="stylesheet" href="css/components.css?v=6.0">
+    <link rel="stylesheet" href="css/components.css?v=8.0">
 </head>
 <body>
 
@@ -170,7 +170,7 @@
                     <label class="filter-label">البريد الإلكتروني المسجل</label>
                     <div class="input-icon-wrap">
                         <i class="fa-regular fa-envelope"></i>
-                        <input type="email" name="loginEmail" class="form-input" placeholder="user@domain.com" required>
+                        <input type="email" name="loginEmail" class="form-input" placeholder="user@domain.com" autocomplete="email" required>
                     </div>
                 </div>
 
@@ -178,13 +178,17 @@
                     <label class="filter-label">كلمة المرور</label>
                     <div class="input-icon-wrap">
                         <i class="fa-solid fa-lock"></i>
-                        <input type="password" name="loginPassword" class="form-input" placeholder="••••••••" required>
+                        <input type="password" name="loginPassword" class="form-input" placeholder="••••••••" autocomplete="current-password" required>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
                     <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
                 </button>
+
+                <div style="text-align: left; margin-top: 12px;">
+                    <button type="button" class="auth-text-btn" onclick="app.switchAuthTab('forgot')">نسيت كلمة المرور؟</button>
+                </div>
 
                 <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
                     ليس لديك حساب بعد؟ <button type="button" onclick="app.switchAuthTab('register')" style="border: 0; padding: 0; background: none; color: var(--color-primary); font: inherit; font-weight: 800; cursor: pointer;">إنشاء حساب جديد مجاناً</button>
@@ -197,7 +201,7 @@
                     <label class="filter-label">الاسم الكامل (سيظهر في إعلاناتك) *</label>
                     <div class="input-icon-wrap">
                         <i class="fa-regular fa-user"></i>
-                        <input type="text" name="regName" class="form-input" placeholder="مثال: المهندس محمد الدوسري" required>
+                        <input type="text" name="regName" class="form-input" placeholder="مثال: المهندس محمد الدوسري" autocomplete="name" minlength="2" required>
                     </div>
                 </div>
 
@@ -205,7 +209,7 @@
                     <label class="filter-label">البريد الإلكتروني الحقيقي *</label>
                     <div class="input-icon-wrap">
                         <i class="fa-regular fa-envelope"></i>
-                        <input type="email" name="regEmail" class="form-input" placeholder="user@domain.com" required>
+                        <input type="email" name="regEmail" class="form-input" placeholder="user@domain.com" autocomplete="email" required>
                     </div>
                 </div>
 
@@ -213,7 +217,7 @@
                     <label class="filter-label">رقم الجوال لتلقي التنبيهات *</label>
                     <div class="input-icon-wrap">
                         <i class="fa-solid fa-phone"></i>
-                        <input type="tel" name="regPhone" class="form-input" placeholder="+966 50 123 4567" required>
+                        <input type="tel" name="regPhone" class="form-input" placeholder="+966 50 123 4567" autocomplete="tel" inputmode="tel" required>
                     </div>
                 </div>
 
@@ -221,7 +225,15 @@
                     <label class="filter-label">كلمة المرور الحصينة *</label>
                     <div class="input-icon-wrap">
                         <i class="fa-solid fa-lock"></i>
-                        <input type="password" name="regPassword" class="form-input" placeholder="••••••••" required>
+                        <input type="password" name="regPassword" class="form-input" placeholder="8 أحرف على الأقل، تتضمن حرفًا ورقمًا" autocomplete="new-password" minlength="8" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">تأكيد كلمة المرور *</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" name="regPasswordConfirm" class="form-input" placeholder="أعد كتابة كلمة المرور" autocomplete="new-password" minlength="8" required>
                     </div>
                 </div>
 
@@ -232,6 +244,52 @@
                 <p style="text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted);">
                     لديك حساب بالفعل؟ <button type="button" onclick="app.switchAuthTab('login')" style="border: 0; padding: 0; background: none; color: var(--color-primary); font: inherit; font-weight: 800; cursor: pointer;">تسجيل الدخول</button>
                 </p>
+            </form>
+
+            <!-- Password reset request -->
+            <form id="forgotPasswordForm" style="display: none;" onsubmit="app.handlePasswordResetRequest(event)">
+                <div class="auth-form-heading">
+                    <i class="fa-solid fa-key"></i>
+                    <h3>استعادة كلمة المرور</h3>
+                    <p>أدخل بريدك وسنرسل لك رابطًا آمنًا لتعيين كلمة مرور جديدة.</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">البريد الإلكتروني المسجل</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email" name="resetEmail" class="form-input" placeholder="user@domain.com" autocomplete="email" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit-btn">
+                    <i class="fa-regular fa-paper-plane"></i> إرسال رابط الاستعادة
+                </button>
+                <button type="button" class="auth-back-btn" onclick="app.switchAuthTab('login')"><i class="fa-solid fa-arrow-right"></i> العودة لتسجيل الدخول</button>
+            </form>
+
+            <!-- New password after recovery link -->
+            <form id="updatePasswordForm" style="display: none;" onsubmit="app.handleRecoveredPasswordUpdate(event)">
+                <div class="auth-form-heading">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <h3>تعيين كلمة مرور جديدة</h3>
+                    <p>اختر كلمة مرور قوية ومختلفة عن السابقة.</p>
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">كلمة المرور الجديدة</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" name="newPassword" class="form-input" placeholder="8 أحرف على الأقل، تتضمن حرفًا ورقمًا" autocomplete="new-password" minlength="8" required>
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">تأكيد كلمة المرور الجديدة</label>
+                    <div class="input-icon-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" name="newPasswordConfirm" class="form-input" placeholder="أعد كتابة كلمة المرور" autocomplete="new-password" minlength="8" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit-btn">
+                    <i class="fa-solid fa-check"></i> حفظ كلمة المرور الجديدة
+                </button>
             </form>
 
         </div>
@@ -346,8 +404,8 @@
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=7.0"></script>
-    <script src="js/security.js?v=7.0"></script>
-    <script src="js/supabase-config.js?v=7.0"></script>
-    <script src="js/app.js?v=7.0"></script>
+    <script src="js/security.js?v=8.0"></script>
+    <script src="js/supabase-config.js?v=8.0"></script>
+    <script src="js/app.js?v=8.0"></script>
 </body>
 </html>
