@@ -41,10 +41,9 @@ class FinnMarketApp {
 
         this.renderCategoryBar();
         this.renderCityOptions();
+        await this.renderAuthNavHeader();
         this.applyFiltersAndRender();
         this.setupEventListeners();
-        await this.updateHeaderBadges();
-        await this.renderAuthNavHeader();
     }
 
     renderLoadingState() {
@@ -79,7 +78,7 @@ class FinnMarketApp {
 
         if (authUser) {
             navActions.innerHTML = `
-                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
+                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" onclick="app.toggleFavoritesFilter()" title="الإعلانات المفضلة">
                     <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
                 </button>
@@ -109,7 +108,7 @@ class FinnMarketApp {
             `;
         } else {
             navActions.innerHTML = `
-                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
+                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" onclick="app.toggleFavoritesFilter()" title="الإعلانات المفضلة">
                     <i class="fa-regular fa-heart"></i>
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
                 </button>
@@ -125,6 +124,11 @@ class FinnMarketApp {
             `;
         }
         this.updateHeaderBadges();
+    }
+
+    toggleFavoritesFilter() {
+        this.state.showFavoritesOnly = !this.state.showFavoritesOnly;
+        this.applyFiltersAndRender();
     }
 
     async handleLogout() {
@@ -145,13 +149,13 @@ class FinnMarketApp {
         if (tab === 'login') {
             loginForm.style.display = 'block';
             regForm.style.display = 'none';
-            tabLoginBtn.classList.add('active');
-            tabRegBtn.classList.remove('active');
+            tabLoginBtn?.classList.add('active');
+            tabRegBtn?.classList.remove('active');
         } else {
             loginForm.style.display = 'none';
             regForm.style.display = 'block';
-            tabLoginBtn.classList.remove('active');
-            tabRegBtn.classList.add('active');
+            tabLoginBtn?.classList.remove('active');
+            tabRegBtn?.classList.add('active');
         }
     }
 
@@ -387,7 +391,7 @@ class FinnMarketApp {
 
         this.state.uploadedImages = [];
         this.renderImagePreviews();
-        document.getElementById('postAdModal').classList.add('active');
+        document.getElementById('postAdModal')?.classList.add('active');
     }
 
     openAuthModal(reason = 'general') {
@@ -406,7 +410,7 @@ class FinnMarketApp {
         }
 
         this.switchAuthTab('login');
-        modal.classList.add('active');
+        modal?.classList.add('active');
     }
 
     async submitNewAd(event) {
@@ -425,11 +429,19 @@ class FinnMarketApp {
             ? [...this.state.uploadedImages] 
             : ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'];
 
+        const subCategoryText = (form.adCategory && form.adCategory.options[form.adCategory.selectedIndex]) 
+            ? form.adCategory.options[form.adCategory.selectedIndex].text 
+            : form.adCategory.value;
+
+        const conditionText = (form.adCondition && form.adCondition.options[form.adCondition.selectedIndex]) 
+            ? form.adCondition.options[form.adCondition.selectedIndex].text 
+            : 'استعمال نظيف';
+
         const newAd = {
             id: 'list-' + Date.now(),
             title: form.adTitle.value,
             category: form.adCategory.value,
-            subCategory: form.adCategory.options[form.adCategory.selectedIndex].text,
+            subCategory: subCategoryText,
             price: form.adIsFree.checked ? 0 : parseFloat(form.adPrice.value || 0),
             isFree: form.adIsFree.checked,
             city: form.adCity.value,
@@ -447,7 +459,7 @@ class FinnMarketApp {
                 verified: true
             },
             specs: {
-                'الحالة': form.adCondition.options[form.adCondition.selectedIndex].text,
+                'الحالة': conditionText,
                 'المنطقة': form.adCity.value
             },
             description: form.adDescription.value,
@@ -484,14 +496,13 @@ class FinnMarketApp {
             `).join('');
         }
 
-        modal.classList.add('active');
+        modal?.classList.add('active');
     }
 
     sendChatMessage() {
         const input = document.getElementById('chatInput');
         if (!input || !input.value.trim()) return;
 
-        finnDB.addMessage('chat-1', input.value.trim());
         input.value = '';
 
         const chatContainer = document.getElementById('chatMessagesBox');
@@ -554,11 +565,6 @@ class FinnMarketApp {
             this.state.viewMode = 'list';
             document.getElementById('viewListBtn').classList.add('active');
             document.getElementById('viewGridBtn').classList.remove('active');
-            this.applyFiltersAndRender();
-        });
-
-        document.getElementById('btnHeaderFavs')?.addEventListener('click', () => {
-            this.state.showFavoritesOnly = !this.state.showFavoritesOnly;
             this.applyFiltersAndRender();
         });
     }
