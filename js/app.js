@@ -25,12 +25,63 @@ class FinnMarketApp {
         this.init();
     }
 
-    init() {
+    async init() {
         this.renderCategoryBar();
         this.renderCityOptions();
         this.applyFiltersAndRender();
         this.setupEventListeners();
+        await this.updateHeaderBadges();
+        await this.renderAuthNavHeader();
+    }
+
+    async renderAuthNavHeader() {
+        const navActions = document.querySelector('.nav-actions');
+        if (!navActions) return;
+
+        const authUser = await finnDB.getAuthUser();
+
+        if (authUser) {
+            navActions.innerHTML = `
+                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
+                    <i class="fa-regular fa-heart"></i>
+                    <span class="badge-count" id="favBadge" style="display: none;">0</span>
+                </button>
+                
+                <div style="display: flex; align-items: center; gap: 8px; background: #ecfdf5; border: 1px solid #10b981; padding: 4px 12px; border-radius: 9999px;">
+                    <i class="fa-solid fa-user-shield" style="color: #047857;"></i>
+                    <span style="font-size: 13px; font-weight: 700; color: #047857;">${authUser.name || authUser.email} (حساب موثق)</span>
+                    <button onclick="app.handleLogout()" style="color: #ef4444; margin-right: 6px; cursor: pointer;" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
+                <button class="btn btn-primary" onclick="app.openPostAdModal()">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>أضف إعلانك</span>
+                </button>
+            `;
+        } else {
+            navActions.innerHTML = `
+                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
+                    <i class="fa-regular fa-heart"></i>
+                    <span class="badge-count" id="favBadge" style="display: none;">0</span>
+                </button>
+                
+                <button class="btn btn-outline" onclick="app.openAuthModal('login')">
+                    <i class="fa-solid fa-lock"></i> دخول الأعضاء
+                </button>
+
+                <button class="btn btn-primary" onclick="app.openPostAdModal()">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>أضف إعلانك</span>
+                </button>
+            `;
+        }
         this.updateHeaderBadges();
+    }
+
+    async handleLogout() {
+        await finnDB.logoutUser();
+        alert('تم تسجيل الخروج بنجاح.');
+        await this.renderAuthNavHeader();
     }
 
     updateHeaderBadges() {
@@ -107,22 +158,18 @@ class FinnMarketApp {
     applyFiltersAndRender() {
         let filtered = [...this.listings];
 
-        // Filter by Favorites
         if (this.state.showFavoritesOnly) {
             filtered = filtered.filter(item => this.favorites.includes(item.id));
         }
 
-        // Filter by Category
         if (this.state.category !== 'all') {
             filtered = filtered.filter(item => item.category === this.state.category);
         }
 
-        // Filter by City
         if (this.state.city !== 'جميع المدن') {
             filtered = filtered.filter(item => item.city === this.state.city);
         }
 
-        // Filter by Search Query
         if (this.state.searchQuery.trim() !== '') {
             const q = this.state.searchQuery.toLowerCase();
             filtered = filtered.filter(item => 
@@ -132,12 +179,10 @@ class FinnMarketApp {
             );
         }
 
-        // Filter by Condition
         if (this.state.condition !== 'all') {
             filtered = filtered.filter(item => item.condition === this.state.condition);
         }
 
-        // Filter by Price Range
         if (this.state.minPrice !== null && !isNaN(this.state.minPrice)) {
             filtered = filtered.filter(item => item.price >= this.state.minPrice);
         }
@@ -145,7 +190,6 @@ class FinnMarketApp {
             filtered = filtered.filter(item => item.price <= this.state.maxPrice);
         }
 
-        // Sorting
         if (this.state.sortBy === 'price_asc') {
             filtered.sort((a, b) => a.price - b.price);
         } else if (this.state.sortBy === 'price_desc') {
@@ -218,17 +262,70 @@ class FinnMarketApp {
     }
 
     closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('active');
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.remove('active');
     }
 
-    openPostAdModal() {
+    async openPostAdModal() {
+        // STRICT AUTH CHECK BEFORE ALLOWING AD POSTING
+        const authUser = await finnDB.getAuthUser();
+        if (!authUser) {
+            this.openAuthModal('postAdGuard');
+            return;
+        }
+
         this.state.uploadedImages = [];
         this.renderImagePreviews();
         document.getElementById('postAdModal').classList.add('active');
     }
 
-    submitNewAd(event) {
+    openAuthModal(reason = 'general') {
+        const modal = document.getElementById('realAuthModal');
+        const noticeBox = document.getElementById('authNoticeBox');
+        
+        if (reason === 'postAdGuard') {
+            noticeBox.innerHTML = `
+                <div style="background: #fef2f2; border: 1.5px solid #ef4444; padding: 14px; border-radius: 12px; margin-bottom: 16px;">
+                    <h4 style="color: #991b1b; font-weight: 800; font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> حظر أمني: الحساب الحقيقي مطلوب</h4>
+                    <p style="color: #7f1d1d; font-size: 13px; margin-top: 4px;">لا يمكن نشر إعلان في المنصة بدون إنشاء حساب حقيقي وتوثيق البيانات أولاً لحماية المشتري والبائع.</p>
+                </div>
+            `;
+        } else {
+            noticeBox.innerHTML = '';
+        }
+
+        modal.classList.add('active');
+    }
+
+    async handleRealRegister(event) {
         event.preventDefault();
+        const form = event.target;
+        const name = form.regName.value.trim();
+        const email = form.regEmail.value.trim();
+        const password = form.regPassword.value.trim();
+        const phone = form.regPhone.value.trim();
+
+        try {
+            const user = await finnDB.registerRealUser(name, email, password, phone);
+            this.closeModal('realAuthModal');
+            await this.renderAuthNavHeader();
+            alert(`🎉 تم إنشاء واستبدال الحساب الحقيقي لـ (${name}) بنجاح! يمكن الآن النشر والرد.`);
+        } catch (err) {
+            alert('حدث خطأ في التسجيل: ' + err.message);
+        }
+    }
+
+    async submitNewAd(event) {
+        event.preventDefault();
+
+        // STRICT SECURITY GUARD
+        const authUser = await finnDB.getAuthUser();
+        if (!authUser) {
+            alert('⛔ خطأ أمني فادح: الجلسة غير موثقة. يتوجب تسجيل الدخول بحساب حقيقي أولاً.');
+            this.openAuthModal('postAdGuard');
+            return;
+        }
+
         const form = event.target;
 
         const imagesToUse = this.state.uploadedImages.length > 0 
@@ -250,9 +347,9 @@ class FinnMarketApp {
             favoritesCount: 0,
             images: imagesToUse,
             seller: {
-                name: form.sellerName.value || 'بائع جديد',
-                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-                phone: form.sellerPhone.value || '+966 50 000 0000',
+                name: authUser.name || form.sellerName.value || 'عضو موثق',
+                avatar: authUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+                phone: authUser.phone || form.sellerPhone.value || '+966 50 000 0000',
                 rating: 5.0,
                 verified: true
             },
@@ -264,21 +361,27 @@ class FinnMarketApp {
             comments: []
         };
 
-        finnDB.saveListing(newAd);
+        await finnDB.saveListing(newAd);
         this.listings = finnDB.getListings();
         this.closeModal('postAdModal');
         form.reset();
         this.state.uploadedImages = [];
         this.renderImagePreviews();
         this.applyFiltersAndRender();
-        alert('🎉 تم نشر إعلانك بنجاح! يظهر الآن فوراً في المنصة ويمكنك النقر عليه لفتح صفحته المستقلة.');
+        alert('🎉 تم نشر إعلانك الحقيقي الموثق بنجاح وحفظه في السيرفر!');
     }
 
-    openChatForListing(listingId) {
+    async openChatForListing(listingId) {
+        const authUser = await finnDB.getAuthUser();
+        if (!authUser) {
+            this.openAuthModal('postAdGuard');
+            return;
+        }
+
         const modal = document.getElementById('chatModal');
         const chatContainer = document.getElementById('chatMessagesBox');
         
-        const chatData = finnDB.getChats()[0]; // Default simulation
+        const chatData = finnDB.getChats()[0];
         if (chatContainer && chatData) {
             chatContainer.innerHTML = chatData.messages.map(m => `
                 <div class="chat-bubble ${m.sender}">
@@ -312,7 +415,6 @@ class FinnMarketApp {
     }
 
     setupEventListeners() {
-        // Global Search
         const searchInput = document.getElementById('globalSearch');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -321,7 +423,6 @@ class FinnMarketApp {
             });
         }
 
-        // Category Subbar clicks
         document.getElementById('catNavList')?.addEventListener('click', (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -331,13 +432,11 @@ class FinnMarketApp {
             this.applyFiltersAndRender();
         });
 
-        // City Selector
         document.getElementById('filterCity')?.addEventListener('change', (e) => {
             this.state.city = e.target.value;
             this.applyFiltersAndRender();
         });
 
-        // Price Inputs
         document.getElementById('minPrice')?.addEventListener('input', (e) => {
             this.state.minPrice = parseFloat(e.target.value) || null;
             this.applyFiltersAndRender();
@@ -347,13 +446,11 @@ class FinnMarketApp {
             this.applyFiltersAndRender();
         });
 
-        // Sort By
         document.getElementById('sortBy')?.addEventListener('change', (e) => {
             this.state.sortBy = e.target.value;
             this.applyFiltersAndRender();
         });
 
-        // View Mode Switch
         document.getElementById('viewGridBtn')?.addEventListener('click', () => {
             this.state.viewMode = 'grid';
             document.getElementById('viewGridBtn').classList.add('active');
@@ -367,7 +464,6 @@ class FinnMarketApp {
             this.applyFiltersAndRender();
         });
 
-        // Favorites Button in Header
         document.getElementById('btnHeaderFavs')?.addEventListener('click', () => {
             this.state.showFavoritesOnly = !this.state.showFavoritesOnly;
             this.applyFiltersAndRender();

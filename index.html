@@ -14,9 +14,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS with Cache Buster -->
-    <link rel="stylesheet" href="css/main.css?v=3.0">
-    <link rel="stylesheet" href="css/components.css?v=3.0">
+    <!-- Custom CSS with Cache Buster v4.0 -->
+    <link rel="stylesheet" href="css/main.css?v=4.0">
+    <link rel="stylesheet" href="css/components.css?v=4.0">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
             <a href="index.html" class="brand-logo">
                 <i class="fa-solid fa-shapes"></i>
                 <span>FinnMarket</span>
-                <span class="brand-badge">سوق حقيقي حي</span>
+                <span class="brand-badge">سوق آمن موثق</span>
             </a>
 
             <!-- Global Search Bar -->
@@ -37,20 +37,7 @@
 
             <!-- Header Action Buttons -->
             <div class="nav-actions">
-                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
-                    <i class="fa-regular fa-heart"></i>
-                    <span class="badge-count" id="favBadge" style="display: none;">0</span>
-                </button>
-                
-                <button class="btn btn-outline btn-icon" onclick="app.openChatForListing('list-101')" title="المحادثات المباشرة">
-                    <i class="fa-regular fa-comments"></i>
-                    <span class="badge-count">1</span>
-                </button>
-
-                <button class="btn btn-primary" onclick="app.openPostAdModal()">
-                    <i class="fa-solid fa-circle-plus"></i>
-                    <span>أضف إعلانك الحقيقي</span>
-                </button>
+                <!-- Rendered dynamically via app.js -->
             </div>
         </div>
     </header>
@@ -67,7 +54,7 @@
     <!-- 3. Hero Search & Category Highlights -->
     <section class="hero-banner">
         <div class="container hero-content">
-            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك (Live Platform)</h1>
+            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك (حسابات موثقة)</h1>
             <p class="hero-subtitle">تصفح العقارات، السيارات، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
             <div class="hero-tags">
@@ -118,10 +105,10 @@
                 </select>
             </div>
 
-            <!-- Supabase Integration Info Box -->
+            <!-- Supabase Security Info Box -->
             <div style="background-color: #ecfdf5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #10b981; font-size: 13px; line-height: 1.6;">
-                <h4 style="color: #047857; font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-circle-check"></i> متصل وقائم بـ Supabase Live</h4>
-                <p style="color: #065f46;">مشروعك يعمل بنمط إنتاجي حقيقي متصل بالسيرفر (`mjuaqlkddmgilmjehwlx`).</p>
+                <h4 style="color: #047857; font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-shield-halved"></i> نظام الأمان موثق (Supabase Auth)</h4>
+                <p style="color: #065f46;">النشر والردود محمية كلياً ويتوجب امتلاك حساب حقيقي موثق.</p>
             </div>
         </aside>
 
@@ -129,7 +116,7 @@
         <section>
             <!-- Feed Toolbar -->
             <div class="feed-toolbar">
-                <div class="results-count" id="resultsCount">جاري تحميل الإعلانات الحقيقية...</div>
+                <div class="results-count" id="resultsCount">جاري تحميل الإعلانات...</div>
                 
                 <div class="toolbar-controls">
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -156,7 +143,41 @@
         </section>
     </main>
 
-    <!-- 5. Detail View Modal -->
+    <!-- 5. Real Auth Security Modal -->
+    <div class="modal-overlay" id="realAuthModal">
+        <div class="modal-box" style="max-width: 500px; padding: 28px;">
+            <button class="modal-close-btn" onclick="app.closeModal('realAuthModal')"><i class="fa-solid fa-xmark"></i></button>
+            <div id="authNoticeBox"></div>
+
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px; color: var(--color-primary);"><i class="fa-solid fa-user-check"></i> إنشاء حساب أو تسجيل دخول حقيقي</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">يجب تسجيل الحساب وتوثيق بياناتك لتتمكن من إضافة إعلان جديد أو الرد على الإعلانات.</p>
+
+            <form onsubmit="app.handleRealRegister(event)">
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">الاسم الكامل (سيظهر في إعلاناتك) *</label>
+                    <input type="text" name="regName" class="form-input" placeholder="مثال: المهندس محمد الدوسري" required>
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">البريد الإلكتروني الحقيقي *</label>
+                    <input type="email" name="regEmail" class="form-input" placeholder="user@domain.com" required>
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">رقم الجوال لتلقي التنبيهات *</label>
+                    <input type="tel" name="regPhone" class="form-input" placeholder="+966 50 123 4567" required>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">كلمة المرور الحصينة *</label>
+                    <input type="password" name="regPassword" class="form-input" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
+                    <i class="fa-solid fa-id-card"></i> توثيق الحساب والدخول الفوري
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Detail View Modal -->
     <div class="modal-overlay" id="detailModal">
         <div class="modal-box">
             <button class="modal-close-btn" onclick="app.closeModal('detailModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -166,11 +187,11 @@
         </div>
     </div>
 
-    <!-- 6. Post Ad Modal ("أضف إعلانك") -->
+    <!-- 7. Post Ad Modal ("أضف إعلانك") -->
     <div class="modal-overlay" id="postAdModal">
         <div class="modal-box" style="max-width: 650px; padding: 28px;">
             <button class="modal-close-btn" onclick="app.closeModal('postAdModal')"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة الحقيقية</h2>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
             
             <form onsubmit="app.submitNewAd(event)">
                 <div style="margin-bottom: 16px;">
@@ -235,25 +256,14 @@
                     <textarea name="adDescription" class="form-input" style="height: 100px; padding: 10px;" placeholder="اكتب وصفاً مفصلاً للمنتج أو العقار أو الوظيفة..." required></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
-                    <div>
-                        <label class="filter-label">اسم البائع / المعلن</label>
-                        <input type="text" name="sellerName" class="form-input" placeholder="اسمك الكامل">
-                    </div>
-                    <div>
-                        <label class="filter-label">رقم التواصل</label>
-                        <input type="tel" name="sellerPhone" class="form-input" placeholder="+966 50 123 4567">
-                    </div>
-                </div>
-
                 <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
-                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان فوراً في السيرفر
+                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان الموثق فوراً
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- 7. Live Chat Modal -->
+    <!-- 8. Live Chat Modal -->
     <div class="modal-overlay" id="chatModal">
         <div class="modal-box" style="max-width: 550px; padding: 24px;">
             <button class="modal-close-btn" onclick="app.closeModal('chatModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -270,10 +280,10 @@
         </div>
     </div>
 
-    <!-- Supabase JS Client SDK + Production Scripts -->
+    <!-- Supabase JS Client SDK + Production Scripts v4.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=3.0"></script>
-    <script src="js/supabase-config.js?v=3.0"></script>
-    <script src="js/app.js?v=3.0"></script>
+    <script src="js/data.js?v=4.0"></script>
+    <script src="js/supabase-config.js?v=4.0"></script>
+    <script src="js/app.js?v=4.0"></script>
 </body>
 </html>

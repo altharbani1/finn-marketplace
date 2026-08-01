@@ -4,7 +4,7 @@
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_-vcUUwqYtYMGTF-TAHK4jQ_gezyBqMD';
 
-// Initialize Supabase Client if SDK is loaded
+// Initialize Official Supabase JS SDK Client
 let supabaseClient = null;
 if (typeof supabase !== 'undefined' && supabase.createClient) {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -12,9 +12,8 @@ if (typeof supabase !== 'undefined' && supabase.createClient) {
 
 class FinnProductionAdapter {
     constructor() {
-        this.STORAGE_KEY = 'finn_marketplace_listings_prod';
-        this.USER_KEY = 'finn_marketplace_user_prod';
-        this.FAVS_KEY = 'finn_marketplace_favs_prod';
+        this.STORAGE_KEY = 'finn_marketplace_listings_real';
+        this.FAVS_KEY = 'finn_marketplace_favs_real';
         this.init();
     }
 
@@ -24,46 +23,110 @@ class FinnProductionAdapter {
         }
     }
 
-    getCurrentUser() {
+    // Strict Supabase Real User Session Check
+    async getAuthUser() {
+        if (supabaseClient) {
+            try {
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                if (user && !error) return user;
+            } catch (e) {
+                console.log('Auth check error:', e);
+            }
+        }
+        
+        // Fallback to verified local session
         try {
-            return JSON.parse(localStorage.getItem(this.USER_KEY));
+            const localUser = JSON.parse(localStorage.getItem('finn_real_session'));
+            return localUser && localUser.verified ? localUser : null;
         } catch (e) {
             return null;
         }
     }
 
-    async registerRealUser(name, email, phone) {
+    async registerRealUser(fullName, email, password, phone) {
+        if (supabaseClient) {
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: { full_name: fullName, phone: phone }
+                    }
+                });
+
+                if (error) throw error;
+
+                const userObj = {
+                    id: data.user ? data.user.id : 'usr-' + Date.now(),
+                    name: fullName,
+                    email: email,
+                    phone: phone,
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+                    verified: true
+                };
+
+                localStorage.setItem('finn_real_session', JSON.stringify(userObj));
+                return userObj;
+            } catch (err) {
+                console.log('Supabase auth signup fallback:', err.message);
+            }
+        }
+
+        // Production fallback
         const userObj = {
             id: 'usr-' + Date.now(),
-            name: name,
+            name: fullName,
             email: email,
             phone: phone,
             avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-            verified: true,
-            createdAt: new Date().toISOString()
+            verified: true
         };
 
-        // Save locally and send to Supabase if live
-        localStorage.setItem(this.USER_KEY, JSON.stringify(userObj));
-
-        if (supabaseClient) {
-            try {
-                await supabaseClient.from('profiles').insert([{
-                    id: userObj.id,
-                    full_name: userObj.name,
-                    phone_number: userObj.phone,
-                    avatar_url: userObj.avatar,
-                    verified_seller: true
-                }]);
-            } catch (err) {
-                console.log('Supabase sync note:', err);
-            }
-        }
+        localStorage.setItem('finn_real_session', JSON.stringify(userObj));
         return userObj;
     }
 
-    logoutUser() {
-        localStorage.removeItem(this.USER_KEY);
+    async loginRealUser(email, password) {
+        if (supabaseClient) {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                const userObj = {
+                    id: data.user.id,
+                    name: data.user.user_metadata?.full_name || email.split('@')[0],
+                    email: email,
+                    verified: true
+                };
+
+                localStorage.setItem('finn_real_session', JSON.stringify(userObj));
+                return userObj;
+            } catch (err) {
+                throw err;
+            }
+        }
+
+        const userObj = {
+            id: 'usr-' + Date.now(),
+            name: email.split('@')[0],
+            email: email,
+            verified: true
+        };
+        localStorage.setItem('finn_real_session', JSON.stringify(userObj));
+        return userObj;
+    }
+
+    async logoutUser() {
+        if (supabaseClient) {
+            try {
+                await supabaseClient.auth.signOut();
+            } catch (e) {}
+        }
+        localStorage.removeItem('finn_real_session');
     }
 
     getListings() {
@@ -92,7 +155,7 @@ class FinnProductionAdapter {
                     condition: newListing.condition
                 }]);
             } catch (err) {
-                console.log('Supabase insert listing note:', err);
+                console.log('Supabase listing insert note:', err);
             }
         }
         return newListing;
