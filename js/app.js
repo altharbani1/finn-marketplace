@@ -5,7 +5,6 @@ class FinnMarketApp {
     constructor() {
         this.listings = [];
         this.favorites = finnDB.getFavorites();
-        this.chats = finnDB.getChats();
         
         // Active Filters State
         this.state = {
@@ -47,7 +46,12 @@ class FinnMarketApp {
         this.applyFiltersAndRender();
         this.setupEventListeners();
 
-        const editListingId = new URLSearchParams(window.location.search).get('edit');
+        const queryParams = new URLSearchParams(window.location.search);
+        if (queryParams.get('login') === '1') {
+            this.openAuthModal();
+            history.replaceState(null, '', window.location.pathname);
+        }
+        const editListingId = queryParams.get('edit');
         if (editListingId) {
             await this.openEditAdModal(editListingId);
             history.replaceState(null, '', window.location.pathname);
@@ -91,11 +95,6 @@ class FinnMarketApp {
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
                 </button>
 
-                <button class="btn btn-outline btn-icon" onclick="app.openChatForListing('list-101')" title="المحادثات المباشرة">
-                    <i class="fa-regular fa-comments"></i>
-                    <span class="badge-count">1</span>
-                </button>
-                
                 ${authUser.role === 'admin' ? `<a href="admin.html" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" title="لوحة التحكّم الإدارية">
                     <i class="fa-solid fa-shield-halved"></i> الإدارة
                 </a>` : ''}
@@ -668,48 +667,6 @@ class FinnMarketApp {
         this.resetAdFormState();
         this.applyFiltersAndRender();
         alert(wasEditing ? 'تم حفظ تعديلات الإعلان والصور بنجاح.' : 'تم نشر الإعلان بنجاح.');
-    }
-
-    async openChatForListing(listingId) {
-        const authUser = await finnDB.getAuthUser();
-        if (!authUser) {
-            this.openAuthModal('postAdGuard');
-            return;
-        }
-
-        const modal = document.getElementById('chatModal');
-        const chatContainer = document.getElementById('chatMessagesBox');
-        
-        const chatData = finnDB.getChats()[0];
-        if (chatContainer && chatData) {
-            chatContainer.innerHTML = chatData.messages.map(m => `
-                <div class="chat-bubble ${m.sender}">
-                    <div>${m.text}</div>
-                    <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">${m.time}</div>
-                </div>
-            `).join('');
-        }
-
-        modal?.classList.add('active');
-    }
-
-    sendChatMessage() {
-        const input = document.getElementById('chatInput');
-        if (!input || !input.value.trim()) return;
-
-        input.value = '';
-
-        const chatContainer = document.getElementById('chatMessagesBox');
-        const chatData = finnDB.getChats()[0];
-        if (chatContainer && chatData) {
-            chatContainer.innerHTML = chatData.messages.map(m => `
-                <div class="chat-bubble ${m.sender}">
-                    <div>${m.text}</div>
-                    <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">${m.time}</div>
-                </div>
-            `).join('');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
     }
 
     setupEventListeners() {
