@@ -1,8 +1,9 @@
-// Main Application Controller for FinnMarket (Finn.no Architecture)
+// Senior Production Engineer Controller for FinnMarket
+// Connected Live to Supabase Auth & Real PostgreSQL Database
 
 class FinnMarketApp {
     constructor() {
-        this.listings = finnDB.getListings();
+        this.listings = [];
         this.favorites = finnDB.getFavorites();
         this.chats = finnDB.getChats();
         
@@ -27,6 +28,7 @@ class FinnMarketApp {
     }
 
     async init() {
+        this.listings = await finnDB.getListings();
         this.renderCategoryBar();
         this.renderCityOptions();
         this.applyFiltersAndRender();
@@ -53,9 +55,9 @@ class FinnMarketApp {
                     <span class="badge-count">1</span>
                 </button>
                 
-                <div class="user-profile-btn" onclick="app.toggleUserMenu()" title="حسابي الموثق">
-                    <img src="${authUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="user-avatar-head">
-                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name || authUser.email}</span>
+                <div class="user-profile-btn" onclick="app.toggleUserMenu()" title="حسابي الموثق السحابي">
+                    <img src="${authUser.avatar}" class="user-avatar-head">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name}</span>
                     <i class="fa-solid fa-angle-down" style="font-size: 11px; color: var(--text-muted);"></i>
                 </div>
 
@@ -72,7 +74,7 @@ class FinnMarketApp {
                 </button>
                 
                 <button class="btn btn-outline" onclick="app.openAuthModal('login')">
-                    <i class="fa-solid fa-right-to-bracket"></i> دخول / تسجيل
+                    <i class="fa-solid fa-right-to-bracket"></i> دخول / تسجيل حساب
                 </button>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
@@ -84,15 +86,15 @@ class FinnMarketApp {
         this.updateHeaderBadges();
     }
 
-    toggleUserMenu() {
-        if (confirm('هل ترغب في تسجيل الخروج من حسابك الموثق؟')) {
-            this.handleLogout();
+    async toggleUserMenu() {
+        if (confirm('هل ترغب في تسجيل الخروج من حسابك الموثق في Supabase؟')) {
+            await this.handleLogout();
         }
     }
 
     async handleLogout() {
         await finnDB.logoutUser();
-        alert('تم تسجيل الخروج بنجاح.');
+        alert('تم تسجيل الخروج كلياً من السيرفر بنجاح.');
         await this.renderAuthNavHeader();
     }
 
@@ -116,23 +118,6 @@ class FinnMarketApp {
         }
     }
 
-    async handleQuickSocialAuth(type) {
-        if (type === 'phone') {
-            const phone = prompt('أدخل رقم الجوال لاستلام رمز التفعيل (SMS OTP):', '+966 50 123 4567');
-            if (phone) {
-                const user = await finnDB.registerRealUser('عضو الجوال الموثق', 'phone_user@domain.com', 'pass123456', phone);
-                this.closeModal('realAuthModal');
-                await this.renderAuthNavHeader();
-                alert(`🎉 تم تفعيل الدخول برقم الجوال (${phone}) بنجاح!`);
-            }
-        } else if (type === 'google') {
-            const user = await finnDB.registerRealUser('مستخدم Google', 'google_user@gmail.com', 'pass123456', '+966500000000');
-            this.closeModal('realAuthModal');
-            await this.renderAuthNavHeader();
-            alert('🎉 تم الدخول السريع عبر Google بنجاح!');
-        }
-    }
-
     async handleRealLogin(event) {
         event.preventDefault();
         const form = event.target;
@@ -143,9 +128,9 @@ class FinnMarketApp {
             const user = await finnDB.loginRealUser(email, password);
             this.closeModal('realAuthModal');
             await this.renderAuthNavHeader();
-            alert(`🎉 أهلاً بعودتك (${user.name})! تم تسجيل دخولك بنجاح.`);
+            alert(`🎉 تم التحقق وتسجيل الدخول بنجاح لحساب (${user.name}) عبر سيرفر Supabase!`);
         } catch (err) {
-            alert('خطأ في تسجيل الدخول: يرجى التأكد من صحة البيانات.');
+            alert('⚠️ ' + err.message);
         }
     }
 
@@ -161,9 +146,9 @@ class FinnMarketApp {
             const user = await finnDB.registerRealUser(name, email, password, phone);
             this.closeModal('realAuthModal');
             await this.renderAuthNavHeader();
-            alert(`🎉 مبروك! تم إنشاء حسابك الموثق بنجاح لـ (${name}). يمكنك الآن نشر الإعلانات والرد.`);
+            alert(`🎉 تم إنشاء وتوثيق حسابك السحابي بنجاح باسم (${name})!`);
         } catch (err) {
-            alert('حدث خطأ أثناء إنشاء الحساب: ' + err.message);
+            alert('⚠️ ' + err.message);
         }
     }
 
@@ -369,7 +354,7 @@ class FinnMarketApp {
             noticeBox.innerHTML = `
                 <div style="background: #fef2f2; border: 1.5px solid #ef4444; padding: 14px; border-radius: 12px; margin-bottom: 16px;">
                     <h4 style="color: #991b1b; font-weight: 800; font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> حظر أمني: الحساب الحقيقي مطلوب</h4>
-                    <p style="color: #7f1d1d; font-size: 13px; margin-top: 4px;">لا يمكن نشر إعلان في المنصة بدون إنشاء حساب حقيقي وتوثيق البيانات أولاً لحماية المشتري والبائع.</p>
+                    <p style="color: #7f1d1d; font-size: 13px; margin-top: 4px;">لا يمكن نشر إعلان بدون تسجيل دخول حقيقي وتوثيق البيانات عبر السيرفر.</p>
                 </div>
             `;
         } else {
@@ -385,7 +370,7 @@ class FinnMarketApp {
 
         const authUser = await finnDB.getAuthUser();
         if (!authUser) {
-            alert('⛔ خطأ أمني فادح: الجلسة غير موثقة. يتوجب تسجيل الدخول بحساب حقيقي أولاً.');
+            alert('⛔ حظر أمني: يجب تسجيل حساب حقيقي وموثق في Supabase قبل النشر.');
             this.openAuthModal('postAdGuard');
             return;
         }
@@ -426,13 +411,13 @@ class FinnMarketApp {
         };
 
         await finnDB.saveListing(newAd);
-        this.listings = finnDB.getListings();
+        this.listings = await finnDB.getListings();
         this.closeModal('postAdModal');
         form.reset();
         this.state.uploadedImages = [];
         this.renderImagePreviews();
         this.applyFiltersAndRender();
-        alert('🎉 تم نشر إعلانك الحقيقي الموثق بنجاح وحفظه في السيرفر!');
+        alert('🎉 تم إرسال وحفظ إعلانك الحقيقي بنجاح في قاعدة بيانات Supabase السحابية!');
     }
 
     async openChatForListing(listingId) {
