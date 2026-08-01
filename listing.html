@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل الإعلان | FinnMarket</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/main.css?v=2.0">
+    <link rel="stylesheet" href="css/components.css?v=2.0">
+
+    <style>
+        .listing-page-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            margin-bottom: 24px;
+        }
+
+        .breadcrumb-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb-nav a {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .listing-detail-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        @media (max-width: 992px) {
+            .listing-detail-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .gallery-main-box {
+            width: 100%;
+            height: 480px;
+            background: #000;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gallery-main-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-thumbs-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+            overflow-x: auto;
+        }
+
+        .gallery-thumb-item {
+            width: 90px;
+            height: 70px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: var(--transition-fast);
+        }
+
+        .gallery-thumb-item.active {
+            border-color: var(--color-primary);
+        }
+
+        .gallery-thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Reply & Comments Section */
+        .comments-section-box {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 28px;
+            margin-top: 32px;
+        }
+
+        .comments-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comment-card {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--bg-surface-subtle);
+        }
+
+        .comment-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .comment-content {
+            flex: 1;
+        }
+
+        .comment-author-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .seller-badge-tag {
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            color: var(--text-main);
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .add-reply-box {
+            margin-top: 24px;
+            background-color: var(--bg-body);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="brand-logo">
+                <i class="fa-solid fa-shapes"></i>
+                <span>FinnMarket</span>
+                <span class="brand-badge">سوق النرويج</span>
+            </a>
+
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-outline">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Listing Detail Page Content -->
+    <main class="container" style="margin-top: 24px;">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb-nav">
+            <a href="index.html"><i class="fa-solid fa-house"></i> الرئيسية</a>
+            <i class="fa-solid fa-chevron-left"></i>
+            <span id="bcCategory">القطاع</span>
+            <i class="fa-solid fa-chevron-left"></i>
+            <span id="bcTitle" style="color: var(--text-main); font-weight: 700;">عنوان الإعلان</span>
+        </div>
+
+        <div class="listing-detail-layout" id="listingPageContainer">
+            <!-- Left Main Column: Gallery, Specs, Description, Comments -->
+            <div id="mainListingCol">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Right Sidebar Column: Seller Card & Sticky Price Box -->
+            <div id="sidebarListingCol">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- JS Scripts -->
+    <script src="js/data.js?v=2.0"></script>
+    <script src="js/supabase-config.js?v=2.0"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const listingId = urlParams.get('id') || 'list-101';
+            
+            const listings = finnDB.getListings();
+            const item = listings.find(l => l.id === listingId) || listings[0];
+            
+            if (!item.comments) {
+                item.comments = [
+                    {
+                        author: 'خالد المطيري',
+                        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+                        isSeller: false,
+                        text: 'ما شاء الله تبارك الله، هل السعر قابل للتفاوض البسيط للصادق؟',
+                        time: 'منذ ساعتين'
+                    },
+                    {
+                        author: item.seller.name,
+                        avatar: item.seller.avatar,
+                        isSeller: true,
+                        text: 'حياك الله أخي خالد، نعم السوم وصل قريب من الحد والتواصل متاح عبر الاتصال.',
+                        time: 'منذ ساعة'
+                    }
+                ];
+            }
+
+            // Populate Breadcrumbs
+            document.getElementById('bcCategory').textContent = item.subCategory;
+            document.getElementById('bcTitle').textContent = item.title;
+
+            // Render Main Column
+            const mainCol = document.getElementById('mainListingCol');
+            const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
+
+            mainCol.innerHTML = `
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px;">
+                    <span class="badge-tag badge-${item.category}" style="position: static; display: inline-block; margin-bottom: 12px;">${item.subCategory}</span>
+                    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${item.title}</h1>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${item.city} - ${item.neighborhood || 'وسط المدينة'}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${item.timeAgo}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${item.views} مشاهدة
+                    </p>
+
+                    <!-- Main Gallery Slider -->
+                    <div class="gallery-main-box">
+                        <img id="mainHeroImg" src="${item.images[0]}" alt="${item.title}">
+                    </div>
+                    
+                    ${item.images.length > 1 ? `
+                        <div class="gallery-thumbs-row">
+                            ${item.images.map((img, idx) => `
+                                <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" onclick="switchPageImg('${img}', this)">
+                                    <img src="${img}" alt="صورة ${idx + 1}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <!-- Specifications Table -->
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 16px;">المواصفات والتفاصيل الأساسية</h3>
+                    <div class="specs-grid">
+                        ${Object.entries(item.specs || {}).map(([key, val]) => `
+                            <div class="spec-item">
+                                <span class="spec-title">${key}</span>
+                                <span class="spec-val">${val}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Description -->
+                    <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 12px;">وصف الإعلان كامل</h3>
+                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${item.description}</p>
+                </div>
+
+                <!-- Comments & Replies Section -->
+                <div class="comments-section-box">
+                    <div class="comments-header">
+                        <h3 style="font-size: 20px; font-weight: 800;"><i class="fa-regular fa-comments" style="color: var(--color-primary);"></i> الأسئلة والردود على الإعلان (<span id="commentsCount">${item.comments.length}</span>)</h3>
+                    </div>
+
+                    <div id="commentsListContainer">
+                        ${item.comments.map(c => `
+                            <div class="comment-card">
+                                <img src="${c.avatar}" class="comment-avatar" alt="${c.author}">
+                                <div class="comment-content">
+                                    <div class="comment-author-name">
+                                        ${c.author}
+                                        ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : ''}
+                                        <span style="font-size: 11px; font-weight: 400; color: var(--text-muted); margin-right: auto;">${c.time}</span>
+                                    </div>
+                                    <p class="comment-text">${c.text}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Add Reply Box -->
+                    <div class="add-reply-box">
+                        <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">أضف استفسارك أو ردك على الإعلان</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <input type="text" id="replyAuthor" class="form-input" placeholder="اسمك الكريم">
+                            <input type="text" id="replyPhone" class="form-input" placeholder="رقم الهاتف (اختياري)">
+                        </div>
+                        <textarea id="replyText" class="form-input" style="height: 90px; padding: 10px; margin-bottom: 12px;" placeholder="اكتب سؤالك أو استفسارك هنا للبائع..."></textarea>
+                        <button class="btn btn-primary" onclick="submitListingReply('${item.id}')">
+                            <i class="fa-solid fa-reply"></i> إرسال الرد فوراً
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Render Sidebar Column
+            const sidebarCol = document.getElementById('sidebarListingCol');
+            sidebarCol.innerHTML = `
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px; position: sticky; top: 96px;">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">السعر المطلوب:</div>
+                    <div style="font-size: 32px; font-weight: 900; color: var(--color-primary); margin-bottom: 20px;">${formattedPrice}</div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                        <a href="tel:${item.seller.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                            <i class="fa-solid fa-phone"></i> اتصال بالمعلن
+                        </a>
+                        <button class="btn btn-outline" style="height: 48px; font-size: 16px;" onclick="window.location.href='index.html'">
+                            <i class="fa-solid fa-comments"></i> محادثة خاصة
+                        </button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${item.seller.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
+                            <div>
+                                <h4 style="font-size: 16px; font-weight: 800;">${item.seller.name} ${item.seller.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
+                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${item.seller.rating} تقييم التاجر</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        function switchPageImg(src, el) {
+            document.getElementById('mainHeroImg').src = src;
+            document.querySelectorAll('.gallery-thumb-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function submitListingReply(listingId) {
+            const authorInput = document.getElementById('replyAuthor');
+            const textInput = document.getElementById('replyText');
+
+            if (!textInput.value.trim()) {
+                alert('يرجى كتابة نص الرد أولاً.');
+                return;
+            }
+
+            const newComment = {
+                author: authorInput.value.trim() || 'زائر',
+                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+                isSeller: false,
+                text: textInput.value.trim(),
+                time: 'الآن'
+            };
+
+            const listings = finnDB.getListings();
+            const item = listings.find(l => l.id === listingId);
+            if (item) {
+                if (!item.comments) item.comments = [];
+                item.comments.push(newComment);
+                localStorage.setItem('finn_marketplace_listings_v2', JSON.stringify(listings));
+                
+                // Render newly added comment
+                const container = document.getElementById('commentsListContainer');
+                const newCommentHTML = `
+                    <div class="comment-card" style="background-color: var(--color-primary-light); padding: 16px; border-radius: 12px;">
+                        <img src="${newComment.avatar}" class="comment-avatar" alt="${newComment.author}">
+                        <div class="comment-content">
+                            <div class="comment-author-name">
+                                ${newComment.author}
+                                <span style="font-size: 11px; font-weight: 400; color: var(--text-muted); margin-right: auto;">${newComment.time}</span>
+                            </div>
+                            <p class="comment-text">${newComment.text}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += newCommentHTML;
+                document.getElementById('commentsCount').textContent = item.comments.length;
+                
+                textInput.value = '';
+                alert('🎉 تم نشر ردك على الإعلان بنجاح!');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ class FinnMarketApp {
             showFavoritesOnly: false,
             currentDetailListing: null,
             activeImageIdx: 0,
-            uploadedImages: [] // Array of Data URLs for newly uploaded files
+            uploadedImages: []
         };
 
         this.init();
@@ -186,7 +186,7 @@ class FinnMarketApp {
             const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
 
             return `
-                <div class="listing-card" onclick="app.openDetailModal('${item.id}')">
+                <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
                     <div class="listing-thumb-wrap">
                         <img src="${item.images[0]}" alt="${item.title}" class="listing-thumb" loading="lazy">
                         <span class="badge-tag ${badgeClass}">${badgeText}</span>
@@ -215,87 +215,6 @@ class FinnMarketApp {
         this.favorites = finnDB.toggleFavorite(id);
         this.updateHeaderBadges();
         this.applyFiltersAndRender();
-    }
-
-    openDetailModal(id) {
-        const item = this.listings.find(l => l.id === id);
-        if (!item) return;
-
-        this.state.currentDetailListing = item;
-        this.state.activeImageIdx = 0;
-
-        const modal = document.getElementById('detailModal');
-        const modalBody = document.getElementById('detailModalContent');
-        if (!modal || !modalBody) return;
-
-        const isFav = this.favorites.includes(item.id);
-        const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
-
-        modalBody.innerHTML = `
-            <div class="detail-modal-gallery">
-                <img id="detailActiveImg" src="${item.images[0]}" alt="${item.title}">
-                ${item.images.length > 1 ? `
-                    <div style="position: absolute; bottom: 16px; right: 16px; display: flex; gap: 8px;">
-                        ${item.images.map((img, idx) => `
-                            <img src="${img}" style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid ${idx === 0 ? '#0063fb' : 'white'}; cursor: pointer; object-fit: cover;" onclick="app.switchDetailImg('${img}', this)">
-                        `).join('')}
-                    </div>
-                ` : ''}
-            </div>
-            <div class="detail-content">
-                <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
-                    <div>
-                        <span style="font-size: 13px; font-weight: 700; color: var(--color-primary);">${item.subCategory}</span>
-                        <h2 style="font-size: 24px; font-weight: 800; margin: 4px 0 8px;">${item.title}</h2>
-                        <p style="color: var(--text-muted); font-size: 14px;"><i class="fa-solid fa-location-dot"></i> ${item.city} ${item.neighborhood ? ' - ' + item.neighborhood : ''}</p>
-                    </div>
-                    <div style="text-align: left;">
-                        <div style="font-size: 28px; font-weight: 900; color: var(--color-primary);">${formattedPrice}</div>
-                        <button class="btn btn-outline" style="margin-top: 8px;" onclick="app.toggleFav('${item.id}'); app.openDetailModal('${item.id}');">
-                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart" style="color: ${isFav ? 'var(--color-favorite)' : 'inherit'};"></i>
-                            ${isFav ? 'مخزن بالمفضلة' : 'حفظ بالمفضلة'}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="specs-grid">
-                    ${Object.entries(item.specs || {}).map(([key, val]) => `
-                        <div class="spec-item">
-                            <span class="spec-title">${key}</span>
-                            <span class="spec-val">${val}</span>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <div style="margin: 24px 0;">
-                    <h3 style="font-size: 17px; font-weight: 800; margin-bottom: 8px;">تفاصيل ووصف الإعلان</h3>
-                    <p style="color: var(--text-main); line-height: 1.8; white-space: pre-line;">${item.description}</p>
-                </div>
-
-                <div class="seller-card-box">
-                    <div class="seller-info-meta">
-                        <img src="${item.seller.avatar}" class="seller-avatar" alt="${item.seller.name}">
-                        <div>
-                            <h4 style="font-size: 16px; font-weight: 800;">${item.seller.name} ${item.seller.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;" title="بائع موثوق"></i>' : ''}</h4>
-                            <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${item.seller.rating} تقييم التاجر</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <a href="tel:${item.seller.phone}" class="btn btn-outline"><i class="fa-solid fa-phone"></i> اتصال</a>
-                        <button class="btn btn-primary" onclick="app.openChatForListing('${item.id}')"><i class="fa-solid fa-comments"></i> محادثة مباشرة</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        modal.classList.add('active');
-    }
-
-    switchDetailImg(src, el) {
-        document.getElementById('detailActiveImg').src = src;
-        const parent = el.parentElement;
-        Array.from(parent.children).forEach(child => child.style.borderColor = 'white');
-        el.style.borderColor = '#0063fb';
     }
 
     closeModal(modalId) {
@@ -341,7 +260,8 @@ class FinnMarketApp {
                 'الحالة': form.adCondition.options[form.adCondition.selectedIndex].text,
                 'المنطقة': form.adCity.value
             },
-            description: form.adDescription.value
+            description: form.adDescription.value,
+            comments: []
         };
 
         finnDB.saveListing(newAd);
@@ -351,11 +271,10 @@ class FinnMarketApp {
         this.state.uploadedImages = [];
         this.renderImagePreviews();
         this.applyFiltersAndRender();
-        alert('🎉 تم نشر إعلانك وبنظامه الخاص بصورك المرفوعة بنجاح! يظهر الآن فوراً في المنصة.');
+        alert('🎉 تم نشر إعلانك بنجاح! يظهر الآن فوراً في المنصة ويمكنك النقر عليه لفتح صفحته المستقلة.');
     }
 
     openChatForListing(listingId) {
-        this.closeModal('detailModal');
         const modal = document.getElementById('chatModal');
         const chatContainer = document.getElementById('chatMessagesBox');
         
