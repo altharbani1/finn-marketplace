@@ -1,11 +1,10 @@
 // Supabase Client Wrapper & Storage Adapter for FinnMarket
-// Seamless fallback to LocalStorage when live API keys are not supplied.
+// Configured for Supabase Project: mjuaqlkddmgilmjehwlx
 
 const SUPABASE_CONFIG = {
-    // Fill these credentials to connect to your live Supabase project
-    url: 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY',
-    isLive: false // Set to true when connected to live Supabase
+    url: 'https://mjuaqlkddmgilmjehwlx.supabase.co',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY', // Paste your anon key here
+    isLive: true
 };
 
 class FinnStorageAdapter {
