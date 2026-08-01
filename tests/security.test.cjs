@@ -33,3 +33,7 @@ test('validatePassword requires length plus letters and numbers', () => {
     assert.match(context.validatePassword('abcdefgh'), /حرفًا واحدًا ورقمًا/);
     assert.equal(context.validatePassword('secure123'), '');
 });
+
+test('listing image limit stays at 15', () => {
+    assert.equal(vm.runInContext('MAX_LISTING_IMAGES', context), 15);
+});

@@ -157,10 +157,70 @@ class FinnSeniorProductionEngine {
         return (data || []).map((item) => this.mapListing(item));
     }
 
+    async uploadListingImages(listingId, images, userId) {
+        const uploadedPaths = [];
+        const urls = [];
+        try {
+            for (const image of images) {
+                if (/^https?:\/\//i.test(image)) {
+                    urls.push(image);
+                    continue;
+                }
+
+                const blob = await fetch(image).then(response => response.blob());
+                const extension = ({
+                    'image/png': 'png',
+                    'image/jpeg': 'jpg',
+                    'image/webp': 'webp'
+                })[blob.type];
+                if (!extension || blob.size > 5 * 1024 * 1024) {
+                    throw new Error('إحدى الصور غير مدعومة أو أكبر من 5 ميجابايت.');
+                }
+
+                const path = `${userId}/${listingId}/${crypto.randomUUID()}.${extension}`;
+                const { error } = await this.requireClient().storage
+                    .from('listing-images')
+                    .upload(path, blob, { contentType: blob.type, upsert: false });
+                if (error) throw error;
+                uploadedPaths.push(path);
+                const { data } = this.requireClient().storage.from('listing-images').getPublicUrl(path);
+                urls.push(data.publicUrl);
+            }
+            return { urls, uploadedPaths };
+        } catch (error) {
+            if (uploadedPaths.length) {
+                await this.requireClient().storage.from('listing-images').remove(uploadedPaths);
+            }
+            throw new Error(`تعذر رفع الصور: ${error.message}`);
+        }
+    }
+
+    storagePathFromUrl(url, userId) {
+        try {
+            const marker = '/storage/v1/object/public/listing-images/';
+            const pathname = new URL(url).pathname;
+            if (!pathname.includes(marker)) return null;
+            const path = decodeURIComponent(pathname.split(marker)[1]);
+            return path.startsWith(`${userId}/`) ? path : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
     async saveListing(newListing) {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول قبل نشر الإعلان.');
+        if (!INITIAL_CATEGORIES.some(category => category.id === newListing.category && category.id !== 'all')) {
+            throw new Error('قسم الإعلان غير صالح.');
+        }
+        if (!Array.isArray(newListing.images) || newListing.images.length > MAX_LISTING_IMAGES) {
+            throw new Error(`الحد الأقصى هو ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
+        }
+        const listingId = crypto.randomUUID();
+        const imageUpload = await this.uploadListingImages(listingId, newListing.images, authUser.id);
+        const images = imageUpload.urls.length ? imageUpload.urls : [DEFAULT_LISTING_IMAGE];
         const { data, error } = await this.requireClient().from('listings').insert({
+            id: listingId,
             user_id: authUser.id,
             title: newListing.title.trim(),
             description: newListing.description.trim(),
@@ -171,10 +231,73 @@ class FinnSeniorProductionEngine {
             city: newListing.city,
             neighborhood: newListing.neighborhood || null,
             condition: newListing.condition,
-            images: newListing.images,
+            images,
             attributes: newListing.specs
         }).select('*').single();
-        if (error) throw new Error(`فشل حفظ الإعلان: ${error.message}`);
+        if (error) {
+            if (imageUpload.uploadedPaths.length) {
+                await this.requireClient().storage.from('listing-images').remove(imageUpload.uploadedPaths);
+            }
+            throw new Error(`فشل حفظ الإعلان: ${error.message}`);
+        }
+        data.profiles = {
+            full_name: authUser.name,
+            avatar_url: authUser.avatar,
+            phone_number: authUser.phone,
+            verified_seller: authUser.verified
+        };
+        return this.mapListing(data);
+    }
+
+    async updateListing(listingId, values) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول قبل تعديل الإعلان.');
+        if (!INITIAL_CATEGORIES.some(category => category.id === values.category && category.id !== 'all')) {
+            throw new Error('قسم الإعلان غير صالح.');
+        }
+        if (!Array.isArray(values.images) || values.images.length > MAX_LISTING_IMAGES) {
+            throw new Error(`الحد الأقصى هو ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
+        }
+
+        const { data: current, error: currentError } = await this.requireClient()
+            .from('listings')
+            .select('images')
+            .eq('id', listingId)
+            .eq('user_id', authUser.id)
+            .single();
+        if (currentError) throw new Error('تعذر قراءة الإعلان أو أنك لا تملك صلاحية تعديله.');
+
+        const imageUpload = await this.uploadListingImages(listingId, values.images, authUser.id);
+        const images = imageUpload.urls.length ? imageUpload.urls : [DEFAULT_LISTING_IMAGE];
+        const { data, error } = await this.requireClient().from('listings').update({
+            title: values.title.trim(),
+            description: values.description.trim(),
+            price: Number(values.price || 0),
+            is_free: Boolean(values.isFree),
+            category_type: values.category,
+            sub_category: values.subCategory,
+            city: values.city,
+            condition: values.condition,
+            images,
+            attributes: values.specs,
+            updated_at: new Date().toISOString()
+        }).eq('id', listingId).eq('user_id', authUser.id).select('*').single();
+
+        if (error) {
+            if (imageUpload.uploadedPaths.length) {
+                await this.requireClient().storage.from('listing-images').remove(imageUpload.uploadedPaths);
+            }
+            throw new Error(`تعذر تعديل الإعلان: ${error.message}`);
+        }
+
+        const retained = new Set(images);
+        const removedPaths = (current.images || [])
+            .filter(url => !retained.has(url))
+            .map(url => this.storagePathFromUrl(url, authUser.id))
+            .filter(Boolean);
+        if (removedPaths.length) {
+            await this.requireClient().storage.from('listing-images').remove(removedPaths);
+        }
         data.profiles = {
             full_name: authUser.name,
             avatar_url: authUser.avatar,
@@ -185,8 +308,21 @@ class FinnSeniorProductionEngine {
     }
 
     async deleteListing(listingId) {
+        const authUser = await this.getAuthUser();
+        const { data: listing } = authUser ? await this.requireClient()
+            .from('listings')
+            .select('images')
+            .eq('id', listingId)
+            .eq('user_id', authUser.id)
+            .maybeSingle() : { data: null };
         const { error } = await this.requireClient().from('listings').delete().eq('id', listingId);
         if (error) throw new Error(`تعذر حذف الإعلان: ${error.message}`);
+        const imagePaths = (listing?.images || [])
+            .map(url => this.storagePathFromUrl(url, authUser.id))
+            .filter(Boolean);
+        if (imagePaths.length) {
+            await this.requireClient().storage.from('listing-images').remove(imagePaths);
+        }
         return this.getListings();
     }
 

@@ -1,4 +1,6 @@
 // Shared output-encoding helpers for values rendered into HTML templates.
+const MAX_LISTING_IMAGES = 15;
+
 function escapeHTML(value) {
     return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
         '&': '&amp;',

@@ -1,0 +1,10 @@
+alter type public.listing_category add value if not exists 'contracting';
+alter type public.listing_category add value if not exists 'services';
+alter type public.listing_category add value if not exists 'furniture';
+alter type public.listing_category add value if not exists 'electronics';
+alter type public.listing_category add value if not exists 'phones';
+alter type public.listing_category add value if not exists 'home_garden';
+alter type public.listing_category add value if not exists 'education';
+alter type public.listing_category add value if not exists 'pets';
+alter type public.listing_category add value if not exists 'boats';
+alter type public.listing_category add value if not exists 'motorbikes';

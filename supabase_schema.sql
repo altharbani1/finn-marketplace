@@ -15,7 +15,11 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE listing_category AS ENUM ('real_estate', 'vehicles', 'marketplace', 'jobs', 'freebies');
+    CREATE TYPE listing_category AS ENUM (
+        'real_estate', 'vehicles', 'contracting', 'services', 'furniture',
+        'electronics', 'phones', 'home_garden', 'marketplace', 'jobs',
+        'education', 'pets', 'freebies', 'boats', 'motorbikes'
+    );
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
