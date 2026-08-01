@@ -56,8 +56,17 @@ class FinnMarketApp {
 
     renderCityOptions() {
         const citySelect = document.getElementById('filterCity');
-        if (!citySelect) return;
-        citySelect.innerHTML = INITIAL_CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
+        const postAdCitySelect = document.querySelector('select[name="adCity"]');
+
+        const filterOptionsHTML = INITIAL_CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
+        const postAdOptionsHTML = INITIAL_CITIES.filter(c => c !== 'جميع المدن').map(c => `<option value="${c}">${c}</option>`).join('');
+
+        if (citySelect) {
+            citySelect.innerHTML = filterOptionsHTML;
+        }
+        if (postAdCitySelect) {
+            postAdCitySelect.innerHTML = postAdOptionsHTML;
+        }
     }
 
     applyFiltersAndRender() {
@@ -274,7 +283,7 @@ class FinnMarketApp {
             price: form.adIsFree.checked ? 0 : parseFloat(form.adPrice.value || 0),
             isFree: form.adIsFree.checked,
             city: form.adCity.value,
-            neighborhood: form.adNeighborhood.value || 'وسط المدينة',
+            neighborhood: form.adNeighborhood ? form.adNeighborhood.value : 'وسط المدينة',
             condition: form.adCondition.value,
             timeAgo: 'الآن',
             views: 1,
