@@ -14,9 +14,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS with Cache Buster v5.0 -->
-    <link rel="stylesheet" href="css/main.css?v=5.0">
-    <link rel="stylesheet" href="css/components.css?v=5.0">
+    <!-- Custom CSS with Cache Buster v6.0 -->
+    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/components.css?v=6.0">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
             <a href="index.html" class="brand-logo">
                 <i class="fa-solid fa-shapes"></i>
                 <span>FinnMarket</span>
-                <span class="brand-badge">سوق آمن موثق</span>
+                <span class="brand-badge">سوق حقيقي موثق</span>
             </a>
 
             <!-- Global Search Bar -->
@@ -143,7 +143,7 @@
         </section>
     </main>
 
-    <!-- 5. Modern Redesigned Authentication Modal -->
+    <!-- 5. Real Auth Security Modal -->
     <div class="modal-overlay" id="realAuthModal">
         <div class="modal-box auth-modal-card">
             <button class="modal-close-btn" onclick="app.closeModal('realAuthModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -160,22 +160,12 @@
                 </button>
             </div>
 
-            <!-- Social Quick Auth -->
-            <div class="social-login-row">
-                <button class="btn-social" onclick="app.handleQuickSocialAuth('phone')">
-                    <i class="fa-solid fa-mobile-screen-button" style="color: var(--color-primary); font-size: 16px;"></i> الدخول برقم الجوال (رمز SMS OTP)
-                </button>
-                <button class="btn-social" onclick="app.handleQuickSocialAuth('google')">
-                    <i class="fa-brands fa-google" style="color: #ea4335; font-size: 16px;"></i> الدخول السريع عبر Google
-                </button>
-            </div>
-
-            <div class="auth-divider"><span>أو باستعمال البريد الإلكتروني</span></div>
+            <div class="auth-divider"><span>بالبريد الإلكتروني المعتمد</span></div>
 
             <!-- Login Form -->
             <form id="loginAuthForm" onsubmit="app.handleRealLogin(event)">
                 <div style="margin-bottom: 14px;">
-                    <label class="filter-label">البريد الإلكتروني / اسم العضو</label>
+                    <label class="filter-label">البريد الإلكتروني المسجل</label>
                     <div class="input-icon-wrap">
                         <i class="fa-regular fa-envelope"></i>
                         <input type="email" name="loginEmail" class="form-input" placeholder="user@domain.com" required>
@@ -183,10 +173,7 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <label class="filter-label" style="margin-bottom: 0;">كلمة المرور</label>
-                        <a href="#" style="font-size: 12px; color: var(--color-primary); font-weight: 600;">نسيت كلمة المرور؟</a>
-                    </div>
+                    <label class="filter-label">كلمة المرور</label>
                     <div class="input-icon-wrap">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" name="loginPassword" class="form-input" placeholder="••••••••" required>
@@ -351,10 +338,10 @@
         </div>
     </div>
 
-    <!-- Supabase JS Client SDK + Production Scripts v5.0 -->
+    <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=5.0"></script>
-    <script src="js/supabase-config.js?v=5.0"></script>
-    <script src="js/app.js?v=5.0"></script>
+    <script src="js/data.js?v=6.0"></script>
+    <script src="js/supabase-config.js?v=6.0"></script>
+    <script src="js/app.js?v=6.0"></script>
 </body>
 </html>

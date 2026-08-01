@@ -13,9 +13,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=2.5">
-    <link rel="stylesheet" href="css/components.css?v=2.5">
+    <!-- Custom CSS v6.0 -->
+    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/components.css?v=6.0">
 
     <style>
         .listing-page-header {
@@ -190,7 +190,7 @@
             <a href="index.html" class="brand-logo">
                 <i class="fa-solid fa-shapes"></i>
                 <span>FinnMarket</span>
-                <span class="brand-badge">سوق النرويج</span>
+                <span class="brand-badge">سوق حقيقي موثق</span>
             </a>
 
             <div class="nav-actions" id="headerAuthNav">
@@ -223,42 +223,20 @@
         </div>
     </main>
 
-    <!-- Login Modal -->
-    <div class="modal-overlay" id="loginModal">
-        <div class="modal-box" style="max-width: 450px; padding: 28px;">
-            <button class="modal-close-btn" onclick="closeModal('loginModal')"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--color-primary);"><i class="fa-solid fa-user-lock"></i> تسجيل الدخول لعضوية المنصة</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">قم بإنشاء حسابك أو تسجيل الدخول السريع لتتمكن من كتابة الردود والتواصل مع البائعين.</p>
-            
-            <form onsubmit="handleUserLogin(event)">
-                <div style="margin-bottom: 14px;">
-                    <label class="filter-label">اسم العضو الكريم *</label>
-                    <input type="text" id="loginNameInput" class="form-input" placeholder="مثال: المهندس عبدالرحمن العتيبي" required>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label class="filter-label">البريد الإلكتروني / رقم الجوال *</label>
-                    <input type="text" id="loginContactInput" class="form-input" placeholder="user@example.com / +966 50..." required>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
-                    <i class="fa-solid fa-right-to-bracket"></i> دخول فوري ومتابعة الرد
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- JS Scripts -->
-    <script src="js/data.js?v=2.5"></script>
-    <script src="js/supabase-config.js?v=2.5"></script>
+    <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data.js?v=6.0"></script>
+    <script src="js/supabase-config.js?v=6.0"></script>
     <script>
         let currentItem = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderHeaderAuth();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await renderHeaderAuth();
 
             const urlParams = new URLSearchParams(window.location.search);
             const listingId = urlParams.get('id') || 'list-101';
             
-            const listings = finnDB.getListings();
+            const listings = await finnDB.getListings();
             currentItem = listings.find(l => l.id === listingId) || listings[0];
             
             if (!currentItem.comments) {
@@ -272,8 +250,8 @@
                         time: 'منذ ساعتين'
                     },
                     {
-                        author: currentItem.seller.name,
-                        avatar: currentItem.seller.avatar,
+                        author: currentItem.seller ? currentItem.seller.name : 'صاحب الإعلان',
+                        avatar: currentItem.seller ? currentItem.seller.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
                         isSeller: true,
                         isMember: true,
                         text: 'حياك الله أخي خالد، نعم السوم وصل قريب من الحد والتواصل متاح عبر الاتصال.',
@@ -286,35 +264,31 @@
             document.getElementById('bcCategory').textContent = currentItem.subCategory;
             document.getElementById('bcTitle').textContent = currentItem.title;
 
-            renderListingPageContent();
+            await renderListingPageContent();
         });
 
-        function renderHeaderAuth() {
+        async function renderHeaderAuth() {
             const authNav = document.getElementById('headerAuthNav');
-            const currentUser = finnDB.getCurrentUser();
+            const currentUser = await finnDB.getAuthUser();
 
             if (currentUser) {
                 authNav.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px; background: var(--color-primary-light); padding: 6px 14px; border-radius: var(--radius-full);">
+                    <div style="display: flex; align-items: center; gap: 10px; background: var(--color-primary-light); padding: 6px 14px; border-radius: var(--radius-full); cursor: pointer;" onclick="window.location.href='profile.html'">
                         <img src="${currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                         <span style="font-size: 13px; font-weight: 700; color: var(--color-primary);">${currentUser.name}</span>
-                        <button onclick="logoutUser()" title="تسجيل الخروج" style="color: var(--color-danger); font-size: 14px; margin-right: 6px;"><i class="fa-solid fa-right-from-bracket"></i></button>
                     </div>
                     <a href="index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> الرئيسية</a>
                 `;
             } else {
                 authNav.innerHTML = `
-                    <button class="btn btn-outline" onclick="openModal('loginModal')">
-                        <i class="fa-solid fa-user-lock"></i> دخول الأعضاء
-                    </button>
                     <a href="index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> الرئيسية</a>
                 `;
             }
         }
 
-        function renderListingPageContent() {
+        async function renderListingPageContent() {
             const mainCol = document.getElementById('mainListingCol');
-            const currentUser = finnDB.getCurrentUser();
+            const currentUser = await finnDB.getAuthUser();
             const formattedPrice = currentItem.isFree ? 'مجاناً 0 ر.س' : `${currentItem.price.toLocaleString('ar-SA')} ر.س`;
 
             mainCol.innerHTML = `
@@ -329,7 +303,7 @@
 
                     <!-- Main Gallery Slider -->
                     <div class="gallery-main-box">
-                        <img id="mainHeroImg" src="${currentItem.images[0]}" alt="${currentItem.title}">
+                        <img id="mainHeroImg" src="${currentItem.images[0]}" alt="${currentItem.title}" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
                     </div>
                     
                     ${currentItem.images.length > 1 ? `
@@ -396,8 +370,8 @@
                             <i class="fa-solid fa-lock" style="font-size: 32px; color: #d97706; margin-bottom: 10px;"></i>
                             <h4 style="font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 6px;">الردود مخصصة للأعضاء المشتركين فقط</h4>
                             <p style="font-size: 13px; color: #b45309; margin-bottom: 14px;">يتوجب تسجيل الدخول إلى حسابتك في المنصة للرد على الإعلانات وطرح الأسئلة على التاجر.</p>
-                            <button class="btn btn-primary" onclick="openModal('loginModal')">
-                                <i class="fa-solid fa-user-check"></i> تسجيل الدخول وكتابة رد
+                            <button class="btn btn-primary" onclick="window.location.href='index.html'">
+                                <i class="fa-solid fa-user-check"></i> تسجيل الدخول من الرئيسية
                             </button>
                         </div>
                     `}
@@ -406,23 +380,25 @@
 
             // Render Sidebar Column
             const sidebarCol = document.getElementById('sidebarListingCol');
+            const sellerObj = currentItem.seller || { name: 'معلن موثق', phone: '+966 50 000 0000', rating: 5.0, verified: true, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80' };
+
             sidebarCol.innerHTML = `
                 <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px; position: sticky; top: 96px;">
                     <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">السعر المطلوب:</div>
                     <div style="font-size: 32px; font-weight: 900; color: var(--color-primary); margin-bottom: 20px;">${formattedPrice}</div>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                        <a href="tel:${currentItem.seller.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                        <a href="tel:${sellerObj.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
                             <i class="fa-solid fa-phone"></i> اتصال بالمعلن
                         </a>
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${currentItem.seller.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
+                            <img src="${sellerObj.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
                             <div>
-                                <h4 style="font-size: 16px; font-weight: 800;">${currentItem.seller.name} ${currentItem.seller.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
-                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${currentItem.seller.rating} تقييم التاجر</span>
+                                <h4 style="font-size: 16px; font-weight: 800;">${sellerObj.name} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
+                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${sellerObj.rating} تقييم التاجر</span>
                             </div>
                         </div>
                     </div>
@@ -436,43 +412,10 @@
             el.classList.add('active');
         }
 
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        function handleUserLogin(event) {
-            event.preventDefault();
-            const name = document.getElementById('loginNameInput').value.trim();
-            const contact = document.getElementById('loginContactInput').value.trim();
-
-            const user = {
-                name: name,
-                contact: contact,
-                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-                verified: true
-            };
-
-            finnDB.setCurrentUser(user);
-            closeModal('loginModal');
-            renderHeaderAuth();
-            renderListingPageContent();
-            alert(`🎉 مرحباً بك أخي ${user.name}! تم تسجيل دخولك كعضو موثق، يمكنك الآن الرد فوراً.`);
-        }
-
-        function logoutUser() {
-            finnDB.setCurrentUser(null);
-            renderHeaderAuth();
-            renderListingPageContent();
-        }
-
-        function submitListingReply(listingId) {
-            const currentUser = finnDB.getCurrentUser();
+        async function submitListingReply(listingId) {
+            const currentUser = await finnDB.getAuthUser();
             if (!currentUser) {
-                openModal('loginModal');
+                window.location.href = 'index.html';
                 return;
             }
 
@@ -491,14 +434,14 @@
                 time: 'الآن'
             };
 
-            const listings = finnDB.getListings();
+            const listings = await finnDB.getListings();
             const item = listings.find(l => l.id === listingId);
             if (item) {
                 if (!item.comments) item.comments = [];
                 item.comments.push(newComment);
-                localStorage.setItem('finn_marketplace_listings_v2.5', JSON.stringify(listings));
+                localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(listings));
                 currentItem = item;
-                renderListingPageContent();
+                await renderListingPageContent();
                 alert('🎉 تم إرسال ونشر ردك كعضو موثق بنجاح!');
             }
         }

@@ -13,9 +13,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=5.0">
-    <link rel="stylesheet" href="css/components.css?v=5.0">
+    <!-- Custom CSS v6.0 -->
+    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/components.css?v=6.0">
 
     <style>
         .profile-hero-card {
@@ -192,9 +192,10 @@
         </section>
     </main>
 
-    <!-- JS Scripts -->
-    <script src="js/data.js?v=5.0"></script>
-    <script src="js/supabase-config.js?v=5.0"></script>
+    <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data.js?v=6.0"></script>
+    <script src="js/supabase-config.js?v=6.0"></script>
     <script>
         let currentUser = null;
 
@@ -208,8 +209,8 @@
             }
 
             renderProfileHero();
-            renderMyAds();
-            renderMyFavs();
+            await renderMyAds();
+            await renderMyFavs();
             populateSettingsForm();
         });
 
@@ -260,7 +261,6 @@
 
         async function renderMyAds() {
             const allListings = await finnDB.getListings();
-            // Filter user ads
             const myAds = allListings.filter(l => l.seller && l.seller.name === currentUser.name) || allListings.slice(0, 3);
             
             document.getElementById('myAdsCount').textContent = myAds.length;
@@ -270,7 +270,7 @@
             grid.innerHTML = myAds.map(item => `
                 <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" class="listing-thumb">
+                        <img src="${item.images[0]}" class="listing-thumb" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
                         <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
                     </div>
                     <div class="listing-body">
@@ -297,7 +297,7 @@
             grid.innerHTML = favListings.map(item => `
                 <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" class="listing-thumb">
+                        <img src="${item.images[0]}" class="listing-thumb" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
                         <span class="badge-tag badge-${item.category}">${item.subCategory}</span>
                     </div>
                     <div class="listing-body">
@@ -332,7 +332,7 @@
                 const listings = await finnDB.getListings();
                 const filtered = listings.filter(l => l.id !== id);
                 localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(filtered));
-                renderMyAds();
+                await renderMyAds();
                 alert('تم حذف الإعلان بنجاح.');
             }
         }
