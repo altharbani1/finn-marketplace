@@ -235,22 +235,22 @@
                     <div class="kpi-box">
                         <div class="kpi-icon" style="background: #10b981;"><i class="fa-solid fa-user-check"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="kpiUsersCount">28</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">أعضاء ومؤسسات موثقة</div>
+                            <div style="font-size: 24px; font-weight: 900;" id="kpiUsersCount">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">الحسابات المسجلة</div>
                         </div>
                     </div>
                     <div class="kpi-box">
                         <div class="kpi-icon" style="background: #f59e0b;"><i class="fa-solid fa-star"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;">4.9 ★</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">متوسط تقييم التجار</div>
+                            <div style="font-size: 24px; font-weight: 900;" id="kpiVerifiedCount">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">الحسابات الموثقة</div>
                         </div>
                     </div>
                     <div class="kpi-box">
                         <div class="kpi-icon" style="background: #8b5cf6;"><i class="fa-solid fa-comments"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;">142</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">استفسارات ومحادثات</div>
+                            <div style="font-size: 24px; font-weight: 900;">—</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">إحصاءات التفاعل قريباً</div>
                         </div>
                     </div>
                 </div>
@@ -285,10 +285,9 @@
                         <thead>
                             <tr>
                                 <th>العضو / التاجر</th>
-                                <th>البريد الإلكتروني</th>
                                 <th>رقم الجوال</th>
-                                <th>الدور والحالة</th>
-                                <th>تحديث الترخيص والتوثيق</th>
+                                <th>الدور</th>
+                                <th>التوثيق</th>
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
@@ -305,8 +304,8 @@
                     <div id="reportsContainer">
                         <div style="text-align: center; padding: 40px; background: var(--bg-surface-subtle); border-radius: var(--radius-md);">
                             <i class="fa-solid fa-shield-cat" style="font-size: 40px; color: #10b981; margin-bottom: 12px;"></i>
-                            <h3 style="font-size: 16px; font-weight: 800;">سجل البلاغات خالي من المخالفات</h3>
-                            <p style="color: var(--text-muted); font-size: 13px;">جميع الإعلانات متوافقة مع شروط استخدام المنصة.</p>
+                            <h3 style="font-size: 16px; font-weight: 800;">إدارة البلاغات قيد التجهيز</h3>
+                            <p style="color: var(--text-muted); font-size: 13px;">لن تعرض اللوحة حالة امتثال قبل ربط سجل البلاغات الفعلي.</p>
                         </div>
                     </div>
                 </div>
@@ -315,17 +314,9 @@
             <!-- Tab 5: Cities & Categories Management -->
             <div id="tabCities" style="display: none;">
                 <div class="admin-card">
-                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">إضافة وتحديث المدن والتصنيفات</h2>
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">المدن والتصنيفات المعتمدة</h2>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="background: var(--bg-surface-subtle); padding: 20px; border-radius: var(--radius-md);">
-                            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">إضافة مدينة جديدة</h4>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" class="form-input" id="newCityInput" placeholder="اسم المدينة الجديدة...">
-                                <button class="btn btn-primary" onclick="addNewCityAdmin()"><i class="fa-solid fa-plus"></i> إضافة</button>
-                            </div>
-                        </div>
-
+                    <div>
                         <div style="background: var(--bg-surface-subtle); padding: 20px; border-radius: var(--radius-md);">
                             <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">المدن المعتمدة حالياً (<span id="citiesCountBadge">0</span>)</h4>
                             <div id="citiesListAdmin" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto;"></div>
@@ -341,15 +332,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=9.0"></script>
+    <script src="js/supabase-config.js?v=10.0"></script>
     <script>
         let allListings = [];
-        let allUsers = [
-            { id: 'usr-1', name: 'شركة قمة العقارية', email: 'qimma@realestate.sa', phone: '+966 50 123 4567', role: 'company', verified: true },
-            { id: 'usr-2', name: 'فهد العتيبي', email: 'f.otaibi@domain.com', phone: '+966 55 987 6543', role: 'seller', verified: true },
-            { id: 'usr-3', name: 'الكابتن طارق البحراني', email: 'tariq@marine.sa', phone: '+966 54 888 9900', role: 'seller', verified: true },
-            { id: 'usr-4', name: 'المهندس محمد الدوسري', email: 'm.dosari@domain.com', phone: '+966 50 111 2233', role: 'admin', verified: true }
-        ];
+        let allUsers = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const authUser = await finnDB.getAuthUser();
@@ -361,9 +347,11 @@
             document.getElementById('adminNameTxt').textContent = authUser.name;
             document.getElementById('adminAvatarImg').src = safeHttpUrl(authUser.avatar, DEFAULT_AVATAR);
 
-            allListings = await finnDB.getListings();
+            [allListings, allUsers] = await Promise.all([finnDB.getListings(), finnDB.getAdminProfiles()]);
             document.getElementById('kpiTotalAds').textContent = allListings.length;
             document.getElementById('badgeAdsCount').textContent = allListings.length;
+            document.getElementById('kpiUsersCount').textContent = allUsers.length;
+            document.getElementById('kpiVerifiedCount').textContent = allUsers.filter(user => user.verified).length;
             
             renderAllAdminTables();
             renderUsersTable();
@@ -493,41 +481,14 @@
             const tbody = document.getElementById('usersTableBody');
             tbody.innerHTML = allUsers.map(u => `
                 <tr>
-                    <td style="font-weight: 800;">${u.name}</td>
-                    <td>${u.email}</td>
-                    <td>${u.phone}</td>
+                    <td style="font-weight: 800;">${escapeHTML(u.name)}</td>
+                    <td>${escapeHTML(u.phone)}</td>
+                    <td>${escapeHTML(u.role)}</td>
                     <td>
-                        <select onchange="updateUserRole('${u.id}', this.value)" style="height: 30px; font-size: 12px; padding: 0 6px; border-radius: 4px;">
-                            <option value="user" ${u.role==='user'?'selected':''}>عضو عادي</option>
-                            <option value="seller" ${u.role==='seller'?'selected':''}>تاجر موثق</option>
-                            <option value="company" ${u.role==='company'?'selected':''}>شركة معتمدة</option>
-                            <option value="admin" ${u.role==='admin'?'selected':''}>مشرف أدمن</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 11px; color: ${u.verified ? '#059669':'#d97706'};" onclick="toggleUserVerify('${u.id}')">
-                            ${u.verified ? '✔️ موثق' : 'منح التوثيق'}
-                        </button>
+                        <span class="status-pill ${u.verified ? 'active' : 'pending'}">${u.verified ? 'موثق' : 'غير موثق'}</span>
                     </td>
                 </tr>
             `).join('');
-        }
-
-        function updateUserRole(id, newRole) {
-            const u = allUsers.find(user => user.id === id);
-            if (u) {
-                u.role = newRole;
-                alert(`تم تحديث صلاحية (${u.name}) إلى (${newRole}).`);
-            }
-        }
-
-        function toggleUserVerify(id) {
-            const u = allUsers.find(user => user.id === id);
-            if (u) {
-                u.verified = !u.verified;
-                renderUsersTable();
-                alert(`تم تحديث توثيق العضوية لـ (${u.name}).`);
-            }
         }
 
         function renderCitiesAdmin() {
@@ -538,15 +499,6 @@
             `).join('');
         }
 
-        function addNewCityAdmin() {
-            const input = document.getElementById('newCityInput');
-            if (input && input.value.trim()) {
-                INITIAL_CITIES.push(input.value.trim());
-                input.value = '';
-                renderCitiesAdmin();
-                alert('تم إضافة المدينة الجديدة للنظام بنجاح!');
-            }
-        }
     </script>
 </body>
 </html>

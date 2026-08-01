@@ -382,28 +382,11 @@
         </div>
     </div>
 
-    <!-- 8. Live Chat Modal -->
-    <div class="modal-overlay" id="chatModal">
-        <div class="modal-box" style="max-width: 550px; padding: 24px;">
-            <button class="modal-close-btn" onclick="app.closeModal('chatModal')" aria-label="إغلاق المحادثة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-            <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--color-primary);"><i class="fa-regular fa-comments"></i> المحادثة المباشرة مع البائع</h3>
-            
-            <div class="chat-messages-container" id="chatMessagesBox">
-                <!-- Messages populated dynamically -->
-            </div>
-
-            <div class="chat-input-row">
-                <input type="text" class="form-input" id="chatInput" placeholder="اكتب رسالتك للبائع هنا..." onkeypress="if(event.key==='Enter') app.sendChatMessage()">
-                <button class="btn btn-primary" onclick="app.sendChatMessage()" aria-label="إرسال الرسالة"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
-            </div>
-        </div>
-    </div>
-
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=9.0"></script>
-    <script src="js/app.js?v=9.0"></script>
+    <script src="js/supabase-config.js?v=10.0"></script>
+    <script src="js/app.js?v=10.0"></script>
 </body>
 </html>

@@ -157,6 +157,73 @@ class FinnSeniorProductionEngine {
         return (data || []).map((item) => this.mapListing(item));
     }
 
+    async getListingSeller(userId) {
+        if (!userId || !await this.getAuthUser()) return null;
+        const { data, error } = await this.requireClient()
+            .from('profiles')
+            .select('id, full_name, avatar_url, phone_number, rating, verified_seller')
+            .eq('id', userId)
+            .maybeSingle();
+        if (error) throw new Error(`تعذر جلب بيانات المعلن: ${error.message}`);
+        if (!data) return null;
+        return {
+            id: data.id,
+            name: data.full_name || 'معلن',
+            avatar: data.avatar_url || DEFAULT_AVATAR,
+            phone: data.phone_number || '',
+            rating: Number(data.rating || 0),
+            verified: Boolean(data.verified_seller)
+        };
+    }
+
+    async getListingComments(listingId) {
+        const { data, error } = await this.requireClient()
+            .from('comments')
+            .select('id, listing_id, user_id, comment_text, is_seller_reply, created_at')
+            .eq('listing_id', listingId)
+            .order('created_at', { ascending: true });
+        if (error) throw new Error(`تعذر جلب الردود: ${error.message}`);
+
+        const authUser = await this.getAuthUser();
+        const profileMap = new Map();
+        const userIds = [...new Set((data || []).map(comment => comment.user_id))];
+        if (authUser && userIds.length) {
+            const { data: profiles } = await this.requireClient()
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', userIds);
+            (profiles || []).forEach(profile => profileMap.set(profile.id, profile));
+        }
+
+        return (data || []).map(comment => {
+            const profile = profileMap.get(comment.user_id) || {};
+            return {
+                id: comment.id,
+                userId: comment.user_id,
+                author: profile.full_name || 'عضو في FinnMarket',
+                avatar: profile.avatar_url || DEFAULT_AVATAR,
+                isSeller: Boolean(comment.is_seller_reply),
+                text: comment.comment_text,
+                time: new Date(comment.created_at).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })
+            };
+        });
+    }
+
+    async addComment(listingId, commentText, listingOwnerId) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول لإضافة رد.');
+        const text = commentText.trim();
+        if (!text || text.length > 2000) throw new Error('يجب أن يكون الرد بين 1 و2000 حرف.');
+        const { error } = await this.requireClient().from('comments').insert({
+            listing_id: listingId,
+            user_id: authUser.id,
+            comment_text: text,
+            is_seller_reply: authUser.id === listingOwnerId
+        });
+        if (error) throw new Error(`تعذر نشر الرد: ${error.message}`);
+        return this.getListingComments(listingId);
+    }
+
     async uploadListingImages(listingId, images, userId) {
         const uploadedPaths = [];
         const urls = [];
@@ -337,8 +404,32 @@ class FinnSeniorProductionEngine {
         if (error) throw new Error(`تعذر تحديث حالة الإعلان: ${error.message}`);
     }
 
-    async deleteComment() {
-        throw new Error('حذف التعليقات السحابية غير متاح حتى يتم ربط معرف التعليق.');
+    async getAdminProfiles() {
+        const authUser = await this.getAuthUser();
+        if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بقراءة بيانات الأعضاء.');
+        const { data, error } = await this.requireClient().from('profiles')
+            .select('id, full_name, phone_number, role, verified_seller, created_at')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(`تعذر جلب الأعضاء: ${error.message}`);
+        return (data || []).map(profile => ({
+            id: profile.id,
+            name: profile.full_name || 'عضو',
+            phone: profile.phone_number || 'غير مضاف',
+            role: profile.role || 'user',
+            verified: Boolean(profile.verified_seller),
+            createdAt: profile.created_at
+        }));
+    }
+
+    async deleteComment(listingId, commentId) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول.');
+        const { error } = await this.requireClient().from('comments')
+            .delete()
+            .eq('id', commentId)
+            .eq('listing_id', listingId);
+        if (error) throw new Error(`تعذر حذف الرد: ${error.message}`);
+        return this.getListingComments(listingId);
     }
 
     async updateProfile(values) {
@@ -354,15 +445,6 @@ class FinnSeniorProductionEngine {
         return this.getAuthUser();
     }
 
-    async rateSeller(sellerName, ratingScore) {
-        let ratingsStore = JSON.parse(localStorage.getItem(this.RATINGS_KEY) || '{}');
-        ratingsStore[sellerName] ||= { total: 0, count: 0 };
-        ratingsStore[sellerName].total += ratingScore;
-        ratingsStore[sellerName].count += 1;
-        localStorage.setItem(this.RATINGS_KEY, JSON.stringify(ratingsStore));
-        return { avg: Number((ratingsStore[sellerName].total / ratingsStore[sellerName].count).toFixed(1)), count: ratingsStore[sellerName].count };
-    }
-
     getFavorites() {
         try { return JSON.parse(localStorage.getItem(this.FAVS_KEY)) || []; } catch (_) { return []; }
     }
@@ -374,7 +456,6 @@ class FinnSeniorProductionEngine {
         return next;
     }
 
-    getChats() { return []; }
 }
 
 const finnDB = new FinnSeniorProductionEngine();

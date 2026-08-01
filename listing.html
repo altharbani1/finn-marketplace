@@ -192,7 +192,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=9.0"></script>
+    <script src="js/supabase-config.js?v=10.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
@@ -202,27 +202,30 @@
             await renderHeaderAuth();
 
             const urlParams = new URLSearchParams(window.location.search);
-            const listingId = urlParams.get('id') || 'list-101';
+            const listingId = urlParams.get('id');
+            if (!listingId) {
+                renderMissingListing();
+                return;
+            }
             
             const listings = await finnDB.getListings();
-            currentItem = listings.find(l => l.id === listingId) || listings[0];
+            currentItem = listings.find(l => l.id === listingId);
 
             if (!currentItem) {
                 renderMissingListing();
                 return;
             }
             
-            if (!currentItem.comments) {
-                currentItem.comments = [
-                    {
-                        author: 'خالد المطيري',
-                        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-                        isSeller: false,
-                        isMember: true,
-                        text: 'ما شاء الله تبارك الله، هل السعر قابل للتفاوض البسيط للصادق؟',
-                        time: 'منذ ساعتين'
-                    }
-                ];
+            try {
+                const [comments, seller] = await Promise.all([
+                    finnDB.getListingComments(currentItem.id),
+                    finnDB.getListingSeller(currentItem.userId)
+                ]);
+                currentItem.comments = comments;
+                if (seller) currentItem.seller = seller;
+            } catch (error) {
+                console.error(error);
+                currentItem.comments = [];
             }
 
             document.getElementById('bcCategory').textContent = currentItem.subCategory;
@@ -355,17 +358,17 @@
                     </div>
 
                     <div id="commentsListContainer">
-                        ${currentItem.comments.map((c, idx) => `
+                        ${currentItem.comments.length ? currentItem.comments.map((c) => `
                             <div class="comment-card">
                                 <img src="${escapeHTML(safeHttpUrl(c.avatar, DEFAULT_AVATAR))}" class="comment-avatar" alt="${escapeHTML(c.author)}">
                                 <div class="comment-content">
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <span style="font-weight: 800; font-size: 14px;">${escapeHTML(c.author)}</span>
-                                        ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : '<span class="member-badge-tag">عضو موثق</span>'}
+                                        ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : '<span class="member-badge-tag">عضو</span>'}
                                         <span style="font-size: 11px; color: var(--text-muted); margin-right: auto;">${escapeHTML(c.time)}</span>
                                         
-                                        ${(currentUser && (currentUser.name === c.author || isOwner)) ? `
-                                            <button class="btn-delete-comment" onclick="handleDeleteReply('${currentItem.id}', ${idx})" title="حذف هذا الرد">
+                                        ${(currentUser && (currentUser.id === c.userId || isOwner || currentUser.role === 'admin')) ? `
+                                            <button class="btn-delete-comment" onclick="handleDeleteReply('${currentItem.id}', '${c.id}')" title="حذف هذا الرد">
                                                 <i class="fa-solid fa-trash-can"></i> حذف الرد
                                             </button>
                                         ` : ''}
@@ -373,7 +376,7 @@
                                     <p class="comment-text">${escapeHTML(c.text)}</p>
                                 </div>
                             </div>
-                        `).join('')}
+                        `).join('') : '<p style="text-align:center; color:var(--text-muted); padding:24px 8px;">لا توجد أسئلة بعد. كن أول من يسأل المعلن.</p>'}
                     </div>
 
                     <!-- Add Reply Form -->
@@ -408,9 +411,15 @@
                     <div style="font-size: 32px; font-weight: 900; color: var(--color-primary); margin-bottom: 20px;">${formattedPrice}</div>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                        <a href="tel:${escapeHTML(safeTel(sellerObj.phone))}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
-                            <i class="fa-solid fa-phone"></i> اتصال بالمعلن
-                        </a>
+                        ${currentUser && sellerObj.phone ? `
+                            <a href="tel:${escapeHTML(safeTel(sellerObj.phone))}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                                <i class="fa-solid fa-phone"></i> اتصال بالمعلن
+                            </a>
+                        ` : `
+                            <a href="index.html?login=1" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                                <i class="fa-solid fa-lock"></i> سجل الدخول لإظهار وسيلة التواصل
+                            </a>
+                        `}
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
@@ -418,19 +427,7 @@
                             <img src="${escapeHTML(safeHttpUrl(sellerObj.avatar, DEFAULT_AVATAR))}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
                             <div>
                                 <h4 style="font-size: 16px; font-weight: 800;">${escapeHTML(sellerObj.name)} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
-                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> <span id="sellerRatingDisplay">${sellerObj.rating}</span> تقييم البائع</span>
-                            </div>
-                        </div>
-
-                        <!-- Real Rating Stars Widget -->
-                        <div class="rating-box-wrapper">
-                            <div style="font-size: 12px; font-weight: 700; color: #92400e; margin-bottom: 4px;">قيم تجربتك مع هذا البائع:</div>
-                            <div class="star-rating-box" id="sellerStarBox">
-                                <button class="star-btn" onclick="submitSellerRating(5)">★</button>
-                                <button class="star-btn" onclick="submitSellerRating(4)">★</button>
-                                <button class="star-btn" onclick="submitSellerRating(3)">★</button>
-                                <button class="star-btn" onclick="submitSellerRating(2)">★</button>
-                                <button class="star-btn" onclick="submitSellerRating(1)">★</button>
+                                <span style="font-size: 13px; color: var(--text-muted);">${sellerObj.verified ? 'هوية المعلن موثقة' : 'عضو في FinnMarket'}</span>
                             </div>
                         </div>
                     </div>
@@ -454,17 +451,6 @@
             el.classList.add('active');
         }
 
-        async function submitSellerRating(score) {
-            if (!currentUser) {
-                alert('يرجى تسجيل الدخول لتقييم البائع.');
-                return;
-            }
-            const res = await finnDB.rateSeller(currentItem.seller.name, score);
-            currentItem.seller.rating = res.avg;
-            document.getElementById('sellerRatingDisplay').textContent = res.avg;
-            alert(`🎉 شريف جداً! تم تقييم البائع بـ (${score} نجوم) وحفظ التقييم حقيقياً في السيرفر.`);
-        }
-
         async function handleDeleteAd(id) {
             if (confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان نهائياً؟')) {
                 await finnDB.deleteListing(id);
@@ -473,11 +459,14 @@
             }
         }
 
-        async function handleDeleteReply(listingId, commentIdx) {
+        async function handleDeleteReply(listingId, commentId) {
             if (confirm('هل ترغب في حذف هذا الرد نهائياً؟')) {
-                currentItem = await finnDB.deleteComment(listingId, commentIdx);
-                await renderListingPageContent();
-                alert('تم حذف الرد بنجاح.');
+                try {
+                    currentItem.comments = await finnDB.deleteComment(listingId, commentId);
+                    await renderListingPageContent();
+                } catch (error) {
+                    alert(error.message || 'تعذر حذف الرد.');
+                }
             }
         }
 
@@ -493,24 +482,11 @@
                 return;
             }
 
-            const newComment = {
-                author: currentUser.name,
-                avatar: currentUser.avatar,
-                isSeller: false,
-                isMember: true,
-                text: textInput.value.trim(),
-                time: 'الآن'
-            };
-
-            const listings = await finnDB.getListings();
-            const item = listings.find(l => l.id === listingId);
-            if (item) {
-                if (!item.comments) item.comments = [];
-                item.comments.push(newComment);
-                localStorage.setItem('finn_marketplace_listings_real_prod_v6', JSON.stringify(listings));
-                currentItem = item;
+            try {
+                currentItem.comments = await finnDB.addComment(listingId, textInput.value, currentItem.userId);
                 await renderListingPageContent();
-                alert('🎉 تم إرسال ونشر ردك كعضو موثق بنجاح!');
+            } catch (error) {
+                alert(error.message || 'تعذر نشر الرد.');
             }
         }
     </script>
