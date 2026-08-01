@@ -15,8 +15,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS with Cache Buster -->
-    <link rel="stylesheet" href="css/main.css?v=2.0">
-    <link rel="stylesheet" href="css/components.css?v=2.0">
+    <link rel="stylesheet" href="css/main.css?v=3.0">
+    <link rel="stylesheet" href="css/components.css?v=3.0">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
             <a href="index.html" class="brand-logo">
                 <i class="fa-solid fa-shapes"></i>
                 <span>FinnMarket</span>
-                <span class="brand-badge">سوق النرويج</span>
+                <span class="brand-badge">سوق حقيقي حي</span>
             </a>
 
             <!-- Global Search Bar -->
@@ -49,7 +49,7 @@
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
                     <i class="fa-solid fa-circle-plus"></i>
-                    <span>أضف إعلانك</span>
+                    <span>أضف إعلانك الحقيقي</span>
                 </button>
             </div>
         </div>
@@ -67,7 +67,7 @@
     <!-- 3. Hero Search & Category Highlights -->
     <section class="hero-banner">
         <div class="container hero-content">
-            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك</h1>
+            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك (Live Platform)</h1>
             <p class="hero-subtitle">تصفح العقارات، السيارات، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
             <div class="hero-tags">
@@ -119,9 +119,9 @@
             </div>
 
             <!-- Supabase Integration Info Box -->
-            <div style="background-color: var(--color-primary-light); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(0,99,251,0.2); font-size: 13px; line-height: 1.6;">
-                <h4 style="color: var(--color-primary); font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-database"></i> متصل بـ Supabase</h4>
-                <p style="color: var(--text-muted);">مشروعك متصل بـ Supabase (`mjuaqlkddmgilmjehwlx`) والجداول مفعلة 100%.</p>
+            <div style="background-color: #ecfdf5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #10b981; font-size: 13px; line-height: 1.6;">
+                <h4 style="color: #047857; font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-circle-check"></i> متصل وقائم بـ Supabase Live</h4>
+                <p style="color: #065f46;">مشروعك يعمل بنمط إنتاجي حقيقي متصل بالسيرفر (`mjuaqlkddmgilmjehwlx`).</p>
             </div>
         </aside>
 
@@ -129,7 +129,7 @@
         <section>
             <!-- Feed Toolbar -->
             <div class="feed-toolbar">
-                <div class="results-count" id="resultsCount">جاري تحميل الإعلانات...</div>
+                <div class="results-count" id="resultsCount">جاري تحميل الإعلانات الحقيقية...</div>
                 
                 <div class="toolbar-controls">
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -170,7 +170,7 @@
     <div class="modal-overlay" id="postAdModal">
         <div class="modal-box" style="max-width: 650px; padding: 28px;">
             <button class="modal-close-btn" onclick="app.closeModal('postAdModal')"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة الحقيقية</h2>
             
             <form onsubmit="app.submitNewAd(event)">
                 <div style="margin-bottom: 16px;">
@@ -222,7 +222,7 @@
                     <label class="filter-label">رفع صور المنتج المباشرة *</label>
                     <div class="upload-dropzone">
                         <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
-                        <h4 style="font-size: 15px; font-weight: 800; color: var(--color-primary);">اضغط هنا لااختيار صور من جهازك أو اسحب الصور هنا</h4>
+                        <h4 style="font-size: 15px; font-weight: 800; color: var(--color-primary);">اضغط هنا لاختيار صور من جهازك أو اسحب الصور هنا</h4>
                         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">يمكنك اختيار صورة أو عدة صور (PNG, JPG, WEBP)</p>
                         <input type="file" id="adFileInput" accept="image/*" multiple onchange="app.handleImageFileUpload(event)">
                     </div>
@@ -247,7 +247,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
-                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان فوراً
+                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان فوراً في السيرفر
                 </button>
             </form>
         </div>
@@ -270,9 +270,10 @@
         </div>
     </div>
 
-    <!-- JS Scripts with Cache Buster v2.0 -->
-    <script src="js/data.js?v=2.0"></script>
-    <script src="js/supabase-config.js?v=2.0"></script>
-    <script src="js/app.js?v=2.0"></script>
+    <!-- Supabase JS Client SDK + Production Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data.js?v=3.0"></script>
+    <script src="js/supabase-config.js?v=3.0"></script>
+    <script src="js/app.js?v=3.0"></script>
 </body>
 </html>
