@@ -1,9 +1,9 @@
 // Supabase Client Wrapper & Storage Adapter for FinnMarket
-// Configured for Supabase Project: mjuaqlkddmgilmjehwlx
+// Connected to Supabase Project: mjuaqlkddmgilmjehwlx
 
 const SUPABASE_CONFIG = {
     url: 'https://mjuaqlkddmgilmjehwlx.supabase.co',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY', // Paste your anon key here
+    anonKey: 'sb_publishable_-vcUUwqYtYMGTF-TAHK4jQ_gezyBqMD',
     isLive: true
 };
 
