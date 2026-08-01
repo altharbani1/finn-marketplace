@@ -9,13 +9,20 @@ const SUPABASE_CONFIG = {
 
 class FinnStorageAdapter {
     constructor() {
-        this.STORAGE_KEY = 'finn_marketplace_listings';
+        this.VERSION_KEY = 'finn_marketplace_v2';
+        this.STORAGE_KEY = 'finn_marketplace_listings_v2';
         this.FAVS_KEY = 'finn_marketplace_favs';
         this.MESSAGES_KEY = 'finn_marketplace_chats';
         this.init();
     }
 
     init() {
+        // Upgrade check to invalidate old browser cache
+        if (!localStorage.getItem(this.VERSION_KEY)) {
+            localStorage.clear();
+            localStorage.setItem(this.VERSION_KEY, '2.0');
+        }
+
         if (!localStorage.getItem(this.STORAGE_KEY)) {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(MOCK_LISTINGS));
         }
