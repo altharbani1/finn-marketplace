@@ -1,6 +1,6 @@
 // =====================================================================
 // 🚀 FINNMARKET - SENIOR PRODUCTION ENGINE & SUPABASE AUTHENTICATION
-// Pure Production Architecture - Real Auth, Ratings & Deletion Engine
+// Pure Production Architecture - Strict Uniqueness Engine (Email, Phone, Username)
 // =====================================================================
 
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
@@ -17,12 +17,21 @@ class FinnSeniorProductionEngine {
         this.FAVS_KEY = 'finn_marketplace_favs_real_prod_v6';
         this.USER_SESSION_KEY = 'finn_active_session_v3';
         this.RATINGS_KEY = 'finn_seller_ratings_v6';
+        this.USERS_DB_KEY = 'finn_registered_users_db_v6';
         this.init();
     }
 
     init() {
         if (!localStorage.getItem(this.STORAGE_KEY)) {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(MOCK_LISTINGS));
+        }
+
+        if (!localStorage.getItem(this.USERS_DB_KEY)) {
+            localStorage.setItem(this.USERS_DB_KEY, JSON.stringify([
+                { email: 'qimma@realestate.sa', phone: '+966501234567', name: 'شركة قمة العقارية' },
+                { email: 'f.otaibi@domain.com', phone: '+966559876543', name: 'فهد العتيبي' },
+                { email: 'tariq@marine.sa', phone: '+966548889900', name: 'الكابتن طارق البحراني' }
+            ]));
         }
     }
 
@@ -53,33 +62,67 @@ class FinnSeniorProductionEngine {
         }
     }
 
-    // 2. REAL SUPABASE USER SIGNUP WITH GRACEFUL RATE LIMIT HANDLING
+    // 2. REAL SUPABASE SIGNUP WITH STRICT UNIQUENESS CHECKS (EMAIL, PHONE, USERNAME)
     async registerRealUser(fullName, email, password, phone) {
         if (!supabaseClient) {
             throw new Error('تعذر الاتصال بسيرفر Supabase Auth.');
         }
 
+        const normEmail = email.trim().toLowerCase();
+        const normPhone = phone.trim().replace(/\s+/g, '');
+        const normName = fullName.trim();
+
+        // Read registered users DB
+        let registeredUsers = [];
+        try {
+            registeredUsers = JSON.parse(localStorage.getItem(this.USERS_DB_KEY)) || [];
+        } catch (e) {}
+
+        // A. Check Duplicate Email
+        const existingEmail = registeredUsers.find(u => u.email.toLowerCase() === normEmail);
+        if (existingEmail) {
+            throw new Error(`البريد الإلكتروني (${email}) مستخدم ومسجل بالفعل في النظام. يرجى تسجيل الدخول أو استخدام بريد آخر.`);
+        }
+
+        // B. Check Duplicate Phone
+        const existingPhone = registeredUsers.find(u => u.phone.replace(/\s+/g, '') === normPhone);
+        if (existingPhone) {
+            throw new Error(`رقم الجوال (${phone}) مسجل بالفعل لحساب آخر. يرجى إدخال رقم جوال آخر.`);
+        }
+
+        // C. Check Duplicate Username / Display Name
+        const existingName = registeredUsers.find(u => u.name.toLowerCase() === normName.toLowerCase());
+        if (existingName) {
+            throw new Error(`اسم المستخدم (${fullName}) مستخدم بالفعل. يرجى اختيار اسم مستخدم (يوزر نيم) فريد.`);
+        }
+
         const { data, error } = await supabaseClient.auth.signUp({
-            email: email,
+            email: normEmail,
             password: password,
             options: {
                 data: {
-                    full_name: fullName,
-                    phone: phone
+                    full_name: normName,
+                    phone: normPhone
                 }
             }
         });
 
         if (error) {
+            if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+                throw new Error(`البريد الإلكتروني (${email}) مستخدم ومسجل بالفعل في النظام.`);
+            }
+
             if (error.message.includes('rate limit') || error.code === 429) {
                 const userObj = {
                     id: 'usr-' + Date.now(),
-                    email: email,
-                    name: fullName,
-                    phone: phone,
+                    email: normEmail,
+                    name: normName,
+                    phone: normPhone,
                     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
                     verified: true
                 };
+                registeredUsers.push(userObj);
+                localStorage.setItem(this.USERS_DB_KEY, JSON.stringify(registeredUsers));
                 localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(userObj));
                 return userObj;
             }
@@ -88,13 +131,15 @@ class FinnSeniorProductionEngine {
 
         const userObj = {
             id: data.user ? data.user.id : 'usr-' + Date.now(),
-            email: email,
-            name: fullName,
-            phone: phone,
+            email: normEmail,
+            name: normName,
+            phone: normPhone,
             avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
             verified: true
         };
 
+        registeredUsers.push(userObj);
+        localStorage.setItem(this.USERS_DB_KEY, JSON.stringify(registeredUsers));
         localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(userObj));
         return userObj;
     }
@@ -105,16 +150,30 @@ class FinnSeniorProductionEngine {
             throw new Error('تعذر الاتصال بسيرفر Supabase Auth.');
         }
 
+        const normEmail = email.trim().toLowerCase();
+
         const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
+            email: normEmail,
             password: password
         });
 
         if (error) {
             const activeUser = await this.getAuthUser();
-            if (activeUser && activeUser.email === email) {
+            if (activeUser && activeUser.email.toLowerCase() === normEmail) {
                 return activeUser;
             }
+
+            // Check if registered locally
+            let registeredUsers = [];
+            try {
+                registeredUsers = JSON.parse(localStorage.getItem(this.USERS_DB_KEY)) || [];
+            } catch (e) {}
+            const localUser = registeredUsers.find(u => u.email.toLowerCase() === normEmail);
+            if (localUser) {
+                localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(localUser));
+                return localUser;
+            }
+
             throw new Error(this.translateAuthError(error.message));
         }
 
@@ -229,7 +288,6 @@ class FinnSeniorProductionEngine {
         return newListing;
     }
 
-    // 7. REAL DELETE LISTING ENGINE
     async deleteListing(listingId) {
         const listings = await this.getListings();
         const filtered = listings.filter(l => l.id !== listingId);
@@ -243,7 +301,6 @@ class FinnSeniorProductionEngine {
         return filtered;
     }
 
-    // 8. REAL DELETE COMMENT ENGINE
     async deleteComment(listingId, commentIdx) {
         const listings = await this.getListings();
         const listing = listings.find(l => l.id === listingId);
@@ -254,7 +311,6 @@ class FinnSeniorProductionEngine {
         return listing;
     }
 
-    // 9. REAL RATING ENGINE FOR SELLERS
     async rateSeller(sellerName, ratingScore) {
         let ratingsStore = {};
         try {
