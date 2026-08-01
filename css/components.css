@@ -21,6 +21,13 @@
 .badge-services { background-color: #8b5cf6; }
 .badge-boats { background-color: #06b6d4; }
 .badge-motorbikes { background-color: #ec4899; }
+.badge-contracting { background-color: #b45309; }
+.badge-furniture { background-color: #9333ea; }
+.badge-electronics { background-color: #4f46e5; }
+.badge-phones { background-color: #0f766e; }
+.badge-home_garden { background-color: #15803d; }
+.badge-education { background-color: #0369a1; }
+.badge-pets { background-color: #be185d; }
 
 /* Favorite Heart Icon Button */
 .btn-fav-card {

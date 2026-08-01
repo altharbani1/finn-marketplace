@@ -16,7 +16,7 @@
     
     <!-- Custom CSS with Cache Buster v8.0 -->
     <link rel="stylesheet" href="css/main.css?v=6.0">
-    <link rel="stylesheet" href="css/components.css?v=8.0">
+    <link rel="stylesheet" href="css/components.css?v=9.0">
 </head>
 <body>
 
@@ -61,7 +61,10 @@
                 <button class="hero-tag-btn active" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
                 <button class="hero-tag-btn" onclick="app.state.category='real_estate'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-house-chimney"></i> العقارات</button>
                 <button class="hero-tag-btn" onclick="app.state.category='vehicles'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-car"></i> السيارات</button>
-                <button class="hero-tag-btn" onclick="app.state.category='marketplace'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> المستعمل</button>
+                <button class="hero-tag-btn" onclick="app.state.category='contracting'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-helmet-safety"></i> المقاولات</button>
+                <button class="hero-tag-btn" onclick="app.state.category='services'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-handshake-angle"></i> الخدمات</button>
+                <button class="hero-tag-btn" onclick="app.state.category='furniture'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> الأثاث</button>
+                <button class="hero-tag-btn" onclick="app.state.category='electronics'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-tv"></i> الأجهزة</button>
                 <button class="hero-tag-btn" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
                 <button class="hero-tag-btn" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني Gis bort</button>
                 <button class="hero-tag-btn" onclick="app.state.category='boats'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-ship"></i> القوارب والبحري</button>
@@ -107,11 +110,6 @@
                 </select>
             </div>
 
-            <!-- Supabase Security Info Box -->
-            <div style="background-color: #ecfdf5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #10b981; font-size: 13px; line-height: 1.6;">
-                <h4 style="color: #047857; font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-shield-halved"></i> نظام الأمان موثق (Supabase Auth)</h4>
-                <p style="color: #065f46;">النشر والردود محمية كلياً ويتوجب امتلاك حساب حقيقي موثق.</p>
-            </div>
         </aside>
 
         <!-- Listings Content Area -->
@@ -309,9 +307,9 @@
     <div class="modal-overlay" id="postAdModal">
         <div class="modal-box" style="max-width: 650px; padding: 28px;">
             <button class="modal-close-btn" onclick="app.closeModal('postAdModal')" aria-label="إغلاق نافذة إضافة الإعلان"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
+            <h2 id="adModalTitle" style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
             
-            <form onsubmit="app.submitNewAd(event)">
+            <form id="adForm" onsubmit="app.submitAd(event)">
                 <div style="margin-bottom: 16px;">
                     <label class="filter-label">عنوان الإعلان *</label>
                     <input type="text" name="adTitle" class="form-input" placeholder="مثال: تويوتا كامري 2024 / شقة 3 غرف في الملقا" required>
@@ -321,14 +319,7 @@
                     <div>
                         <label class="filter-label">القسم الرئيسي *</label>
                         <select name="adCategory" class="form-select" required>
-                            <option value="real_estate">العقارات (Eiendom)</option>
-                            <option value="vehicles">السيارات (Bil)</option>
-                            <option value="marketplace" selected>سوق المستعمل (Torget)</option>
-                            <option value="jobs">الوظائف (Jobb)</option>
-                            <option value="freebies">إهداء مجاني (Gis bort)</option>
-                            <option value="services">الخدمات والأعمال (Tjenester)</option>
-                            <option value="boats">القوارب والبحري (Båt)</option>
-                            <option value="motorbikes">الدراجات والمحركات (Motorsykkel)</option>
+                            <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div>
@@ -337,6 +328,11 @@
                             <!-- Populated dynamically -->
                         </select>
                     </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label class="filter-label">التصنيف الفرعي</label>
+                    <input type="text" name="adSubCategory" class="form-input" maxlength="80" placeholder="مثال: تشطيبات، غرف نوم، أجهزة منزلية، صيانة تكييف">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
@@ -361,13 +357,14 @@
 
                 <!-- Direct Image File Upload Dropzone -->
                 <div style="margin-bottom: 20px;">
-                    <label class="filter-label">رفع صور المنتج المباشرة *</label>
+                    <label class="filter-label">صور الإعلان (حتى 15 صورة)</label>
                     <div class="upload-dropzone">
                         <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
                         <h4 style="font-size: 15px; font-weight: 800; color: var(--color-primary);">اضغط هنا لاختيار صور من جهازك أو اسحب الصور هنا</h4>
-                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">يمكنك اختيار صورة أو عدة صور (PNG, JPG, WEBP)</p>
-                        <input type="file" id="adFileInput" accept="image/*" multiple onchange="app.handleImageFileUpload(event)">
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">PNG أو JPG أو WEBP — بحد أقصى 5 ميجابايت للصورة</p>
+                        <input type="file" id="adFileInput" accept="image/png,image/jpeg,image/webp" multiple onchange="app.handleImageFileUpload(event)">
                     </div>
+                    <p id="imageCountLabel" style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">0 من 15 صورة</p>
                     <!-- Live Image Thumbs Preview Grid -->
                     <div class="preview-thumbs-grid" id="imagePreviewContainer"></div>
                 </div>
@@ -378,8 +375,9 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
-                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان الموثق فوراً
+                    <i class="fa-solid fa-paper-plane"></i> <span id="adSubmitLabel">نشر الإعلان</span>
                 </button>
+                <button type="button" id="cancelAdEditBtn" class="btn btn-outline" style="display: none; width: 100%; height: 44px; margin-top: 10px;" onclick="app.resetAdFormState(); app.closeModal('postAdModal')">إلغاء التعديل</button>
             </form>
         </div>
     </div>
@@ -403,9 +401,9 @@
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
-    <script src="js/data.js?v=7.0"></script>
-    <script src="js/security.js?v=8.0"></script>
-    <script src="js/supabase-config.js?v=8.0"></script>
-    <script src="js/app.js?v=8.0"></script>
+    <script src="js/data.js?v=9.0"></script>
+    <script src="js/security.js?v=9.0"></script>
+    <script src="js/supabase-config.js?v=9.0"></script>
+    <script src="js/app.js?v=9.0"></script>
 </body>
 </html>

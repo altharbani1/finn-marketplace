@@ -1,15 +1,22 @@
 // Data Store & Initial Listings for FinnMarket (Finn.no Architecture)
 
 const INITIAL_CATEGORIES = [
-    { id: 'all', name: 'جميع القطاعات', icon: 'fa-globe', count: 24 },
-    { id: 'real_estate', name: 'العقارات (Eiendom)', icon: 'fa-house-chimney', count: 4, badgeColor: '#0284c7' },
-    { id: 'vehicles', name: 'السيارات (Bil)', icon: 'fa-car', count: 4, badgeColor: '#2563eb' },
-    { id: 'marketplace', name: 'سوق المستعمل (Torget)', icon: 'fa-couch', count: 4, badgeColor: '#4f46e5' },
-    { id: 'jobs', name: 'الوظائف (Jobb)', icon: 'fa-briefcase', count: 3, badgeColor: '#d97706' },
-    { id: 'freebies', name: 'إهداء مجاني (Gis bort)', icon: 'fa-gift', count: 3, badgeColor: '#059669' },
-    { id: 'services', name: 'الخدمات والأعمال (Tjenester)', icon: 'fa-handshake-angle', count: 2, badgeColor: '#8b5cf6' },
-    { id: 'boats', name: 'القوارب والبحري (Båt)', icon: 'fa-ship', count: 2, badgeColor: '#06b6d4' },
-    { id: 'motorbikes', name: 'الدراجات والمحركات (Motorsykkel)', icon: 'fa-motorcycle', count: 2, badgeColor: '#ec4899' }
+    { id: 'all', name: 'جميع الأقسام', icon: 'fa-globe', badgeColor: '#475569' },
+    { id: 'real_estate', name: 'العقارات', icon: 'fa-house-chimney', badgeColor: '#0284c7' },
+    { id: 'vehicles', name: 'السيارات', icon: 'fa-car', badgeColor: '#2563eb' },
+    { id: 'contracting', name: 'المقاولات والبناء', icon: 'fa-helmet-safety', badgeColor: '#b45309' },
+    { id: 'services', name: 'الخدمات والأعمال', icon: 'fa-handshake-angle', badgeColor: '#8b5cf6' },
+    { id: 'furniture', name: 'الأثاث والديكور', icon: 'fa-couch', badgeColor: '#9333ea' },
+    { id: 'electronics', name: 'الأجهزة والإلكترونيات', icon: 'fa-tv', badgeColor: '#4f46e5' },
+    { id: 'phones', name: 'الجوالات والحواسيب', icon: 'fa-mobile-screen-button', badgeColor: '#0f766e' },
+    { id: 'home_garden', name: 'المنزل والحديقة', icon: 'fa-seedling', badgeColor: '#15803d' },
+    { id: 'marketplace', name: 'السوق العام والمستعمل', icon: 'fa-store', badgeColor: '#64748b' },
+    { id: 'jobs', name: 'الوظائف', icon: 'fa-briefcase', badgeColor: '#d97706' },
+    { id: 'education', name: 'التعليم والتدريب', icon: 'fa-graduation-cap', badgeColor: '#0369a1' },
+    { id: 'pets', name: 'الحيوانات ومستلزماتها', icon: 'fa-paw', badgeColor: '#be185d' },
+    { id: 'freebies', name: 'إهداء مجاني', icon: 'fa-gift', badgeColor: '#059669' },
+    { id: 'boats', name: 'القوارب والبحري', icon: 'fa-ship', badgeColor: '#06b6d4' },
+    { id: 'motorbikes', name: 'الدراجات والمحركات', icon: 'fa-motorcycle', badgeColor: '#ec4899' }
 ];
 
 const INITIAL_CITIES = [

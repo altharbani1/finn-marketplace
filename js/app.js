@@ -21,6 +21,7 @@ class FinnMarketApp {
             currentDetailListing: null,
             activeImageIdx: 0,
             uploadedImages: [],
+            editingListingId: null,
             activeAuthTab: 'login',
             isLoading: true
         };
@@ -45,6 +46,12 @@ class FinnMarketApp {
         await this.renderAuthNavHeader();
         this.applyFiltersAndRender();
         this.setupEventListeners();
+
+        const editListingId = new URLSearchParams(window.location.search).get('edit');
+        if (editListingId) {
+            await this.openEditAdModal(editListingId);
+            history.replaceState(null, '', window.location.pathname);
+        }
     }
 
     renderLoadingState() {
@@ -327,6 +334,7 @@ class FinnMarketApp {
     renderCityOptions() {
         const citySelect = document.getElementById('filterCity');
         const postAdCitySelect = document.querySelector('select[name="adCity"]');
+        const categorySelect = document.querySelector('select[name="adCategory"]');
 
         const filterOptionsHTML = INITIAL_CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
         const postAdOptionsHTML = INITIAL_CITIES.filter(c => c !== 'جميع المدن').map(c => `<option value="${c}">${c}</option>`).join('');
@@ -337,21 +345,43 @@ class FinnMarketApp {
         if (postAdCitySelect) {
             postAdCitySelect.innerHTML = postAdOptionsHTML;
         }
+        if (categorySelect) {
+            categorySelect.innerHTML = INITIAL_CATEGORIES
+                .filter(category => category.id !== 'all')
+                .map(category => `<option value="${escapeHTML(category.id)}">${escapeHTML(category.name)}</option>`)
+                .join('');
+            categorySelect.value = 'marketplace';
+        }
     }
 
     handleImageFileUpload(event) {
         const files = Array.from(event.target.files);
         if (!files.length) return;
 
-        files.forEach(file => {
-            if (!file.type.startsWith('image/')) {
-                alert('يرجى اختيار صور فقط.');
-                return;
+        const remainingSlots = MAX_LISTING_IMAGES - this.state.uploadedImages.length;
+        if (remainingSlots <= 0) {
+            alert(`وصلت إلى الحد الأقصى: ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
+            event.target.value = '';
+            return;
+        }
+
+        const acceptedFiles = files.filter(file => {
+            if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+                alert(`الملف (${file.name}) ليس بصيغة صورة مدعومة.`);
+                return false;
             }
             if (file.size > 5 * 1024 * 1024) {
-                alert('حجم الصورة كبير جداً. أقصى حجم مسموح به هو 5 ميجابايت.');
-                return;
+                alert(`الصورة (${file.name}) أكبر من 5 ميجابايت.`);
+                return false;
             }
+            return true;
+        }).slice(0, remainingSlots);
+
+        if (acceptedFiles.length < files.length && files.length > remainingSlots) {
+            alert(`تم قبول ${acceptedFiles.length} صورة فقط لإكمال الحد الأقصى البالغ ${MAX_LISTING_IMAGES} صورة.`);
+        }
+
+        acceptedFiles.forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.state.uploadedImages.push(e.target.result);
@@ -359,16 +389,20 @@ class FinnMarketApp {
             };
             reader.readAsDataURL(file);
         });
+        event.target.value = '';
     }
 
     renderImagePreviews() {
         const container = document.getElementById('imagePreviewContainer');
+        const countLabel = document.getElementById('imageCountLabel');
         if (!container) return;
+
+        if (countLabel) countLabel.textContent = `${this.state.uploadedImages.length} من ${MAX_LISTING_IMAGES} صورة`;
 
         container.innerHTML = this.state.uploadedImages.map((imgDataUrl, idx) => `
             <div class="preview-thumb-card">
                 <img src="${imgDataUrl}" alt="صورة الإعلان ${idx + 1}">
-                <button class="remove-thumb-btn" onclick="event.stopPropagation(); app.removeUploadedImage(${idx})" title="حذف الصورة">
+                <button type="button" class="remove-thumb-btn" onclick="event.stopPropagation(); app.removeUploadedImage(${idx})" title="إزالة الصورة" aria-label="إزالة الصورة ${idx + 1}">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -498,9 +532,47 @@ class FinnMarketApp {
             return;
         }
 
-        this.state.uploadedImages = [];
+        this.resetAdFormState();
+        document.getElementById('postAdModal')?.classList.add('active');
+    }
+
+    async openEditAdModal(listingId) {
+        const authUser = await finnDB.getAuthUser();
+        const listing = this.listings.find(item => item.id === listingId);
+        if (!authUser || !listing || listing.userId !== authUser.id) {
+            alert('لا تملك صلاحية تعديل هذا الإعلان.');
+            return;
+        }
+
+        const form = document.getElementById('adForm');
+        this.state.editingListingId = listingId;
+        this.state.uploadedImages = [...listing.images].slice(0, MAX_LISTING_IMAGES);
+        form.adTitle.value = listing.title;
+        form.adCategory.value = listing.category;
+        form.adSubCategory.value = listing.subCategory || '';
+        form.adCity.value = listing.city;
+        form.adPrice.value = listing.price || '';
+        form.adIsFree.checked = listing.isFree;
+        form.adCondition.value = listing.condition;
+        form.adDescription.value = listing.description;
+        document.getElementById('adModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان والصور';
+        document.getElementById('adSubmitLabel').textContent = 'حفظ التعديلات';
+        document.getElementById('cancelAdEditBtn').style.display = 'block';
         this.renderImagePreviews();
         document.getElementById('postAdModal')?.classList.add('active');
+    }
+
+    resetAdFormState() {
+        const form = document.getElementById('adForm');
+        form?.reset();
+        this.state.editingListingId = null;
+        this.state.uploadedImages = [];
+        const categorySelect = form?.querySelector('[name="adCategory"]');
+        if (categorySelect) categorySelect.value = 'marketplace';
+        document.getElementById('adModalTitle').innerHTML = '<i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة';
+        document.getElementById('adSubmitLabel').textContent = 'نشر الإعلان';
+        document.getElementById('cancelAdEditBtn').style.display = 'none';
+        this.renderImagePreviews();
     }
 
     openAuthModal(reason = 'general') {
@@ -522,7 +594,7 @@ class FinnMarketApp {
         modal?.classList.add('active');
     }
 
-    async submitNewAd(event) {
+    async submitAd(event) {
         event.preventDefault();
 
         const authUser = await finnDB.getAuthUser();
@@ -538,15 +610,16 @@ class FinnMarketApp {
             ? [...this.state.uploadedImages] 
             : ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'];
 
-        const subCategoryText = (form.adCategory && form.adCategory.options[form.adCategory.selectedIndex]) 
-            ? form.adCategory.options[form.adCategory.selectedIndex].text 
+        const selectedCategoryText = (form.adCategory && form.adCategory.options[form.adCategory.selectedIndex])
+            ? form.adCategory.options[form.adCategory.selectedIndex].text
             : form.adCategory.value;
+        const subCategoryText = form.adSubCategory.value.trim() || selectedCategoryText;
 
         const conditionText = (form.adCondition && form.adCondition.options[form.adCondition.selectedIndex]) 
             ? form.adCondition.options[form.adCondition.selectedIndex].text 
             : 'استعمال نظيف';
 
-        const newAd = {
+        const adValues = {
             id: 'list-' + Date.now(),
             title: form.adTitle.value,
             category: form.adCategory.value,
@@ -575,19 +648,26 @@ class FinnMarketApp {
             comments: []
         };
 
+        const wasEditing = Boolean(this.state.editingListingId);
+        this.setFormLoading(form, true, wasEditing ? 'جاري حفظ التعديلات والصور...' : 'جاري نشر الإعلان والصور...');
         try {
-            const saved = await finnDB.saveListing(newAd);
-            this.listings.unshift(saved);
+            if (wasEditing) {
+                const updated = await finnDB.updateListing(this.state.editingListingId, adValues);
+                this.listings = this.listings.map(item => item.id === updated.id ? updated : item);
+            } else {
+                const saved = await finnDB.saveListing(adValues);
+                this.listings.unshift(saved);
+            }
         } catch (error) {
-            alert(error.message || 'تعذر حفظ الإعلان.');
+            alert(error.message || 'تعذر حفظ الإعلان أو تعديل بياناته.');
             return;
+        } finally {
+            this.setFormLoading(form, false);
         }
         this.closeModal('postAdModal');
-        form.reset();
-        this.state.uploadedImages = [];
-        this.renderImagePreviews();
+        this.resetAdFormState();
         this.applyFiltersAndRender();
-        alert('تم حفظ الإعلان بنجاح في Supabase.');
+        alert(wasEditing ? 'تم حفظ تعديلات الإعلان والصور بنجاح.' : 'تم نشر الإعلان بنجاح.');
     }
 
     async openChatForListing(listingId) {
