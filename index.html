@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinnMarket | أكبر منصة وسوق إلكتروني وعقارات وسيارات</title>
+    <meta name="description" content="منصة الإعلانات المبوبة والسوق الإلكتروني الأول المستوحى من Finn.no للتداول التجاري، العقارات، السيارات، الوظائف، والأشياء المجانية.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+    <!-- 1. Header Navigation Bar -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="brand-logo">
+                <i class="fa-solid fa-shapes"></i>
+                <span>FinnMarket</span>
+                <span class="brand-badge">سوق النرويج</span>
+            </a>
+
+            <!-- Global Search Bar -->
+            <div class="search-bar-global">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="globalSearch" placeholder="ابحث عن عقار، سيارة، أثاث، أو وظيفة..." autocomplete="off">
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="nav-actions">
+                <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
+                    <i class="fa-regular fa-heart"></i>
+                    <span class="badge-count" id="favBadge" style="display: none;">0</span>
+                </button>
+                
+                <button class="btn btn-outline btn-icon" onclick="app.openChatForListing('list-101')" title="المحادثات المباشرة">
+                    <i class="fa-regular fa-comments"></i>
+                    <span class="badge-count">1</span>
+                </button>
+
+                <button class="btn btn-primary" onclick="app.openPostAdModal()">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>أضف إعلانك</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Subbar Categories Navigation -->
+    <nav class="cat-nav-subbar">
+        <div class="container">
+            <ul class="cat-nav-list" id="catNavList">
+                <!-- Injected dynamically via app.js -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 3. Hero Search & Category Highlights -->
+    <section class="hero-banner">
+        <div class="container hero-content">
+            <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك</h1>
+            <p class="hero-subtitle">تصفح العقارات، السيارات، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
+
+            <div class="hero-tags">
+                <button class="hero-tag-btn active" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
+                <button class="hero-tag-btn" onclick="app.state.category='real_estate'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-house-chimney"></i> العقارات</button>
+                <button class="hero-tag-btn" onclick="app.state.category='vehicles'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-car"></i> السيارات</button>
+                <button class="hero-tag-btn" onclick="app.state.category='marketplace'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> المستعمل</button>
+                <button class="hero-tag-btn" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
+                <button class="hero-tag-btn" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني Gis bort</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Main Content Layout (Filter Sidebar + Listings Grid) -->
+    <main class="container main-layout">
+        <!-- Sidebar Filter Engine -->
+        <aside class="filter-sidebar">
+            <div class="filter-header">
+                <h3 class="filter-title"><i class="fa-solid fa-sliders"></i> تصفية وتحديد البحث</h3>
+                <button class="reset-filter-btn" onclick="window.location.reload();">إعادة تصفية</button>
+            </div>
+
+            <!-- City Filter -->
+            <div class="filter-group">
+                <label class="filter-label">المدينة / المنطقة</label>
+                <select class="form-select" id="filterCity">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Price Range Filter -->
+            <div class="filter-group">
+                <label class="filter-label">نطاق السعر (ر.س)</label>
+                <div class="price-range-inputs">
+                    <input type="number" class="form-input" id="minPrice" placeholder="من السعر">
+                    <input type="number" class="form-input" id="maxPrice" placeholder="إلى السعر">
+                </div>
+            </div>
+
+            <!-- Condition Filter -->
+            <div class="filter-group">
+                <label class="filter-label">حالة المنتج</label>
+                <select class="form-select" id="filterCondition" onchange="app.state.condition=this.value; app.applyFiltersAndRender();">
+                    <option value="all">جميع الحالات</option>
+                    <option value="new">جديد بالكامل (New)</option>
+                    <option value="like_new">شبه جديد (Like New)</option>
+                    <option value="good">استعمال نظيف (Good)</option>
+                </select>
+            </div>
+
+            <!-- Supabase Integration Info Box -->
+            <div style="background-color: var(--color-primary-light); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(0,99,251,0.2); font-size: 13px; line-height: 1.6;">
+                <h4 style="color: var(--color-primary); font-weight: 800; margin-bottom: 6px;"><i class="fa-solid fa-database"></i> جاهز للربط بـ Supabase</h4>
+                <p style="color: var(--text-muted);">تم تجهيز مخطط قواعد البيانات `supabase_schema.sql` للربط الفوري واستقبال ملايين الإعلانات بسهولة.</p>
+            </div>
+        </aside>
+
+        <!-- Listings Content Area -->
+        <section>
+            <!-- Feed Toolbar -->
+            <div class="feed-toolbar">
+                <div class="results-count" id="resultsCount">جاري تحميل الإعلانات...</div>
+                
+                <div class="toolbar-controls">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">الترتيب:</span>
+                        <select class="form-select" id="sortBy" style="height: 38px; width: 160px;">
+                            <option value="newest">الأحدث أولاً</option>
+                            <option value="price_asc">الأقل سعراً</option>
+                            <option value="price_desc">الأعلى سعراً</option>
+                            <option value="popular">الأكثر مشاهدة</option>
+                        </select>
+                    </div>
+
+                    <div class="view-mode-switch">
+                        <button class="view-mode-btn active" id="viewGridBtn" title="عرض شبكي"><i class="fa-solid fa-border-all"></i></button>
+                        <button class="view-mode-btn" id="viewListBtn" title="عرض قائمة"><i class="fa-solid fa-list"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listings Feed Grid -->
+            <div id="listingsFeed">
+                <!-- Rendered dynamically via app.js -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 5. Detail View Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="app.closeModal('detailModal')"><i class="fa-solid fa-xmark"></i></button>
+            <div id="detailModalContent">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Post Ad Modal ("أضف إعلانك") -->
+    <div class="modal-overlay" id="postAdModal">
+        <div class="modal-box" style="max-width: 650px; padding: 28px;">
+            <button class="modal-close-btn" onclick="app.closeModal('postAdModal')"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);"><i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة</h2>
+            
+            <form onsubmit="app.submitNewAd(event)">
+                <div style="margin-bottom: 16px;">
+                    <label class="filter-label">عنوان الإعلان *</label>
+                    <input type="text" name="adTitle" class="form-input" placeholder="مثال: تويوتا كامري 2024 / شقة 3 غرف في الملقا" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                    <div>
+                        <label class="filter-label">القسم الرئيسي *</label>
+                        <select name="adCategory" class="form-select" required>
+                            <option value="real_estate">العقارات (Eiendom)</option>
+                            <option value="vehicles">السيارات (Bil)</option>
+                            <option value="marketplace" selected>سوق المستعمل (Torget)</option>
+                            <option value="jobs">الوظائف (Jobb)</option>
+                            <option value="freebies">إهداء مجاني (Gis bort)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="filter-label">المدينة *</label>
+                        <select name="adCity" class="form-select" required>
+                            <option value="الرياض">الرياض</option>
+                            <option value="جدة">جدة</option>
+                            <option value="الدمام">الدمام</option>
+                            <option value="الخبر">الخبر</option>
+                            <option value="مكة المكرمة">مكة المكرمة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                    <div>
+                        <label class="filter-label">السعر المطلوب (ر.س)</label>
+                        <input type="number" name="adPrice" class="form-input" placeholder="0.00">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 28px;">
+                        <input type="checkbox" name="adIsFree" id="adIsFree" style="width: 20px; height: 20px;">
+                        <label for="adIsFree" style="font-size: 14px; font-weight: 700; color: var(--cat-freebies); cursor: pointer;">عرض الإعلان كإهداء مجاني (Gis bort)</label>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                    <div>
+                        <label class="filter-label">الحالة</label>
+                        <select name="adCondition" class="form-select">
+                            <option value="new">جديد بالكامل</option>
+                            <option value="like_new" selected>استعمال شبه جديد</option>
+                            <option value="good">استعمال نظيف</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="filter-label">رابط صورة المنتج</label>
+                        <input type="url" name="adImageUrl" class="form-input" placeholder="https://images.unsplash.com/...">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label class="filter-label">تفاصيل ووصف الإعلان *</label>
+                    <textarea name="adDescription" class="form-input" style="height: 100px; padding: 10px;" placeholder="اكتب وصفاً مفصلاً للمنتج أو العقار أو الوظيفة..." required></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
+                    <div>
+                        <label class="filter-label">اسم البائع / المعلن</label>
+                        <input type="text" name="sellerName" class="form-input" placeholder="اسمك الكامل">
+                    </div>
+                    <div>
+                        <label class="filter-label">رقم التواصل</label>
+                        <input type="tel" name="sellerPhone" class="form-input" placeholder="+966 50 123 4567">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 16px;">
+                    <i class="fa-solid fa-paper-plane"></i> نشر الإعلان فوراً
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 7. Live Chat Modal -->
+    <div class="modal-overlay" id="chatModal">
+        <div class="modal-box" style="max-width: 550px; padding: 24px;">
+            <button class="modal-close-btn" onclick="app.closeModal('chatModal')"><i class="fa-solid fa-xmark"></i></button>
+            <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--color-primary);"><i class="fa-regular fa-comments"></i> المحادثة المباشرة مع البائع</h3>
+            
+            <div class="chat-messages-container" id="chatMessagesBox">
+                <!-- Messages populated dynamically -->
+            </div>
+
+            <div class="chat-input-row">
+                <input type="text" class="form-input" id="chatInput" placeholder="اكتب رسالتك للبائع هنا..." onkeypress="if(event.key==='Enter') app.sendChatMessage()">
+                <button class="btn btn-primary" onclick="app.sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
