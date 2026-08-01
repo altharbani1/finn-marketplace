@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=2.0">
-    <link rel="stylesheet" href="css/components.css?v=2.0">
+    <link rel="stylesheet" href="css/main.css?v=2.5">
+    <link rel="stylesheet" href="css/components.css?v=2.5">
 
     <style>
         .listing-page-header {
@@ -148,6 +148,15 @@
             border-radius: var(--radius-full);
         }
 
+        .member-badge-tag {
+            background-color: #ecfdf5;
+            color: #059669;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+        }
+
         .comment-text {
             font-size: 14px;
             color: var(--text-main);
@@ -162,6 +171,15 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
         }
+
+        .members-only-notice {
+            background-color: #fffbebf5;
+            border: 1.5px dashed #f59e0b;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -175,10 +193,8 @@
                 <span class="brand-badge">سوق النرويج</span>
             </a>
 
-            <div class="nav-actions">
-                <a href="index.html" class="btn btn-outline">
-                    <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
-                </a>
+            <div class="nav-actions" id="headerAuthNav">
+                <!-- User Profile or Auth Trigger rendered dynamically -->
             </div>
         </div>
     </header>
@@ -207,30 +223,59 @@
         </div>
     </main>
 
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-box" style="max-width: 450px; padding: 28px;">
+            <button class="modal-close-btn" onclick="closeModal('loginModal')"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--color-primary);"><i class="fa-solid fa-user-lock"></i> تسجيل الدخول لعضوية المنصة</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">قم بإنشاء حسابك أو تسجيل الدخول السريع لتتمكن من كتابة الردود والتواصل مع البائعين.</p>
+            
+            <form onsubmit="handleUserLogin(event)">
+                <div style="margin-bottom: 14px;">
+                    <label class="filter-label">اسم العضو الكريم *</label>
+                    <input type="text" id="loginNameInput" class="form-input" placeholder="مثال: المهندس عبدالرحمن العتيبي" required>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label class="filter-label">البريد الإلكتروني / رقم الجوال *</label>
+                    <input type="text" id="loginContactInput" class="form-input" placeholder="user@example.com / +966 50..." required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> دخول فوري ومتابعة الرد
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- JS Scripts -->
-    <script src="js/data.js?v=2.0"></script>
-    <script src="js/supabase-config.js?v=2.0"></script>
+    <script src="js/data.js?v=2.5"></script>
+    <script src="js/supabase-config.js?v=2.5"></script>
     <script>
+        let currentItem = null;
+
         document.addEventListener('DOMContentLoaded', () => {
+            renderHeaderAuth();
+
             const urlParams = new URLSearchParams(window.location.search);
             const listingId = urlParams.get('id') || 'list-101';
             
             const listings = finnDB.getListings();
-            const item = listings.find(l => l.id === listingId) || listings[0];
+            currentItem = listings.find(l => l.id === listingId) || listings[0];
             
-            if (!item.comments) {
-                item.comments = [
+            if (!currentItem.comments) {
+                currentItem.comments = [
                     {
                         author: 'خالد المطيري',
                         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
                         isSeller: false,
+                        isMember: true,
                         text: 'ما شاء الله تبارك الله، هل السعر قابل للتفاوض البسيط للصادق؟',
                         time: 'منذ ساعتين'
                     },
                     {
-                        author: item.seller.name,
-                        avatar: item.seller.avatar,
+                        author: currentItem.seller.name,
+                        avatar: currentItem.seller.avatar,
                         isSeller: true,
+                        isMember: true,
                         text: 'حياك الله أخي خالد، نعم السوم وصل قريب من الحد والتواصل متاح عبر الاتصال.',
                         time: 'منذ ساعة'
                     }
@@ -238,31 +283,58 @@
             }
 
             // Populate Breadcrumbs
-            document.getElementById('bcCategory').textContent = item.subCategory;
-            document.getElementById('bcTitle').textContent = item.title;
+            document.getElementById('bcCategory').textContent = currentItem.subCategory;
+            document.getElementById('bcTitle').textContent = currentItem.title;
 
-            // Render Main Column
+            renderListingPageContent();
+        });
+
+        function renderHeaderAuth() {
+            const authNav = document.getElementById('headerAuthNav');
+            const currentUser = finnDB.getCurrentUser();
+
+            if (currentUser) {
+                authNav.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; background: var(--color-primary-light); padding: 6px 14px; border-radius: var(--radius-full);">
+                        <img src="${currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--color-primary);">${currentUser.name}</span>
+                        <button onclick="logoutUser()" title="تسجيل الخروج" style="color: var(--color-danger); font-size: 14px; margin-right: 6px;"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    </div>
+                    <a href="index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> الرئيسية</a>
+                `;
+            } else {
+                authNav.innerHTML = `
+                    <button class="btn btn-outline" onclick="openModal('loginModal')">
+                        <i class="fa-solid fa-user-lock"></i> دخول الأعضاء
+                    </button>
+                    <a href="index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> الرئيسية</a>
+                `;
+            }
+        }
+
+        function renderListingPageContent() {
             const mainCol = document.getElementById('mainListingCol');
-            const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
+            const currentUser = finnDB.getCurrentUser();
+            const formattedPrice = currentItem.isFree ? 'مجاناً 0 ر.س' : `${currentItem.price.toLocaleString('ar-SA')} ر.س`;
 
             mainCol.innerHTML = `
                 <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px;">
-                    <span class="badge-tag badge-${item.category}" style="position: static; display: inline-block; margin-bottom: 12px;">${item.subCategory}</span>
-                    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${item.title}</h1>
+                    <span class="badge-tag badge-${currentItem.category}" style="position: static; display: inline-block; margin-bottom: 12px;">${currentItem.subCategory}</span>
+                    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${currentItem.title}</h1>
                     <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${item.city} - ${item.neighborhood || 'وسط المدينة'}
-                        &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${item.timeAgo}
-                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${item.views} مشاهدة
+                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${currentItem.city} - ${currentItem.neighborhood || 'وسط المدينة'}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${currentItem.timeAgo}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${currentItem.views} مشاهدة
                     </p>
 
                     <!-- Main Gallery Slider -->
                     <div class="gallery-main-box">
-                        <img id="mainHeroImg" src="${item.images[0]}" alt="${item.title}">
+                        <img id="mainHeroImg" src="${currentItem.images[0]}" alt="${currentItem.title}">
                     </div>
                     
-                    ${item.images.length > 1 ? `
+                    ${currentItem.images.length > 1 ? `
                         <div class="gallery-thumbs-row">
-                            ${item.images.map((img, idx) => `
+                            ${currentItem.images.map((img, idx) => `
                                 <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" onclick="switchPageImg('${img}', this)">
                                     <img src="${img}" alt="صورة ${idx + 1}">
                                 </div>
@@ -273,7 +345,7 @@
                     <!-- Specifications Table -->
                     <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 16px;">المواصفات والتفاصيل الأساسية</h3>
                     <div class="specs-grid">
-                        ${Object.entries(item.specs || {}).map(([key, val]) => `
+                        ${Object.entries(currentItem.specs || {}).map(([key, val]) => `
                             <div class="spec-item">
                                 <span class="spec-title">${key}</span>
                                 <span class="spec-val">${val}</span>
@@ -283,23 +355,23 @@
 
                     <!-- Description -->
                     <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 12px;">وصف الإعلان كامل</h3>
-                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${item.description}</p>
+                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${currentItem.description}</p>
                 </div>
 
                 <!-- Comments & Replies Section -->
                 <div class="comments-section-box">
                     <div class="comments-header">
-                        <h3 style="font-size: 20px; font-weight: 800;"><i class="fa-regular fa-comments" style="color: var(--color-primary);"></i> الأسئلة والردود على الإعلان (<span id="commentsCount">${item.comments.length}</span>)</h3>
+                        <h3 style="font-size: 20px; font-weight: 800;"><i class="fa-regular fa-comments" style="color: var(--color-primary);"></i> الأسئلة والردود على الإعلان (<span id="commentsCount">${currentItem.comments.length}</span>)</h3>
                     </div>
 
                     <div id="commentsListContainer">
-                        ${item.comments.map(c => `
+                        ${currentItem.comments.map(c => `
                             <div class="comment-card">
                                 <img src="${c.avatar}" class="comment-avatar" alt="${c.author}">
                                 <div class="comment-content">
                                     <div class="comment-author-name">
                                         ${c.author}
-                                        ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : ''}
+                                        ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : '<span class="member-badge-tag"><i class="fa-solid fa-id-card"></i> عضو موثق</span>'}
                                         <span style="font-size: 11px; font-weight: 400; color: var(--text-muted); margin-right: auto;">${c.time}</span>
                                     </div>
                                     <p class="comment-text">${c.text}</p>
@@ -308,18 +380,27 @@
                         `).join('')}
                     </div>
 
-                    <!-- Add Reply Box -->
-                    <div class="add-reply-box">
-                        <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">أضف استفسارك أو ردك على الإعلان</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <input type="text" id="replyAuthor" class="form-input" placeholder="اسمك الكريم">
-                            <input type="text" id="replyPhone" class="form-input" placeholder="رقم الهاتف (اختياري)">
+                    <!-- Add Reply Section (Enforced Auth Check) -->
+                    ${currentUser ? `
+                        <div class="add-reply-box">
+                            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 8px; color: var(--color-primary);">
+                                <i class="fa-solid fa-pen"></i> أضف ردك كعضو مسجل (${currentUser.name})
+                            </h4>
+                            <textarea id="replyText" class="form-input" style="height: 90px; padding: 10px; margin-bottom: 12px;" placeholder="اكتب سؤالك أو استفسارك هنا كعضو موثق..."></textarea>
+                            <button class="btn btn-primary" onclick="submitListingReply('${currentItem.id}')">
+                                <i class="fa-solid fa-paper-plane"></i> إرسال الرد فوراً
+                            </button>
                         </div>
-                        <textarea id="replyText" class="form-input" style="height: 90px; padding: 10px; margin-bottom: 12px;" placeholder="اكتب سؤالك أو استفسارك هنا للبائع..."></textarea>
-                        <button class="btn btn-primary" onclick="submitListingReply('${item.id}')">
-                            <i class="fa-solid fa-reply"></i> إرسال الرد فوراً
-                        </button>
-                    </div>
+                    ` : `
+                        <div class="members-only-notice">
+                            <i class="fa-solid fa-lock" style="font-size: 32px; color: #d97706; margin-bottom: 10px;"></i>
+                            <h4 style="font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 6px;">الردود مخصصة للأعضاء المشتركين فقط</h4>
+                            <p style="font-size: 13px; color: #b45309; margin-bottom: 14px;">يتوجب تسجيل الدخول إلى حسابتك في المنصة للرد على الإعلانات وطرح الأسئلة على التاجر.</p>
+                            <button class="btn btn-primary" onclick="openModal('loginModal')">
+                                <i class="fa-solid fa-user-check"></i> تسجيل الدخول وكتابة رد
+                            </button>
+                        </div>
+                    `}
                 </div>
             `;
 
@@ -331,26 +412,23 @@
                     <div style="font-size: 32px; font-weight: 900; color: var(--color-primary); margin-bottom: 20px;">${formattedPrice}</div>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                        <a href="tel:${item.seller.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                        <a href="tel:${currentItem.seller.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
                             <i class="fa-solid fa-phone"></i> اتصال بالمعلن
                         </a>
-                        <button class="btn btn-outline" style="height: 48px; font-size: 16px;" onclick="window.location.href='index.html'">
-                            <i class="fa-solid fa-comments"></i> محادثة خاصة
-                        </button>
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${item.seller.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
+                            <img src="${currentItem.seller.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
                             <div>
-                                <h4 style="font-size: 16px; font-weight: 800;">${item.seller.name} ${item.seller.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
-                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${item.seller.rating} تقييم التاجر</span>
+                                <h4 style="font-size: 16px; font-weight: 800;">${currentItem.seller.name} ${currentItem.seller.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
+                                <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> ${currentItem.seller.rating} تقييم التاجر</span>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-        });
+        }
 
         function switchPageImg(src, el) {
             document.getElementById('mainHeroImg').src = src;
@@ -358,19 +436,57 @@
             el.classList.add('active');
         }
 
-        function submitListingReply(listingId) {
-            const authorInput = document.getElementById('replyAuthor');
-            const textInput = document.getElementById('replyText');
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
 
-            if (!textInput.value.trim()) {
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function handleUserLogin(event) {
+            event.preventDefault();
+            const name = document.getElementById('loginNameInput').value.trim();
+            const contact = document.getElementById('loginContactInput').value.trim();
+
+            const user = {
+                name: name,
+                contact: contact,
+                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+                verified: true
+            };
+
+            finnDB.setCurrentUser(user);
+            closeModal('loginModal');
+            renderHeaderAuth();
+            renderListingPageContent();
+            alert(`🎉 مرحباً بك أخي ${user.name}! تم تسجيل دخولك كعضو موثق، يمكنك الآن الرد فوراً.`);
+        }
+
+        function logoutUser() {
+            finnDB.setCurrentUser(null);
+            renderHeaderAuth();
+            renderListingPageContent();
+        }
+
+        function submitListingReply(listingId) {
+            const currentUser = finnDB.getCurrentUser();
+            if (!currentUser) {
+                openModal('loginModal');
+                return;
+            }
+
+            const textInput = document.getElementById('replyText');
+            if (!textInput || !textInput.value.trim()) {
                 alert('يرجى كتابة نص الرد أولاً.');
                 return;
             }
 
             const newComment = {
-                author: authorInput.value.trim() || 'زائر',
-                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+                author: currentUser.name,
+                avatar: currentUser.avatar,
                 isSeller: false,
+                isMember: true,
                 text: textInput.value.trim(),
                 time: 'الآن'
             };
@@ -380,27 +496,10 @@
             if (item) {
                 if (!item.comments) item.comments = [];
                 item.comments.push(newComment);
-                localStorage.setItem('finn_marketplace_listings_v2', JSON.stringify(listings));
-                
-                // Render newly added comment
-                const container = document.getElementById('commentsListContainer');
-                const newCommentHTML = `
-                    <div class="comment-card" style="background-color: var(--color-primary-light); padding: 16px; border-radius: 12px;">
-                        <img src="${newComment.avatar}" class="comment-avatar" alt="${newComment.author}">
-                        <div class="comment-content">
-                            <div class="comment-author-name">
-                                ${newComment.author}
-                                <span style="font-size: 11px; font-weight: 400; color: var(--text-muted); margin-right: auto;">${newComment.time}</span>
-                            </div>
-                            <p class="comment-text">${newComment.text}</p>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += newCommentHTML;
-                document.getElementById('commentsCount').textContent = item.comments.length;
-                
-                textInput.value = '';
-                alert('🎉 تم نشر ردك على الإعلان بنجاح!');
+                localStorage.setItem('finn_marketplace_listings_v2.5', JSON.stringify(listings));
+                currentItem = item;
+                renderListingPageContent();
+                alert('🎉 تم إرسال ونشر ردك كعضو موثق بنجاح!');
             }
         }
     </script>

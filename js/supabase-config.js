@@ -9,18 +9,17 @@ const SUPABASE_CONFIG = {
 
 class FinnStorageAdapter {
     constructor() {
-        this.VERSION_KEY = 'finn_marketplace_v2';
-        this.STORAGE_KEY = 'finn_marketplace_listings_v2';
+        this.VERSION_KEY = 'finn_marketplace_v2.5';
+        this.STORAGE_KEY = 'finn_marketplace_listings_v2.5';
+        this.USER_KEY = 'finn_marketplace_user_v2.5';
         this.FAVS_KEY = 'finn_marketplace_favs';
         this.MESSAGES_KEY = 'finn_marketplace_chats';
         this.init();
     }
 
     init() {
-        // Upgrade check to invalidate old browser cache
         if (!localStorage.getItem(this.VERSION_KEY)) {
-            localStorage.clear();
-            localStorage.setItem(this.VERSION_KEY, '2.0');
+            localStorage.setItem(this.VERSION_KEY, '2.5');
         }
 
         if (!localStorage.getItem(this.STORAGE_KEY)) {
@@ -43,6 +42,23 @@ class FinnStorageAdapter {
                 }
             ]));
         }
+    }
+
+    getCurrentUser() {
+        try {
+            return JSON.parse(localStorage.getItem(this.USER_KEY));
+        } catch (e) {
+            return null;
+        }
+    }
+
+    setCurrentUser(user) {
+        if (user) {
+            localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        } else {
+            localStorage.removeItem(this.USER_KEY);
+        }
+        return user;
     }
 
     getListings() {
