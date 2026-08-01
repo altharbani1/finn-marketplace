@@ -21,3 +21,10 @@ function safeTel(value) {
     return String(value ?? '').replace(/[^+0-9()\s-]/g, '');
 }
 
+function validatePassword(password) {
+    const value = String(password ?? '');
+    if (value.length < 8) return 'كلمة المرور يجب ألا تقل عن 8 أحرف.';
+    if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) return 'استخدم حرفًا واحدًا ورقمًا واحدًا على الأقل.';
+    return '';
+}
+

@@ -42,7 +42,7 @@ class FinnSeniorProductionEngine {
         };
     }
 
-    async registerRealUser(fullName, email, password, phone) {
+    async registerRealUser(fullName, email, password, phone, emailRedirectTo) {
         const client = this.requireClient();
         const normEmail = email.trim().toLowerCase();
         const normPhone = phone.trim().replace(/\s+/g, '');
@@ -50,7 +50,10 @@ class FinnSeniorProductionEngine {
         const { data, error } = await client.auth.signUp({
             email: normEmail,
             password,
-            options: { data: { full_name: normName, phone: normPhone, avatar_url: DEFAULT_AVATAR } }
+            options: {
+                emailRedirectTo,
+                data: { full_name: normName, phone: normPhone, avatar_url: DEFAULT_AVATAR }
+            }
         });
         if (error) throw new Error(this.translateAuthError(error.message));
         if (!data?.user) throw new Error('فشل Supabase في إنشاء الحساب. حاول مجددًا.');
@@ -77,6 +80,25 @@ class FinnSeniorProductionEngine {
         return this.getAuthUser();
     }
 
+    async requestPasswordReset(email, redirectTo) {
+        const { error } = await this.requireClient().auth.resetPasswordForEmail(
+            email.trim().toLowerCase(),
+            { redirectTo }
+        );
+        if (error) throw new Error(this.translateAuthError(error.message));
+    }
+
+    async updateRecoveredPassword(password) {
+        const { data: { user } } = await this.requireClient().auth.getUser();
+        if (!user) throw new Error('رابط الاستعادة غير صالح أو انتهت صلاحيته. اطلب رابطًا جديدًا.');
+        const { error } = await this.requireClient().auth.updateUser({ password });
+        if (error) throw new Error(this.translateAuthError(error.message));
+    }
+
+    onAuthStateChange(callback) {
+        return this.requireClient().auth.onAuthStateChange(callback);
+    }
+
     async logoutUser() {
         if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.signOut();
@@ -87,6 +109,9 @@ class FinnSeniorProductionEngine {
         if (/already registered|already exists/i.test(message)) return 'البريد الإلكتروني مسجل بالفعل.';
         if (/password should be at least/i.test(message)) return 'كلمة المرور أقصر من الحد المطلوب.';
         if (/invalid login credentials/i.test(message)) return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+        if (/email not confirmed/i.test(message)) return 'يرجى تأكيد بريدك الإلكتروني أولًا، ثم حاول تسجيل الدخول.';
+        if (/same password/i.test(message)) return 'اختر كلمة مرور جديدة تختلف عن كلمة المرور الحالية.';
+        if (/expired|invalid.*token|otp.*expired/i.test(message)) return 'الرابط غير صالح أو انتهت صلاحيته. اطلب رابطًا جديدًا.';
         if (/rate limit/i.test(message)) return 'تم تجاوز حد المحاولات. انتظر قليلًا ثم أعد المحاولة.';
         return `خطأ في المصادقة: ${message}`;
     }

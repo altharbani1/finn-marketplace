@@ -117,6 +117,61 @@
     padding: 0 10px;
 }
 
+.auth-text-btn,
+.auth-back-btn {
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.auth-back-btn {
+    display: block;
+    margin: 16px auto 0;
+}
+
+.auth-submit-btn {
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+}
+
+.auth-form-heading {
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+.auth-form-heading > i {
+    width: 52px;
+    height: 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.auth-form-heading h3 { font-size: 20px; margin-bottom: 5px; }
+.auth-form-heading p { color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+
+.auth-notice {
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.auth-notice.success { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+.auth-notice.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+.auth-notice.info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
 /* Direct File Dropzone */
 .upload-dropzone {
     border: 2px dashed var(--border-color);
