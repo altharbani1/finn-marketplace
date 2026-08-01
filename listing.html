@@ -189,9 +189,10 @@
     </main>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=6.0"></script>
-    <script src="js/supabase-config.js?v=6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="js/data.js?v=7.0"></script>
+    <script src="js/security.js?v=7.0"></script>
+    <script src="js/supabase-config.js?v=7.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
@@ -205,6 +206,11 @@
             
             const listings = await finnDB.getListings();
             currentItem = listings.find(l => l.id === listingId) || listings[0];
+
+            if (!currentItem) {
+                renderMissingListing();
+                return;
+            }
             
             if (!currentItem.comments) {
                 currentItem.comments = [
@@ -225,6 +231,20 @@
             await renderListingPageContent();
         });
 
+        function renderMissingListing() {
+            document.getElementById('bcCategory').textContent = 'الإعلانات';
+            document.getElementById('bcTitle').textContent = 'الإعلان غير متاح';
+            document.getElementById('mainListingCol').innerHTML = `
+                <section style="background: white; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center;">
+                    <i class="fa-regular fa-folder-open" aria-hidden="true" style="font-size: 52px; color: var(--text-muted); margin-bottom: 18px;"></i>
+                    <h1 style="font-size: 24px; margin-bottom: 10px;">الإعلان غير متاح</h1>
+                    <p style="color: var(--text-muted); margin-bottom: 22px;">ربما حُذف الإعلان أو انتهت صلاحيته أو أن الرابط غير صحيح.</p>
+                    <a class="btn btn-primary" href="index.html"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> العودة إلى جميع الإعلانات</a>
+                </section>
+            `;
+            document.title = 'الإعلان غير متاح | FinnMarket';
+        }
+
         async function renderHeaderAuth() {
             const authNav = document.getElementById('headerAuthNav');
             const favCount = finnDB.getFavorites().length;
@@ -238,8 +258,8 @@
                         </button>
 
                         <div style="display: flex; align-items: center; gap: 8px; background: var(--color-primary-light); padding: 6px 14px; border-radius: var(--radius-full); cursor: pointer;" onclick="window.location.href='profile.html'">
-                            <img src="${currentUser.avatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                            <span style="font-size: 13px; font-weight: 700; color: var(--color-primary);">${currentUser.name}</span>
+                            <img src="${escapeHTML(safeHttpUrl(currentUser.avatar, DEFAULT_AVATAR))}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                            <span style="font-size: 13px; font-weight: 700; color: var(--color-primary);">${escapeHTML(currentUser.name)}</span>
                         </div>
 
                         <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="handleHeaderLogout()" title="تسجيل الخروج">
@@ -267,12 +287,12 @@
             const isFav = finnDB.getFavorites().includes(currentItem.id);
             const formattedPrice = currentItem.isFree ? 'مجاناً 0 ر.س' : `${currentItem.price.toLocaleString('ar-SA')} ر.س`;
             
-            const isOwner = currentUser && currentItem.seller && currentItem.seller.name === currentUser.name;
+            const isOwner = Boolean(currentUser && currentItem.userId === currentUser.id);
 
             mainCol.innerHTML = `
                 <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span class="badge-tag badge-${currentItem.category}" style="position: static; display: inline-block;">${currentItem.subCategory}</span>
+                        <span class="badge-tag badge-${escapeHTML(currentItem.category)}" style="position: static; display: inline-block;">${escapeHTML(currentItem.subCategory)}</span>
                         
                         <div style="display: flex; gap: 10px;">
                             <button class="btn btn-outline" onclick="togglePageFav('${currentItem.id}')" style="height: 38px; color: ${isFav ? '#ef4444' : 'var(--text-muted)'};">
@@ -287,23 +307,23 @@
                         </div>
                     </div>
 
-                    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${currentItem.title}</h1>
+                    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${escapeHTML(currentItem.title)}</h1>
                     <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${currentItem.city} - ${currentItem.neighborhood || 'وسط المدينة'}
-                        &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${currentItem.timeAgo}
-                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${currentItem.views} مشاهدة
+                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${escapeHTML(currentItem.city)} - ${escapeHTML(currentItem.neighborhood || 'وسط المدينة')}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${escapeHTML(currentItem.timeAgo)}
+                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${Number(currentItem.views) || 0} مشاهدة
                     </p>
 
                     <!-- Main Gallery Slider -->
                     <div class="gallery-main-box">
-                        <img id="mainHeroImg" src="${currentItem.images[0]}" alt="${currentItem.title}" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
+                        <img id="mainHeroImg" src="${escapeHTML(safeHttpUrl(currentItem.images[0], DEFAULT_LISTING_IMAGE))}" alt="${escapeHTML(currentItem.title)}" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
                     </div>
                     
                     ${currentItem.images.length > 1 ? `
                         <div class="gallery-thumbs-row">
                             ${currentItem.images.map((img, idx) => `
-                                <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" onclick="switchPageImg('${img}', this)">
-                                    <img src="${img}" alt="صورة ${idx + 1}">
+                                <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" data-gallery-image="${escapeHTML(safeHttpUrl(img, DEFAULT_LISTING_IMAGE))}">
+                                    <img src="${escapeHTML(safeHttpUrl(img, DEFAULT_LISTING_IMAGE))}" alt="صورة ${idx + 1}">
                                 </div>
                             `).join('')}
                         </div>
@@ -314,15 +334,15 @@
                     <div class="specs-grid">
                         ${Object.entries(currentItem.specs || {}).map(([key, val]) => `
                             <div class="spec-item">
-                                <span class="spec-title">${key}</span>
-                                <span class="spec-val">${val}</span>
+                                <span class="spec-title">${escapeHTML(key)}</span>
+                                <span class="spec-val">${escapeHTML(val)}</span>
                             </div>
                         `).join('')}
                     </div>
 
                     <!-- Description -->
                     <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 12px;">وصف الإعلان كامل</h3>
-                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${currentItem.description}</p>
+                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${escapeHTML(currentItem.description)}</p>
                 </div>
 
                 <!-- Comments & Replies Section -->
@@ -334,12 +354,12 @@
                     <div id="commentsListContainer">
                         ${currentItem.comments.map((c, idx) => `
                             <div class="comment-card">
-                                <img src="${c.avatar}" class="comment-avatar" alt="${c.author}">
+                                <img src="${escapeHTML(safeHttpUrl(c.avatar, DEFAULT_AVATAR))}" class="comment-avatar" alt="${escapeHTML(c.author)}">
                                 <div class="comment-content">
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-weight: 800; font-size: 14px;">${c.author}</span>
+                                        <span style="font-weight: 800; font-size: 14px;">${escapeHTML(c.author)}</span>
                                         ${c.isSeller ? '<span class="seller-badge-tag">صاحب الإعلان</span>' : '<span class="member-badge-tag">عضو موثق</span>'}
-                                        <span style="font-size: 11px; color: var(--text-muted); margin-right: auto;">${c.time}</span>
+                                        <span style="font-size: 11px; color: var(--text-muted); margin-right: auto;">${escapeHTML(c.time)}</span>
                                         
                                         ${(currentUser && (currentUser.name === c.author || isOwner)) ? `
                                             <button class="btn-delete-comment" onclick="handleDeleteReply('${currentItem.id}', ${idx})" title="حذف هذا الرد">
@@ -347,7 +367,7 @@
                                             </button>
                                         ` : ''}
                                     </div>
-                                    <p class="comment-text">${c.text}</p>
+                                    <p class="comment-text">${escapeHTML(c.text)}</p>
                                 </div>
                             </div>
                         `).join('')}
@@ -357,7 +377,7 @@
                     ${currentUser ? `
                         <div class="add-reply-box">
                             <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 8px; color: var(--color-primary);">
-                                <i class="fa-solid fa-pen"></i> أضف ردك كعضو موثق (${currentUser.name})
+                                <i class="fa-solid fa-pen"></i> أضف ردك (${escapeHTML(currentUser.name)})
                             </h4>
                             <textarea id="replyText" class="form-input" style="height: 90px; padding: 10px; margin-bottom: 12px;" placeholder="اكتب سؤالك أو استفسارك هنا..."></textarea>
                             <button class="btn btn-primary" onclick="submitListingReply('${currentItem.id}')">
@@ -385,16 +405,16 @@
                     <div style="font-size: 32px; font-weight: 900; color: var(--color-primary); margin-bottom: 20px;">${formattedPrice}</div>
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                        <a href="tel:${sellerObj.phone}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                        <a href="tel:${escapeHTML(safeTel(sellerObj.phone))}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
                             <i class="fa-solid fa-phone"></i> اتصال بالمعلن
                         </a>
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${sellerObj.avatar}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
+                            <img src="${escapeHTML(safeHttpUrl(sellerObj.avatar, DEFAULT_AVATAR))}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
                             <div>
-                                <h4 style="font-size: 16px; font-weight: 800;">${sellerObj.name} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
+                                <h4 style="font-size: 16px; font-weight: 800;">${escapeHTML(sellerObj.name)} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
                                 <span style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> <span id="sellerRatingDisplay">${sellerObj.rating}</span> تقييم البائع</span>
                             </div>
                         </div>
@@ -413,6 +433,10 @@
                     </div>
                 </div>
             `;
+
+            mainCol.querySelectorAll('[data-gallery-image]').forEach((thumb) => {
+                thumb.addEventListener('click', () => switchPageImg(thumb.dataset.galleryImage, thumb));
+            });
         }
 
         function togglePageFav(id) {

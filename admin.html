@@ -338,9 +338,10 @@
     </main>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=6.0"></script>
-    <script src="js/supabase-config.js?v=6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="js/data.js?v=7.0"></script>
+    <script src="js/security.js?v=7.0"></script>
+    <script src="js/supabase-config.js?v=7.0"></script>
     <script>
         let allListings = [];
         let allUsers = [
@@ -352,10 +353,13 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             const authUser = await finnDB.getAuthUser();
-            if (authUser) {
-                document.getElementById('adminNameTxt').textContent = authUser.name;
-                document.getElementById('adminAvatarImg').src = authUser.avatar;
+            if (!authUser || authUser.role !== 'admin') {
+                alert('غير مصرح لك بالدخول إلى لوحة الإدارة.');
+                window.location.replace('index.html');
+                return;
             }
+            document.getElementById('adminNameTxt').textContent = authUser.name;
+            document.getElementById('adminAvatarImg').src = safeHttpUrl(authUser.avatar, DEFAULT_AVATAR);
 
             allListings = await finnDB.getListings();
             document.getElementById('kpiTotalAds').textContent = allListings.length;
@@ -399,9 +403,9 @@
                     <tbody>
                         ${allListings.map(item => `
                             <tr>
-                                <td style="font-weight: 800;">${item.title}</td>
-                                <td>${item.subCategory}</td>
-                                <td>${item.city}</td>
+                                <td style="font-weight: 800;">${escapeHTML(item.title)}</td>
+                                <td>${escapeHTML(item.subCategory)}</td>
+                                <td>${escapeHTML(item.city)}</td>
                                 <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
                                 <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
                                 <td>
@@ -444,9 +448,9 @@
                     <tbody>
                         ${filtered.map(item => `
                             <tr>
-                                <td style="font-weight: 800;">${item.title}</td>
-                                <td>${item.subCategory}</td>
-                                <td>${item.city}</td>
+                                <td style="font-weight: 800;">${escapeHTML(item.title)}</td>
+                                <td>${escapeHTML(item.subCategory)}</td>
+                                <td>${escapeHTML(item.city)}</td>
                                 <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
                                 <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
                                 <td>
@@ -464,10 +468,14 @@
         async function toggleListingStatus(id, newStatus) {
             const item = allListings.find(l => l.id === id);
             if (item) {
-                item.status = newStatus;
-                localStorage.setItem('finn_marketplace_listings_real_prod_v6', JSON.stringify(allListings));
-                renderAllAdminTables();
-                alert(`تم تحديث حالة الإعلان إلى (${newStatus === 'active' ? 'نشط' : 'محظور'}).`);
+                try {
+                    await finnDB.updateListingStatus(id, newStatus);
+                    item.status = newStatus;
+                    renderAllAdminTables();
+                    alert(`تم تحديث حالة الإعلان إلى (${newStatus === 'active' ? 'نشط' : 'محظور'}).`);
+                } catch (error) {
+                    alert(error.message || 'تعذر تحديث حالة الإعلان.');
+                }
             }
         }
 

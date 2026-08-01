@@ -1,12 +1,8 @@
-// =====================================================================
-// 🚀 FINNMARKET - STRICT PURE SUPABASE AUTHENTICATION ENGINE
-// Zero Fallback - Pure Cloud Supabase Auth API Standard
-// =====================================================================
-
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_-vcUUwqYtYMGTF-TAHK4jQ_gezyBqMD';
+const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+const DEFAULT_LISTING_IMAGE = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80';
 
-// Initialize Official Supabase Client SDK
 const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
     ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
@@ -16,289 +12,208 @@ class FinnSeniorProductionEngine {
         this.STORAGE_KEY = 'finn_marketplace_listings_real_prod_v6';
         this.FAVS_KEY = 'finn_marketplace_favs_real_prod_v6';
         this.RATINGS_KEY = 'finn_seller_ratings_v6';
-        this.init();
     }
 
-    init() {
-        if (!localStorage.getItem(this.STORAGE_KEY)) {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(MOCK_LISTINGS));
-        }
+    requireClient() {
+        if (!supabaseClient) throw new Error('تعذر تحميل عميل Supabase. تحقق من الاتصال ثم أعد المحاولة.');
+        return supabaseClient;
     }
 
-    // 1. PURE SUPABASE SESSION READ FROM SERVER JWT
     async getAuthUser() {
         if (!supabaseClient) return null;
-        try {
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
-            if (error || !session || !session.user) return null;
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) return null;
 
-            const user = session.user;
-            return {
-                id: user.id,
-                email: user.email,
-                name: user.user_metadata?.full_name || user.email.split('@')[0],
-                phone: user.user_metadata?.phone || '',
-                avatar: user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-                verified: true
-            };
-        } catch (e) {
-            return null;
-        }
+        const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('full_name, avatar_url, phone_number, role, verified_seller')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (profileError) throw new Error(`تعذر قراءة الملف الشخصي: ${profileError.message}`);
+        return {
+            id: user.id,
+            email: user.email,
+            name: profile?.full_name || user.email?.split('@')[0] || 'عضو',
+            phone: profile?.phone_number || '',
+            avatar: profile?.avatar_url || DEFAULT_AVATAR,
+            role: profile?.role || 'user',
+            verified: Boolean(profile?.verified_seller)
+        };
     }
 
-    // 2. STRICT PURE SUPABASE USER SIGNUP (ZERO LOCAL FALLBACK)
     async registerRealUser(fullName, email, password, phone) {
-        if (!supabaseClient) {
-            throw new Error('تعذر الاتصال بسيرفر Supabase Auth الرئيسي.');
-        }
-
+        const client = this.requireClient();
         const normEmail = email.trim().toLowerCase();
         const normPhone = phone.trim().replace(/\s+/g, '');
         const normName = fullName.trim();
-
-        // Direct Call to Supabase Auth Cloud Endpoint
-        const { data, error } = await supabaseClient.auth.signUp({
+        const { data, error } = await client.auth.signUp({
             email: normEmail,
-            password: password,
-            options: {
-                data: {
-                    full_name: normName,
-                    phone: normPhone,
-                    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-                }
-            }
+            password,
+            options: { data: { full_name: normName, phone: normPhone, avatar_url: DEFAULT_AVATAR } }
         });
-
-        // Strict Server Error Check - No Fallbacks
-        if (error) {
-            throw new Error(this.translateAuthError(error.message));
-        }
-
-        if (!data || !data.user) {
-            throw new Error('فشل سيرفر Supabase في إنشاء الحساب. حاول مجدداً.');
-        }
-
-        // Insert into public.profiles in PostgreSQL
-        try {
-            await supabaseClient.from('profiles').insert([{
-                id: data.user.id,
-                full_name: normName,
-                phone_number: normPhone,
-                verified_seller: true
-            }]);
-        } catch (pErr) {}
-
+        if (error) throw new Error(this.translateAuthError(error.message));
+        if (!data?.user) throw new Error('فشل Supabase في إنشاء الحساب. حاول مجددًا.');
         return {
             id: data.user.id,
             email: data.user.email,
             name: normName,
             phone: normPhone,
-            verified: true
+            avatar: DEFAULT_AVATAR,
+            role: 'user',
+            verified: false,
+            requiresEmailConfirmation: !data.session
         };
     }
 
-    // 3. STRICT PURE SUPABASE LOGIN (STRICT PASSWORD CHECK AGAINST SERVERS)
     async loginRealUser(email, password) {
-        if (!supabaseClient) {
-            throw new Error('تعذر الاتصال بسيرفر Supabase Auth الرئيسي.');
-        }
-
-        const normEmail = email.trim().toLowerCase();
-
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: normEmail,
-            password: password
+        const client = this.requireClient();
+        const { data, error } = await client.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password
         });
+        if (error) throw new Error(this.translateAuthError(error.message));
+        if (!data?.user) throw new Error('بيانات الدخول غير صحيحة.');
+        return this.getAuthUser();
+    }
 
-        if (error) {
-            throw new Error(this.translateAuthError(error.message));
-        }
+    async logoutUser() {
+        if (!supabaseClient) return;
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw new Error(`تعذر تسجيل الخروج: ${error.message}`);
+    }
 
-        if (!data || !data.user) {
-            throw new Error('بيانات الدخول غير صحيحة.');
-        }
+    translateAuthError(message = '') {
+        if (/already registered|already exists/i.test(message)) return 'البريد الإلكتروني مسجل بالفعل.';
+        if (/password should be at least/i.test(message)) return 'كلمة المرور أقصر من الحد المطلوب.';
+        if (/invalid login credentials/i.test(message)) return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+        if (/rate limit/i.test(message)) return 'تم تجاوز حد المحاولات. انتظر قليلًا ثم أعد المحاولة.';
+        return `خطأ في المصادقة: ${message}`;
+    }
 
+    mapListing(item) {
+        const profile = item.profiles || {};
         return {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata?.full_name || email.split('@')[0],
-            phone: data.user.user_metadata?.phone || '',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-            verified: true
+            id: item.id,
+            userId: item.user_id,
+            title: item.title,
+            category: item.category_type,
+            subCategory: item.sub_category || item.category_type,
+            price: Number(item.price || 0),
+            isFree: Boolean(item.is_free),
+            city: item.city,
+            neighborhood: item.neighborhood || '',
+            condition: item.condition || 'good',
+            status: item.status,
+            timeAgo: new Date(item.created_at).toLocaleDateString('ar-SA'),
+            views: item.views_count || 0,
+            images: Array.isArray(item.images) && item.images.length ? item.images : [DEFAULT_LISTING_IMAGE],
+            seller: {
+                id: item.user_id,
+                name: profile.full_name || 'معلن',
+                avatar: profile.avatar_url || DEFAULT_AVATAR,
+                phone: '',
+                rating: Number(profile.rating || 5),
+                verified: Boolean(profile.verified_seller)
+            },
+            description: item.description,
+            specs: item.attributes || {},
+            comments: []
         };
     }
 
-    // 4. REAL SUPABASE LOGOUT
-    async logoutUser() {
-        if (supabaseClient) {
-            await supabaseClient.auth.signOut();
-        }
-    }
-
-    // 5. AUTH ERROR TRANSLATION ENGINE
-    translateAuthError(msg) {
-        if (msg.includes('User already registered') || msg.includes('already exists')) {
-            return 'البريد الإلكتروني مسجل بالفعل في سيرفر Supabase. يرجى استخدام تسجيل الدخول.';
-        }
-        if (msg.includes('Password should be at least')) {
-            return 'كلمة المرور ضعيفة جداً. يقتضي سيرفر Supabase إدخال 6 خانات على الأقل.';
-        }
-        if (msg.includes('Invalid login credentials')) {
-            return 'بيانات الدخول غير صحيحة. كلمة المرور أو البريد الإلكتروني غير مطابقة في السيرفر.';
-        }
-        if (msg.includes('over_email_send_rate_limit') || msg.includes('rate limit')) {
-            return 'تنبيه السيرفر: تم الوصول للحد الأقصى لرسائل البريد السحابية في Supabase. يرجى إيقاف خيار "Confirm Email" من لوحة Supabase Authentication أو استخدام تسجيل الدخول المباشر.';
-        }
-        return 'خطأ في سيرفر المصادقة: ' + msg;
-    }
-
-    // 6. REAL LISTINGS DATA FETCH FROM SUPABASE & LOCAL
     async getListings() {
-        if (supabaseClient) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('listings')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (!error && data && data.length > 0) {
-                    return data.map(item => ({
-                        id: item.id,
-                        title: item.title,
-                        category: item.category_type,
-                        subCategory: item.sub_category || item.category_type,
-                        price: parseFloat(item.price || 0),
-                        isFree: item.is_free,
-                        city: item.city,
-                        neighborhood: item.neighborhood || 'وسط المدينة',
-                        condition: item.condition || 'good',
-                        timeAgo: 'جديد',
-                        views: item.views_count || 1,
-                        images: [
-                            'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'
-                        ],
-                        seller: {
-                            name: 'معلن موثق',
-                            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-                            phone: '+966 50 000 0000',
-                            rating: 5.0,
-                            verified: true
-                        },
-                        description: item.description,
-                        specs: {}
-                    }));
-                }
-            } catch (e) {}
-        }
-
-        try {
-            return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || MOCK_LISTINGS;
-        } catch (e) {
-            return MOCK_LISTINGS;
-        }
+        if (!supabaseClient) return [...MOCK_LISTINGS];
+        const { data, error } = await supabaseClient
+            .from('listings')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(`تعذر جلب الإعلانات: ${error.message}`);
+        return (data || []).map((item) => this.mapListing(item));
     }
 
     async saveListing(newListing) {
-        const listings = await this.getListings();
-        listings.unshift(newListing);
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(listings));
-
-        if (supabaseClient) {
-            try {
-                const authUser = await this.getAuthUser();
-                await supabaseClient.from('listings').insert([{
-                    user_id: authUser ? authUser.id : null,
-                    title: newListing.title,
-                    description: newListing.description,
-                    price: newListing.price,
-                    is_free: newListing.isFree,
-                    category_type: newListing.category,
-                    sub_category: newListing.subCategory,
-                    city: newListing.city,
-                    condition: newListing.condition
-                }]);
-            } catch (err) {}
-        }
-        return newListing;
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول قبل نشر الإعلان.');
+        const { data, error } = await this.requireClient().from('listings').insert({
+            user_id: authUser.id,
+            title: newListing.title.trim(),
+            description: newListing.description.trim(),
+            price: Number(newListing.price || 0),
+            is_free: Boolean(newListing.isFree),
+            category_type: newListing.category,
+            sub_category: newListing.subCategory,
+            city: newListing.city,
+            neighborhood: newListing.neighborhood || null,
+            condition: newListing.condition,
+            images: newListing.images,
+            attributes: newListing.specs
+        }).select('*').single();
+        if (error) throw new Error(`فشل حفظ الإعلان: ${error.message}`);
+        data.profiles = {
+            full_name: authUser.name,
+            avatar_url: authUser.avatar,
+            phone_number: authUser.phone,
+            verified_seller: authUser.verified
+        };
+        return this.mapListing(data);
     }
 
     async deleteListing(listingId) {
-        const listings = await this.getListings();
-        const filtered = listings.filter(l => l.id !== listingId);
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
-
-        if (supabaseClient) {
-            try {
-                await supabaseClient.from('listings').delete().eq('id', listingId);
-            } catch (e) {}
-        }
-        return filtered;
+        const { error } = await this.requireClient().from('listings').delete().eq('id', listingId);
+        if (error) throw new Error(`تعذر حذف الإعلان: ${error.message}`);
+        return this.getListings();
     }
 
-    async deleteComment(listingId, commentIdx) {
-        const listings = await this.getListings();
-        const listing = listings.find(l => l.id === listingId);
-        if (listing && listing.comments) {
-            listing.comments.splice(commentIdx, 1);
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(listings));
+    async updateListingStatus(listingId, status) {
+        if (!['active', 'pending', 'rejected', 'reserved', 'sold'].includes(status)) {
+            throw new Error('حالة الإعلان غير صالحة.');
         }
-        return listing;
+        const { error } = await this.requireClient().from('listings').update({
+            status,
+            updated_at: new Date().toISOString()
+        }).eq('id', listingId);
+        if (error) throw new Error(`تعذر تحديث حالة الإعلان: ${error.message}`);
+    }
+
+    async deleteComment() {
+        throw new Error('حذف التعليقات السحابية غير متاح حتى يتم ربط معرف التعليق.');
+    }
+
+    async updateProfile(values) {
+        const user = await this.getAuthUser();
+        if (!user) throw new Error('يجب تسجيل الدخول.');
+        const { error } = await this.requireClient().from('profiles').update({
+            full_name: values.name.trim(),
+            phone_number: values.phone.trim(),
+            avatar_url: values.avatar.trim() || null,
+            updated_at: new Date().toISOString()
+        }).eq('id', user.id);
+        if (error) throw new Error(`تعذر تحديث الملف الشخصي: ${error.message}`);
+        return this.getAuthUser();
     }
 
     async rateSeller(sellerName, ratingScore) {
-        let ratingsStore = {};
-        try {
-            ratingsStore = JSON.parse(localStorage.getItem(this.RATINGS_KEY)) || {};
-        } catch (e) {}
-
-        if (!ratingsStore[sellerName]) {
-            ratingsStore[sellerName] = { total: 0, count: 0 };
-        }
+        let ratingsStore = JSON.parse(localStorage.getItem(this.RATINGS_KEY) || '{}');
+        ratingsStore[sellerName] ||= { total: 0, count: 0 };
         ratingsStore[sellerName].total += ratingScore;
         ratingsStore[sellerName].count += 1;
-
         localStorage.setItem(this.RATINGS_KEY, JSON.stringify(ratingsStore));
-
-        const avg = (ratingsStore[sellerName].total / ratingsStore[sellerName].count).toFixed(1);
-        return {
-            avg: parseFloat(avg),
-            count: ratingsStore[sellerName].count
-        };
+        return { avg: Number((ratingsStore[sellerName].total / ratingsStore[sellerName].count).toFixed(1)), count: ratingsStore[sellerName].count };
     }
 
     getFavorites() {
-        try {
-            return JSON.parse(localStorage.getItem(this.FAVS_KEY)) || [];
-        } catch (e) {
-            return [];
-        }
+        try { return JSON.parse(localStorage.getItem(this.FAVS_KEY)) || []; } catch (_) { return []; }
     }
 
     toggleFavorite(id) {
-        let favs = this.getFavorites();
-        if (favs.includes(id)) {
-            favs = favs.filter(favId => favId !== id);
-        } else {
-            favs.push(id);
-        }
-        localStorage.setItem(this.FAVS_KEY, JSON.stringify(favs));
-        return favs;
+        const current = this.getFavorites();
+        const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        localStorage.setItem(this.FAVS_KEY, JSON.stringify(next));
+        return next;
     }
 
-    getChats() {
-        return [
-            {
-                threadId: 'chat-1',
-                listingId: 'list-101',
-                listingTitle: 'فيلا مودرن فاخرة مع مسبح وحديقة خاصة',
-                sellerName: 'شركة قمة العقارية',
-                messages: [
-                    { sender: 'seller', text: 'أهلاً بك! كيف يمكنني مساعدتك بخصوص الفيلا؟', time: '10:30 ص' },
-                    { sender: 'buyer', text: 'مرحباً، هل الفيلا جاهزة للمعاينة اليوم؟', time: '10:32 ص' }
-                ]
-            }
-        ];
-    }
+    getChats() { return []; }
 }
 
 const finnDB = new FinnSeniorProductionEngine();

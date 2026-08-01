@@ -53,4 +53,8 @@ C:\Users\WinDows\.gemini\antigravity\scratch\finn_marketplace\
 
 ## 🛠️ كيفية التشغيل
 
-يمكنك فتح ملف `index.html` في أي متصفح مباشرة، أو تشغيله عبر سيرفر محلي (مثل Live Server في VS Code أو `npx serve`).
+شغّل المشروع عبر خادم محلي (مثل `npx serve`). لا يُنصح بفتح `index.html` مباشرة لأن المصادقة وقيود المتصفح تعمل بصورة صحيحة عبر HTTP فقط.
+
+## قاعدة البيانات
+
+ملف `supabase_schema.sql` يمثل المخطط الأساسي التاريخي. إصلاحات الإنتاج والأمان موجودة كترحيلات مرتبة داخل `supabase/migrations` ويجب تطبيقها بعد المخطط الأساسي. لا تضع مفتاح `service_role` في الواجهة؛ المفتاح المنشور الحالي Publishable ومصمم للاستخدام مع RLS.
