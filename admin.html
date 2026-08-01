@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة والتحكم | FinnMarket Admin</title>
+    <title>لوحة الإدارة والتحكم الشاملة | FinnMarket Admin</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,31 +18,49 @@
     <link rel="stylesheet" href="css/components.css?v=6.0">
 
     <style>
-        .admin-sidebar-layout {
+        .admin-layout {
             display: grid;
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 280px 1fr;
             gap: 28px;
             margin-top: 24px;
             padding-bottom: 60px;
         }
 
         @media (max-width: 992px) {
-            .admin-sidebar-layout {
+            .admin-layout {
                 grid-template-columns: 1fr;
             }
         }
 
-        .admin-nav-menu {
+        .admin-sidebar {
             background: white;
             border-radius: var(--radius-lg);
             border: 1px solid var(--border-color);
-            padding: 16px;
+            padding: 20px;
+            height: fit-content;
         }
 
-        .admin-nav-link {
+        .admin-user-profile-card {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--color-primary);
+        }
+
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             padding: 12px 16px;
             border-radius: var(--radius-md);
             font-size: 14px;
@@ -50,15 +68,39 @@
             color: var(--text-muted);
             cursor: pointer;
             transition: var(--transition-fast);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        .admin-nav-link.active, .admin-nav-link:hover {
+        .admin-nav-item.active, .admin-nav-item:hover {
             background-color: var(--color-primary-light);
             color: var(--color-primary);
         }
 
-        .admin-stat-card {
+        .admin-badge-count {
+            background: var(--color-primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .admin-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-box {
             background: white;
             border-radius: var(--radius-lg);
             border: 1px solid var(--border-color);
@@ -66,16 +108,17 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            box-shadow: var(--shadow-sm);
         }
 
-        .admin-stat-icon {
-            width: 50px;
-            height: 50px;
+        .kpi-icon {
+            width: 52px;
+            height: 52px;
             border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
             color: white;
         }
 
@@ -89,16 +132,37 @@
         }
 
         .data-table th, .data-table td {
-            padding: 14px 18px;
+            padding: 14px 16px;
             text-align: right;
             border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .data-table th {
             background-color: var(--bg-surface-subtle);
             font-weight: 800;
             color: var(--text-main);
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .status-pill.active { background: #ecfdf5; color: #059669; }
+        .status-pill.pending { background: #fffbebf5; color: #d97706; }
+        .status-pill.rejected { background: #fef2f2; color: #ef4444; }
+
+        .search-admin-input {
+            width: 260px;
+            height: 38px;
+            padding: 0 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-size: 13px;
         }
     </style>
 </head>
@@ -110,115 +174,166 @@
             <a href="index.html" class="brand-logo">
                 <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i>
                 <span>FinnMarket Admin</span>
-                <span class="brand-badge" style="background: #fef2f2; color: #ef4444;">لوحة الإدارة</span>
+                <span class="brand-badge" style="background: #fef2f2; color: #ef4444;">التحكم والرقابة</span>
             </a>
 
             <div class="nav-actions">
                 <a href="index.html" class="btn btn-outline">
-                    <i class="fa-solid fa-arrow-right"></i> العودة للموقع
+                    <i class="fa-solid fa-arrow-right"></i> العودة للمستفيدين
                 </a>
             </div>
         </div>
     </header>
 
-    <main class="container admin-sidebar-layout">
-        <!-- Admin Left Sidebar -->
-        <aside class="admin-nav-menu">
-            <div class="admin-nav-link active" onclick="switchAdminTab('overview')">
-                <i class="fa-solid fa-chart-line"></i> نظرة عامة والإحصائيات
+    <main class="container admin-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <div class="admin-user-profile-card">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="admin-avatar" id="adminAvatarImg">
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 800;" id="adminNameTxt">مدير المنصة</h4>
+                    <span style="font-size: 11px; color: #ef4444; font-weight: 700;">صلاحيات كاملة (Admin)</span>
+                </div>
             </div>
-            <div class="admin-nav-link" onclick="switchAdminTab('listings')">
-                <i class="fa-solid fa-box"></i> إدارة الإعلانات (<span id="countAdminAds">0</span>)
-            </div>
-            <div class="admin-nav-link" onclick="switchAdminTab('users')">
-                <i class="fa-solid fa-users"></i> إدارة المستخدمين والأعضاء
-            </div>
-            <div class="admin-nav-link" onclick="switchAdminTab('reports')">
-                <i class="fa-solid fa-flag"></i> البلاغات والمحتوى المخالف
-            </div>
+
+            <nav>
+                <div class="admin-nav-item active" onclick="switchAdminTab('overview', this)">
+                    <span><i class="fa-solid fa-chart-pie" style="margin-left: 8px;"></i> الإحصائيات</span>
+                </div>
+                <div class="admin-nav-item" onclick="switchAdminTab('listings', this)">
+                    <span><i class="fa-solid fa-boxes-stacked" style="margin-left: 8px;"></i> إدارة الإعلانات</span>
+                    <span class="admin-badge-count" id="badgeAdsCount">0</span>
+                </div>
+                <div class="admin-nav-item" onclick="switchAdminTab('users', this)">
+                    <span><i class="fa-solid fa-users-gear" style="margin-left: 8px;"></i> الأعضاء والتراخيص</span>
+                </div>
+                <div class="admin-nav-item" onclick="switchAdminTab('reports', this)">
+                    <span><i class="fa-solid fa-flag" style="margin-left: 8px;"></i> البلاغات والمراقبة</span>
+                    <span class="admin-badge-count" style="background: #ef4444;">0</span>
+                </div>
+                <div class="admin-nav-item" onclick="switchAdminTab('cities', this)">
+                    <span><i class="fa-solid fa-city" style="margin-left: 8px;"></i> المدن والتصنيفات</span>
+                </div>
+            </nav>
         </aside>
 
-        <!-- Admin Right Content Area -->
-        <section id="adminMainContent">
-            <!-- Overview Tab -->
-            <div id="tabAdminOverview">
-                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--text-main);">نظرة عامة على المنصة السحابية</h2>
+        <!-- Main Content Area -->
+        <section id="adminContentContainer">
+            
+            <!-- Tab 1: Overview KPIs -->
+            <div id="tabOverview">
+                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">نظرة عامة ومؤشرات الأداء (KPIs)</h2>
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-bottom: 30px;">
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-icon" style="background: #0063fb;"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div class="admin-kpi-grid">
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="background: #0063fb;"><i class="fa-solid fa-layer-group"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="statTotalListings">0</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">إجمالي الإعلانات</div>
+                            <div style="font-size: 24px; font-weight: 900;" id="kpiTotalAds">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">إجمالي الإعلانات النشطة</div>
                         </div>
                     </div>
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-icon" style="background: #10b981;"><i class="fa-solid fa-users-gear"></i></div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="background: #10b981;"><i class="fa-solid fa-user-check"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;">24</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">أعضاء موثقين</div>
+                            <div style="font-size: 24px; font-weight: 900;" id="kpiUsersCount">28</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">أعضاء ومؤسسات موثقة</div>
                         </div>
                     </div>
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-icon" style="background: #f59e0b;"><i class="fa-solid fa-comments"></i></div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="background: #f59e0b;"><i class="fa-solid fa-star"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;">86</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">الردود والاستفسارات</div>
+                            <div style="font-size: 24px; font-weight: 900;">4.9 ★</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">متوسط تقييم التجار</div>
+                        </div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="background: #8b5cf6;"><i class="fa-solid fa-comments"></i></div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 900;">142</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">استفسارات ومحادثات</div>
                         </div>
                     </div>
                 </div>
 
-                <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px;">أحدث الإعلانات المضافة للتحقق</h3>
-                <div id="overviewListingsTable"></div>
-            </div>
-
-            <!-- Listings Tab -->
-            <div id="tabAdminListings" style="display: none;">
-                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">إدارة جميع الإعلانات</h2>
-                <div id="fullAdminListingsTable"></div>
-            </div>
-
-            <!-- Users Tab -->
-            <div id="tabAdminUsers" style="display: none;">
-                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">إدارة الأعضاء والتراخيص</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>الاسم الكامل</th>
-                            <th>البريد الإلكتروني</th>
-                            <th>الدور</th>
-                            <th>حالة التوثيق</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>المهندس محمد العتيبي</td>
-                            <td>m.otaibi@example.com</td>
-                            <td><span class="seller-badge-tag">Admin</span></td>
-                            <td><span style="color: #10b981; font-weight: 700;">موثق بالكامل</span></td>
-                            <td><button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">تعديل الصلاحية</button></td>
-                        </tr>
-                        <tr>
-                            <td>شركة قمة العقارية</td>
-                            <td>qimma@realestate.sa</td>
-                            <td><span class="seller-badge-tag">Company</span></td>
-                            <td><span style="color: #10b981; font-weight: 700;">تاجر موثق</span></td>
-                            <td><button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">تعديل الصلاحية</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Reports Tab -->
-            <div id="tabAdminReports" style="display: none;">
-                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">بلاغات المحتوى المخالف</h2>
-                <div style="background: white; padding: 40px; text-align: center; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
-                    <i class="fa-solid fa-shield-cat" style="font-size: 44px; color: #10b981; margin-bottom: 12px;"></i>
-                    <h3 style="font-size: 18px; font-weight: 800;">لا توجد بلاغات قائمة</h3>
-                    <p style="color: var(--text-muted); font-size: 14px;">جميع الإعلانات والمحتوى متوافقة مع شروط استخدام المنصة.</p>
+                <div class="admin-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <h3 style="font-size: 18px; font-weight: 800;">أحدث الإعلانات المدرجة للتحقق والمراجعة</h3>
+                        <button class="btn btn-outline" style="height: 36px; font-size: 12px;" onclick="renderAllAdminTables()">
+                            <i class="fa-solid fa-rotate"></i> تحديث البيانات
+                        </button>
+                    </div>
+                    <div id="overviewTableWrapper"></div>
                 </div>
             </div>
+
+            <!-- Tab 2: Full Listings Moderation Queue -->
+            <div id="tabListings" style="display: none;">
+                <div class="admin-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                        <h2 style="font-size: 20px; font-weight: 800;">إدارة وحظر وتفعيل كافة الإعلانات</h2>
+                        <input type="text" class="search-admin-input" id="searchAdminAdsInput" placeholder="بحث بالكلمة أو المدينة..." oninput="filterAdminListingsTable(this.value)">
+                    </div>
+                    <div id="fullListingsTableWrapper"></div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Users & Roles Management -->
+            <div id="tabUsers" style="display: none;">
+                <div class="admin-card">
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">إدارة الأعضاء، الأدوار، وتراخيص التجار</h2>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>العضو / التاجر</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>رقم الجوال</th>
+                                <th>الدور والحالة</th>
+                                <th>تحديث الترخيص والتوثيق</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 4: Reports & Content Control -->
+            <div id="tabReports" style="display: none;">
+                <div class="admin-card">
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">بلاغات المحتوى والمخالفات</h2>
+                    <div id="reportsContainer">
+                        <div style="text-align: center; padding: 40px; background: var(--bg-surface-subtle); border-radius: var(--radius-md);">
+                            <i class="fa-solid fa-shield-cat" style="font-size: 40px; color: #10b981; margin-bottom: 12px;"></i>
+                            <h3 style="font-size: 16px; font-weight: 800;">سجل البلاغات خالي من المخالفات</h3>
+                            <p style="color: var(--text-muted); font-size: 13px;">جميع الإعلانات متوافقة مع شروط استخدام المنصة.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Cities & Categories Management -->
+            <div id="tabCities" style="display: none;">
+                <div class="admin-card">
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">إضافة وتحديث المدن والتصنيفات</h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="background: var(--bg-surface-subtle); padding: 20px; border-radius: var(--radius-md);">
+                            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">إضافة مدينة جديدة</h4>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="form-input" id="newCityInput" placeholder="اسم المدينة الجديدة...">
+                                <button class="btn btn-primary" onclick="addNewCityAdmin()"><i class="fa-solid fa-plus"></i> إضافة</button>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--bg-surface-subtle); padding: 20px; border-radius: var(--radius-md);">
+                            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">المدن المعتمدة حالياً (<span id="citiesCountBadge">0</span>)</h4>
+                            <div id="citiesListAdmin" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
     </main>
 
@@ -228,55 +343,77 @@
     <script src="js/supabase-config.js?v=6.0"></script>
     <script>
         let allListings = [];
+        let allUsers = [
+            { id: 'usr-1', name: 'شركة قمة العقارية', email: 'qimma@realestate.sa', phone: '+966 50 123 4567', role: 'company', verified: true },
+            { id: 'usr-2', name: 'فهد العتيبي', email: 'f.otaibi@domain.com', phone: '+966 55 987 6543', role: 'seller', verified: true },
+            { id: 'usr-3', name: 'الكابتن طارق البحراني', email: 'tariq@marine.sa', phone: '+966 54 888 9900', role: 'seller', verified: true },
+            { id: 'usr-4', name: 'المهندس محمد الدوسري', email: 'm.dosari@domain.com', phone: '+966 50 111 2233', role: 'admin', verified: true }
+        ];
 
         document.addEventListener('DOMContentLoaded', async () => {
+            const authUser = await finnDB.getAuthUser();
+            if (authUser) {
+                document.getElementById('adminNameTxt').textContent = authUser.name;
+                document.getElementById('adminAvatarImg').src = authUser.avatar;
+            }
+
             allListings = await finnDB.getListings();
-            document.getElementById('statTotalListings').textContent = allListings.length;
-            document.getElementById('countAdminAds').textContent = allListings.length;
-            renderAdminTables();
+            document.getElementById('kpiTotalAds').textContent = allListings.length;
+            document.getElementById('badgeAdsCount').textContent = allListings.length;
+            
+            renderAllAdminTables();
+            renderUsersTable();
+            renderCitiesAdmin();
         });
 
-        function switchAdminTab(tab) {
-            document.querySelectorAll('.admin-nav-link').forEach(el => el.classList.remove('active'));
-            document.getElementById('tabAdminOverview').style.display = 'none';
-            document.getElementById('tabAdminListings').style.display = 'none';
-            document.getElementById('tabAdminUsers').style.display = 'none';
-            document.getElementById('tabAdminReports').style.display = 'none';
+        function switchAdminTab(tab, el) {
+            document.querySelectorAll('.admin-nav-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
 
-            if (tab === 'overview') {
-                document.getElementById('tabAdminOverview').style.display = 'block';
-            } else if (tab === 'listings') {
-                document.getElementById('tabAdminListings').style.display = 'block';
-            } else if (tab === 'users') {
-                document.getElementById('tabAdminUsers').style.display = 'block';
-            } else if (tab === 'reports') {
-                document.getElementById('tabAdminReports').style.display = 'block';
-            }
-            event.currentTarget.classList.add('active');
+            document.getElementById('tabOverview').style.display = 'none';
+            document.getElementById('tabListings').style.display = 'none';
+            document.getElementById('tabUsers').style.display = 'none';
+            document.getElementById('tabReports').style.display = 'none';
+            document.getElementById('tabCities').style.display = 'none';
+
+            if (tab === 'overview') document.getElementById('tabOverview').style.display = 'block';
+            if (tab === 'listings') document.getElementById('tabListings').style.display = 'block';
+            if (tab === 'users') document.getElementById('tabUsers').style.display = 'block';
+            if (tab === 'reports') document.getElementById('tabReports').style.display = 'block';
+            if (tab === 'cities') document.getElementById('tabCities').style.display = 'block';
         }
 
-        function renderAdminTables() {
+        function renderAllAdminTables() {
             const tableHTML = `
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>عنوان الإعلان</th>
-                            <th>القسم</th>
+                            <th>القطاع</th>
                             <th>المدينة</th>
                             <th>السعر</th>
-                            <th>الإجراءات</th>
+                            <th>الحالة</th>
+                            <th>التحكم والإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${allListings.map(item => `
                             <tr>
-                                <td style="font-weight: 700;">${item.title}</td>
+                                <td style="font-weight: 800;">${item.title}</td>
                                 <td>${item.subCategory}</td>
                                 <td>${item.city}</td>
-                                <td style="color: var(--color-primary); font-weight: 800;">${item.price.toLocaleString('ar-SA')} ر.س</td>
+                                <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
+                                <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
                                 <td>
-                                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
-                                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px; color: #ef4444;" onclick="adminDeleteListing('${item.id}')">حذف</button>
+                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
+                                    
+                                    ${item.status === 'rejected' ? `
+                                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #059669; border-color: #059669;" onclick="toggleListingStatus('${item.id}', 'active')">تفعيل</button>
+                                    ` : `
+                                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #d97706; border-color: #f59e0b;" onclick="toggleListingStatus('${item.id}', 'rejected')">حظر</button>
+                                    `}
+
+                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #ef4444; border-color: #ef4444;" onclick="deleteAdminListing('${item.id}')">حذف</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -284,16 +421,122 @@
                 </table>
             `;
 
-            document.getElementById('overviewListingsTable').innerHTML = tableHTML;
-            document.getElementById('fullAdminListingsTable').innerHTML = tableHTML;
+            document.getElementById('overviewTableWrapper').innerHTML = tableHTML;
+            document.getElementById('fullListingsTableWrapper').innerHTML = tableHTML;
         }
 
-        async function adminDeleteListing(id) {
-            if (confirm('هل أنت تأكد كمسؤول من حذف هذا الإعلان من المنصة؟')) {
-                allListings = allListings.filter(l => l.id !== id);
-                localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(allListings));
-                renderAdminTables();
+        function filterAdminListingsTable(query) {
+            const q = query.toLowerCase();
+            const filtered = allListings.filter(l => l.title.toLowerCase().includes(q) || l.city.toLowerCase().includes(q));
+            
+            const tableHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>عنوان الإعلان</th>
+                            <th>القطاع</th>
+                            <th>المدينة</th>
+                            <th>السعر</th>
+                            <th>الحالة</th>
+                            <th>التحكم والإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.map(item => `
+                            <tr>
+                                <td style="font-weight: 800;">${item.title}</td>
+                                <td>${item.subCategory}</td>
+                                <td>${item.city}</td>
+                                <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
+                                <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
+                                <td>
+                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
+                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #ef4444; border-color: #ef4444;" onclick="deleteAdminListing('${item.id}')">حذف</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('fullListingsTableWrapper').innerHTML = tableHTML;
+        }
+
+        async function toggleListingStatus(id, newStatus) {
+            const item = allListings.find(l => l.id === id);
+            if (item) {
+                item.status = newStatus;
+                localStorage.setItem('finn_marketplace_listings_real_prod_v6', JSON.stringify(allListings));
+                renderAllAdminTables();
+                alert(`تم تحديث حالة الإعلان إلى (${newStatus === 'active' ? 'نشط' : 'محظور'}).`);
+            }
+        }
+
+        async function deleteAdminListing(id) {
+            if (confirm('هل أنت تأكد كمسؤول من حذف هذا الإعلان نهائياً من السيرفر؟')) {
+                allListings = await finnDB.deleteListing(id);
+                document.getElementById('kpiTotalAds').textContent = allListings.length;
+                document.getElementById('badgeAdsCount').textContent = allListings.length;
+                renderAllAdminTables();
                 alert('تم حذف الإعلان كلياً من المنصة.');
+            }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = allUsers.map(u => `
+                <tr>
+                    <td style="font-weight: 800;">${u.name}</td>
+                    <td>${u.email}</td>
+                    <td>${u.phone}</td>
+                    <td>
+                        <select onchange="updateUserRole('${u.id}', this.value)" style="height: 30px; font-size: 12px; padding: 0 6px; border-radius: 4px;">
+                            <option value="user" ${u.role==='user'?'selected':''}>عضو عادي</option>
+                            <option value="seller" ${u.role==='seller'?'selected':''}>تاجر موثق</option>
+                            <option value="company" ${u.role==='company'?'selected':''}>شركة معتمدة</option>
+                            <option value="admin" ${u.role==='admin'?'selected':''}>مشرف أدمن</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 11px; color: ${u.verified ? '#059669':'#d97706'};" onclick="toggleUserVerify('${u.id}')">
+                            ${u.verified ? '✔️ موثق' : 'منح التوثيق'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateUserRole(id, newRole) {
+            const u = allUsers.find(user => user.id === id);
+            if (u) {
+                u.role = newRole;
+                alert(`تم تحديث صلاحية (${u.name}) إلى (${newRole}).`);
+            }
+        }
+
+        function toggleUserVerify(id) {
+            const u = allUsers.find(user => user.id === id);
+            if (u) {
+                u.verified = !u.verified;
+                renderUsersTable();
+                alert(`تم تحديث توثيق العضوية لـ (${u.name}).`);
+            }
+        }
+
+        function renderCitiesAdmin() {
+            document.getElementById('citiesCountBadge').textContent = INITIAL_CITIES.length;
+            const container = document.getElementById('citiesListAdmin');
+            container.innerHTML = INITIAL_CITIES.map(c => `
+                <span style="background: white; border: 1px solid var(--border-color); padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700;">${c}</span>
+            `).join('');
+        }
+
+        function addNewCityAdmin() {
+            const input = document.getElementById('newCityInput');
+            if (input && input.value.trim()) {
+                INITIAL_CITIES.push(input.value.trim());
+                input.value = '';
+                renderCitiesAdmin();
+                alert('تم إضافة المدينة الجديدة للنظام بنجاح!');
             }
         }
     </script>
