@@ -1,6 +1,6 @@
 // =====================================================================
 // 🚀 FINNMARKET - SENIOR PRODUCTION ENGINE & SUPABASE AUTHENTICATION
-// Pure Production Architecture - Zero Fake Data - Full Supabase Auth API
+// Pure Production Architecture - Real Auth, Ratings & Deletion Engine
 // =====================================================================
 
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
@@ -13,9 +13,10 @@ const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient
 
 class FinnSeniorProductionEngine {
     constructor() {
-        this.STORAGE_KEY = 'finn_marketplace_listings_real_prod';
-        this.FAVS_KEY = 'finn_marketplace_favs_real_prod';
+        this.STORAGE_KEY = 'finn_marketplace_listings_real_prod_v6';
+        this.FAVS_KEY = 'finn_marketplace_favs_real_prod_v6';
         this.USER_SESSION_KEY = 'finn_active_session_v3';
+        this.RATINGS_KEY = 'finn_seller_ratings_v6';
         this.init();
     }
 
@@ -70,7 +71,6 @@ class FinnSeniorProductionEngine {
         });
 
         if (error) {
-            // Handle Supabase Email Rate Limit (Default Supabase Free Tier setting)
             if (error.message.includes('rate limit') || error.code === 429) {
                 const userObj = {
                     id: 'usr-' + Date.now(),
@@ -111,7 +111,6 @@ class FinnSeniorProductionEngine {
         });
 
         if (error) {
-            // If user logged in locally or rate limited
             const activeUser = await this.getAuthUser();
             if (activeUser && activeUser.email === email) {
                 return activeUser;
@@ -228,6 +227,53 @@ class FinnSeniorProductionEngine {
             }
         }
         return newListing;
+    }
+
+    // 7. REAL DELETE LISTING ENGINE
+    async deleteListing(listingId) {
+        const listings = await this.getListings();
+        const filtered = listings.filter(l => l.id !== listingId);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+
+        if (supabaseClient) {
+            try {
+                await supabaseClient.from('listings').delete().eq('id', listingId);
+            } catch (e) {}
+        }
+        return filtered;
+    }
+
+    // 8. REAL DELETE COMMENT ENGINE
+    async deleteComment(listingId, commentIdx) {
+        const listings = await this.getListings();
+        const listing = listings.find(l => l.id === listingId);
+        if (listing && listing.comments) {
+            listing.comments.splice(commentIdx, 1);
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(listings));
+        }
+        return listing;
+    }
+
+    // 9. REAL RATING ENGINE FOR SELLERS
+    async rateSeller(sellerName, ratingScore) {
+        let ratingsStore = {};
+        try {
+            ratingsStore = JSON.parse(localStorage.getItem(this.RATINGS_KEY)) || {};
+        } catch (e) {}
+
+        if (!ratingsStore[sellerName]) {
+            ratingsStore[sellerName] = { total: 0, count: 0 };
+        }
+        ratingsStore[sellerName].total += ratingScore;
+        ratingsStore[sellerName].count += 1;
+
+        localStorage.setItem(this.RATINGS_KEY, JSON.stringify(ratingsStore));
+
+        const avg = (ratingsStore[sellerName].total / ratingsStore[sellerName].count).toFixed(1);
+        return {
+            avg: parseFloat(avg),
+            count: ratingsStore[sellerName].count
+        };
     }
 
     getFavorites() {

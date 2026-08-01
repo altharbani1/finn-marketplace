@@ -80,7 +80,7 @@ class FinnMarketApp {
         if (authUser) {
             navActions.innerHTML = `
                 <button class="btn btn-outline btn-icon" id="btnHeaderFavs" title="الإعلانات المفضلة">
-                    <i class="fa-regular fa-heart"></i>
+                    <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
                 </button>
 
@@ -96,8 +96,11 @@ class FinnMarketApp {
                 <div class="user-profile-btn" onclick="window.location.href='profile.html'" title="بروفايلي وإعلاناتي">
                     <img src="${authUser.avatar}" class="user-avatar-head">
                     <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name}</span>
-                    <i class="fa-solid fa-user-gear" style="font-size: 12px; color: var(--color-primary);"></i>
                 </div>
+
+                <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="app.handleLogout()" title="تسجيل الخروج">
+                    <i class="fa-solid fa-right-from-bracket"></i> خروج
+                </button>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
                     <i class="fa-solid fa-circle-plus"></i>
@@ -125,9 +128,11 @@ class FinnMarketApp {
     }
 
     async handleLogout() {
-        await finnDB.logoutUser();
-        alert('تم تسجيل الخروج كلياً من السيرفر بنجاح.');
-        await this.renderAuthNavHeader();
+        if (confirm('هل ترغب في تسجيل الخروج من حسابك الموثق؟')) {
+            await finnDB.logoutUser();
+            alert('تم تسجيل الخروج بنجاح.');
+            await this.renderAuthNavHeader();
+        }
     }
 
     switchAuthTab(tab) {

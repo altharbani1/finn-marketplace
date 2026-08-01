@@ -32,7 +32,7 @@
             <!-- Global Search Bar -->
             <div class="search-bar-global">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="globalSearch" placeholder="ابحث عن عقار، سيارة، أثاث، أو وظيفة..." autocomplete="off">
+                <input type="text" id="globalSearch" placeholder="ابحث عن عقار، سيارة، قارب، أو وظيفة..." autocomplete="off">
             </div>
 
             <!-- Header Action Buttons -->
@@ -55,7 +55,7 @@
     <section class="hero-banner">
         <div class="container hero-content">
             <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك</h1>
-            <p class="hero-subtitle">تصفح العقارات، السيارات، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
+            <p class="hero-subtitle">تصفح العقارات، السيارات، اليخوت، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
             <div class="hero-tags">
                 <button class="hero-tag-btn active" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
@@ -64,6 +64,8 @@
                 <button class="hero-tag-btn" onclick="app.state.category='marketplace'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> المستعمل</button>
                 <button class="hero-tag-btn" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
                 <button class="hero-tag-btn" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني Gis bort</button>
+                <button class="hero-tag-btn" onclick="app.state.category='boats'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-ship"></i> القوارب والبحري</button>
+                <button class="hero-tag-btn" onclick="app.state.category='motorbikes'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-motorcycle"></i> الدراجات</button>
             </div>
         </div>
     </section>
@@ -266,6 +268,9 @@
                             <option value="marketplace" selected>سوق المستعمل (Torget)</option>
                             <option value="jobs">الوظائف (Jobb)</option>
                             <option value="freebies">إهداء مجاني (Gis bort)</option>
+                            <option value="services">الخدمات والأعمال (Tjenester)</option>
+                            <option value="boats">القوارب والبحري (Båt)</option>
+                            <option value="motorbikes">الدراجات والمحركات (Motorsykkel)</option>
                         </select>
                     </div>
                     <div>
