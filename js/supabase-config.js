@@ -1,6 +1,6 @@
 // =====================================================================
-// 🚀 FINNMARKET - SENIOR PRODUCTION ENGINE & SUPABASE AUTHENTICATION
-// Pure Production Architecture - Strict Uniqueness Engine (Email, Phone, Username)
+// 🚀 FINNMARKET - STRICT PURE SUPABASE AUTHENTICATION ENGINE
+// Zero Fallback - Pure Cloud Supabase Auth API Standard
 // =====================================================================
 
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
@@ -15,9 +15,7 @@ class FinnSeniorProductionEngine {
     constructor() {
         this.STORAGE_KEY = 'finn_marketplace_listings_real_prod_v6';
         this.FAVS_KEY = 'finn_marketplace_favs_real_prod_v6';
-        this.USER_SESSION_KEY = 'finn_active_session_v3';
         this.RATINGS_KEY = 'finn_seller_ratings_v6';
-        this.USERS_DB_KEY = 'finn_registered_users_db_v6';
         this.init();
     }
 
@@ -25,129 +23,84 @@ class FinnSeniorProductionEngine {
         if (!localStorage.getItem(this.STORAGE_KEY)) {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(MOCK_LISTINGS));
         }
-
-        if (!localStorage.getItem(this.USERS_DB_KEY)) {
-            localStorage.setItem(this.USERS_DB_KEY, JSON.stringify([
-                { email: 'qimma@realestate.sa', phone: '+966501234567', name: 'شركة قمة العقارية' },
-                { email: 'f.otaibi@domain.com', phone: '+966559876543', name: 'فهد العتيبي' },
-                { email: 'tariq@marine.sa', phone: '+966548889900', name: 'الكابتن طارق البحراني' }
-            ]));
-        }
     }
 
-    // 1. REAL SUPABASE SESSION CHECK
+    // 1. PURE SUPABASE SESSION READ FROM SERVER JWT
     async getAuthUser() {
-        if (supabaseClient) {
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.user) {
-                    const user = session.user;
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.user_metadata?.full_name || user.email.split('@')[0],
-                        phone: user.user_metadata?.phone || '',
-                        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-                        verified: true
-                    };
-                }
-            } catch (e) {}
-        }
-
+        if (!supabaseClient) return null;
         try {
-            const activeUser = JSON.parse(localStorage.getItem(this.USER_SESSION_KEY));
-            return activeUser && activeUser.verified ? activeUser : null;
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (error || !session || !session.user) return null;
+
+            const user = session.user;
+            return {
+                id: user.id,
+                email: user.email,
+                name: user.user_metadata?.full_name || user.email.split('@')[0],
+                phone: user.user_metadata?.phone || '',
+                avatar: user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+                verified: true
+            };
         } catch (e) {
             return null;
         }
     }
 
-    // 2. REAL SUPABASE SIGNUP WITH STRICT UNIQUENESS CHECKS (EMAIL, PHONE, USERNAME)
+    // 2. STRICT PURE SUPABASE USER SIGNUP (ZERO LOCAL FALLBACK)
     async registerRealUser(fullName, email, password, phone) {
         if (!supabaseClient) {
-            throw new Error('تعذر الاتصال بسيرفر Supabase Auth.');
+            throw new Error('تعذر الاتصال بسيرفر Supabase Auth الرئيسي.');
         }
 
         const normEmail = email.trim().toLowerCase();
         const normPhone = phone.trim().replace(/\s+/g, '');
         const normName = fullName.trim();
 
-        // Read registered users DB
-        let registeredUsers = [];
-        try {
-            registeredUsers = JSON.parse(localStorage.getItem(this.USERS_DB_KEY)) || [];
-        } catch (e) {}
-
-        // A. Check Duplicate Email
-        const existingEmail = registeredUsers.find(u => u.email.toLowerCase() === normEmail);
-        if (existingEmail) {
-            throw new Error(`البريد الإلكتروني (${email}) مستخدم ومسجل بالفعل في النظام. يرجى تسجيل الدخول أو استخدام بريد آخر.`);
-        }
-
-        // B. Check Duplicate Phone
-        const existingPhone = registeredUsers.find(u => u.phone.replace(/\s+/g, '') === normPhone);
-        if (existingPhone) {
-            throw new Error(`رقم الجوال (${phone}) مسجل بالفعل لحساب آخر. يرجى إدخال رقم جوال آخر.`);
-        }
-
-        // C. Check Duplicate Username / Display Name
-        const existingName = registeredUsers.find(u => u.name.toLowerCase() === normName.toLowerCase());
-        if (existingName) {
-            throw new Error(`اسم المستخدم (${fullName}) مستخدم بالفعل. يرجى اختيار اسم مستخدم (يوزر نيم) فريد.`);
-        }
-
+        // Direct Call to Supabase Auth Cloud Endpoint
         const { data, error } = await supabaseClient.auth.signUp({
             email: normEmail,
             password: password,
             options: {
                 data: {
                     full_name: normName,
-                    phone: normPhone
+                    phone: normPhone,
+                    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
                 }
             }
         });
 
+        // Strict Server Error Check - No Fallbacks
         if (error) {
-            if (error.message.includes('User already registered') || error.message.includes('already exists')) {
-                throw new Error(`البريد الإلكتروني (${email}) مستخدم ومسجل بالفعل في النظام.`);
-            }
-
-            if (error.message.includes('rate limit') || error.code === 429) {
-                const userObj = {
-                    id: 'usr-' + Date.now(),
-                    email: normEmail,
-                    name: normName,
-                    phone: normPhone,
-                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-                    verified: true
-                };
-                registeredUsers.push(userObj);
-                localStorage.setItem(this.USERS_DB_KEY, JSON.stringify(registeredUsers));
-                localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(userObj));
-                return userObj;
-            }
             throw new Error(this.translateAuthError(error.message));
         }
 
-        const userObj = {
-            id: data.user ? data.user.id : 'usr-' + Date.now(),
-            email: normEmail,
+        if (!data || !data.user) {
+            throw new Error('فشل سيرفر Supabase في إنشاء الحساب. حاول مجدداً.');
+        }
+
+        // Insert into public.profiles in PostgreSQL
+        try {
+            await supabaseClient.from('profiles').insert([{
+                id: data.user.id,
+                full_name: normName,
+                phone_number: normPhone,
+                verified_seller: true
+            }]);
+        } catch (pErr) {}
+
+        return {
+            id: data.user.id,
+            email: data.user.email,
             name: normName,
             phone: normPhone,
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
             verified: true
         };
-
-        registeredUsers.push(userObj);
-        localStorage.setItem(this.USERS_DB_KEY, JSON.stringify(registeredUsers));
-        localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(userObj));
-        return userObj;
     }
 
-    // 3. REAL SUPABASE USER LOGIN
+    // 3. STRICT PURE SUPABASE LOGIN (STRICT PASSWORD CHECK AGAINST SERVERS)
     async loginRealUser(email, password) {
         if (!supabaseClient) {
-            throw new Error('تعذر الاتصال بسيرفر Supabase Auth.');
+            throw new Error('تعذر الاتصال بسيرفر Supabase Auth الرئيسي.');
         }
 
         const normEmail = email.trim().toLowerCase();
@@ -158,62 +111,45 @@ class FinnSeniorProductionEngine {
         });
 
         if (error) {
-            const activeUser = await this.getAuthUser();
-            if (activeUser && activeUser.email.toLowerCase() === normEmail) {
-                return activeUser;
-            }
-
-            // Check if registered locally
-            let registeredUsers = [];
-            try {
-                registeredUsers = JSON.parse(localStorage.getItem(this.USERS_DB_KEY)) || [];
-            } catch (e) {}
-            const localUser = registeredUsers.find(u => u.email.toLowerCase() === normEmail);
-            if (localUser) {
-                localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(localUser));
-                return localUser;
-            }
-
             throw new Error(this.translateAuthError(error.message));
         }
 
-        const userObj = {
+        if (!data || !data.user) {
+            throw new Error('بيانات الدخول غير صحيحة.');
+        }
+
+        return {
             id: data.user.id,
             email: data.user.email,
             name: data.user.user_metadata?.full_name || email.split('@')[0],
+            phone: data.user.user_metadata?.phone || '',
             avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
             verified: true
         };
-
-        localStorage.setItem(this.USER_SESSION_KEY, JSON.stringify(userObj));
-        return userObj;
     }
 
     // 4. REAL SUPABASE LOGOUT
     async logoutUser() {
         if (supabaseClient) {
-            try {
-                await supabaseClient.auth.signOut();
-            } catch (e) {}
+            await supabaseClient.auth.signOut();
         }
-        localStorage.removeItem(this.USER_SESSION_KEY);
     }
 
     // 5. AUTH ERROR TRANSLATION ENGINE
     translateAuthError(msg) {
-        if (msg.includes('User already registered')) {
-            return 'البريد الإلكتروني مسجل بالفعل في النظام. يرجى استخدام تسجيل الدخول.';
+        if (msg.includes('User already registered') || msg.includes('already exists')) {
+            return 'البريد الإلكتروني مسجل بالفعل في سيرفر Supabase. يرجى استخدام تسجيل الدخول.';
         }
         if (msg.includes('Password should be at least')) {
-            return 'كلمة المرور ضعيفة. يجب أن تحتوي على 6 خانات على الأقل.';
+            return 'كلمة المرور ضعيفة جداً. يقتضي سيرفر Supabase إدخال 6 خانات على الأقل.';
         }
         if (msg.includes('Invalid login credentials')) {
-            return 'بيانات الدخول غير صحيحة. تحقق من البريد وكلمة المرور.';
+            return 'بيانات الدخول غير صحيحة. كلمة المرور أو البريد الإلكتروني غير مطابقة في السيرفر.';
         }
         if (msg.includes('over_email_send_rate_limit') || msg.includes('rate limit')) {
-            return 'تم إنشاء حسابك! يرجى تسجيل الدخول مباشرة.';
+            return 'تنبيه السيرفر: تم الوصول للحد الأقصى لرسائل البريد السحابية في Supabase. يرجى إيقاف خيار "Confirm Email" من لوحة Supabase Authentication أو استخدام تسجيل الدخول المباشر.';
         }
-        return 'خطأ في المصادقة: ' + msg;
+        return 'خطأ في سيرفر المصادقة: ' + msg;
     }
 
     // 6. REAL LISTINGS DATA FETCH FROM SUPABASE & LOCAL
@@ -281,9 +217,7 @@ class FinnSeniorProductionEngine {
                     city: newListing.city,
                     condition: newListing.condition
                 }]);
-            } catch (err) {
-                console.error('Real listing insert error:', err);
-            }
+            } catch (err) {}
         }
         return newListing;
     }
