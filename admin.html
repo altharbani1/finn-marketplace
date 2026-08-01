@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة والتحكم | FinnMarket Admin</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/components.css?v=6.0">
+
+    <style>
+        .admin-sidebar-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 28px;
+            margin-top: 24px;
+            padding-bottom: 60px;
+        }
+
+        @media (max-width: 992px) {
+            .admin-sidebar-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .admin-nav-menu {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 16px;
+        }
+
+        .admin-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            margin-bottom: 4px;
+        }
+
+        .admin-nav-link.active, .admin-nav-link:hover {
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+        }
+
+        .admin-stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .admin-stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table th, .data-table td {
+            padding: 14px 18px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .data-table th {
+            background-color: var(--bg-surface-subtle);
+            font-weight: 800;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="brand-logo">
+                <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i>
+                <span>FinnMarket Admin</span>
+                <span class="brand-badge" style="background: #fef2f2; color: #ef4444;">لوحة الإدارة</span>
+            </a>
+
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-outline">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للموقع
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container admin-sidebar-layout">
+        <!-- Admin Left Sidebar -->
+        <aside class="admin-nav-menu">
+            <div class="admin-nav-link active" onclick="switchAdminTab('overview')">
+                <i class="fa-solid fa-chart-line"></i> نظرة عامة والإحصائيات
+            </div>
+            <div class="admin-nav-link" onclick="switchAdminTab('listings')">
+                <i class="fa-solid fa-box"></i> إدارة الإعلانات (<span id="countAdminAds">0</span>)
+            </div>
+            <div class="admin-nav-link" onclick="switchAdminTab('users')">
+                <i class="fa-solid fa-users"></i> إدارة المستخدمين والأعضاء
+            </div>
+            <div class="admin-nav-link" onclick="switchAdminTab('reports')">
+                <i class="fa-solid fa-flag"></i> البلاغات والمحتوى المخالف
+            </div>
+        </aside>
+
+        <!-- Admin Right Content Area -->
+        <section id="adminMainContent">
+            <!-- Overview Tab -->
+            <div id="tabAdminOverview">
+                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px; color: var(--text-main);">نظرة عامة على المنصة السحابية</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-bottom: 30px;">
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-icon" style="background: #0063fb;"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 900;" id="statTotalListings">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">إجمالي الإعلانات</div>
+                        </div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-icon" style="background: #10b981;"><i class="fa-solid fa-users-gear"></i></div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 900;">24</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">أعضاء موثقين</div>
+                        </div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-icon" style="background: #f59e0b;"><i class="fa-solid fa-comments"></i></div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 900;">86</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">الردود والاستفسارات</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px;">أحدث الإعلانات المضافة للتحقق</h3>
+                <div id="overviewListingsTable"></div>
+            </div>
+
+            <!-- Listings Tab -->
+            <div id="tabAdminListings" style="display: none;">
+                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">إدارة جميع الإعلانات</h2>
+                <div id="fullAdminListingsTable"></div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="tabAdminUsers" style="display: none;">
+                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">إدارة الأعضاء والتراخيص</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم الكامل</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الدور</th>
+                            <th>حالة التوثيق</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>المهندس محمد العتيبي</td>
+                            <td>m.otaibi@example.com</td>
+                            <td><span class="seller-badge-tag">Admin</span></td>
+                            <td><span style="color: #10b981; font-weight: 700;">موثق بالكامل</span></td>
+                            <td><button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">تعديل الصلاحية</button></td>
+                        </tr>
+                        <tr>
+                            <td>شركة قمة العقارية</td>
+                            <td>qimma@realestate.sa</td>
+                            <td><span class="seller-badge-tag">Company</span></td>
+                            <td><span style="color: #10b981; font-weight: 700;">تاجر موثق</span></td>
+                            <td><button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">تعديل الصلاحية</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="tabAdminReports" style="display: none;">
+                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">بلاغات المحتوى المخالف</h2>
+                <div style="background: white; padding: 40px; text-align: center; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-shield-cat" style="font-size: 44px; color: #10b981; margin-bottom: 12px;"></i>
+                    <h3 style="font-size: 18px; font-weight: 800;">لا توجد بلاغات قائمة</h3>
+                    <p style="color: var(--text-muted); font-size: 14px;">جميع الإعلانات والمحتوى متوافقة مع شروط استخدام المنصة.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JS Scripts -->
+    <script src="js/data.js?v=6.0"></script>
+    <script src="js/supabase-config.js?v=6.0"></script>
+    <script>
+        let allListings = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            allListings = await finnDB.getListings();
+            document.getElementById('statTotalListings').textContent = allListings.length;
+            document.getElementById('countAdminAds').textContent = allListings.length;
+            renderAdminTables();
+        });
+
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.admin-nav-link').forEach(el => el.classList.remove('active'));
+            document.getElementById('tabAdminOverview').style.display = 'none';
+            document.getElementById('tabAdminListings').style.display = 'none';
+            document.getElementById('tabAdminUsers').style.display = 'none';
+            document.getElementById('tabAdminReports').style.display = 'none';
+
+            if (tab === 'overview') {
+                document.getElementById('tabAdminOverview').style.display = 'block';
+            } else if (tab === 'listings') {
+                document.getElementById('tabAdminListings').style.display = 'block';
+            } else if (tab === 'users') {
+                document.getElementById('tabAdminUsers').style.display = 'block';
+            } else if (tab === 'reports') {
+                document.getElementById('tabAdminReports').style.display = 'block';
+            }
+            event.currentTarget.classList.add('active');
+        }
+
+        function renderAdminTables() {
+            const tableHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>عنوان الإعلان</th>
+                            <th>القسم</th>
+                            <th>المدينة</th>
+                            <th>السعر</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allListings.map(item => `
+                            <tr>
+                                <td style="font-weight: 700;">${item.title}</td>
+                                <td>${item.subCategory}</td>
+                                <td>${item.city}</td>
+                                <td style="color: var(--color-primary); font-weight: 800;">${item.price.toLocaleString('ar-SA')} ر.س</td>
+                                <td>
+                                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
+                                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 12px; color: #ef4444;" onclick="adminDeleteListing('${item.id}')">حذف</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('overviewListingsTable').innerHTML = tableHTML;
+            document.getElementById('fullAdminListingsTable').innerHTML = tableHTML;
+        }
+
+        async function adminDeleteListing(id) {
+            if (confirm('هل أنت تأكد كمسؤول من حذف هذا الإعلان من المنصة؟')) {
+                allListings = allListings.filter(l => l.id !== id);
+                localStorage.setItem('finn_marketplace_listings_real_prod', JSON.stringify(allListings));
+                renderAdminTables();
+                alert('تم حذف الإعلان كلياً من المنصة.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -21,20 +21,54 @@ class FinnMarketApp {
             currentDetailListing: null,
             activeImageIdx: 0,
             uploadedImages: [],
-            activeAuthTab: 'login'
+            activeAuthTab: 'login',
+            isLoading: true
         };
 
         this.init();
     }
 
     async init() {
-        this.listings = await finnDB.getListings();
+        this.renderLoadingState();
+        try {
+            this.listings = await finnDB.getListings();
+            this.state.isLoading = false;
+        } catch (err) {
+            console.error('Listings Load Error:', err);
+            this.renderErrorState('تعذر جلب الإعلانات من السيرفر. يرجى إعادة تنشيط الصفحة.');
+            return;
+        }
+
         this.renderCategoryBar();
         this.renderCityOptions();
         this.applyFiltersAndRender();
         this.setupEventListeners();
         await this.updateHeaderBadges();
         await this.renderAuthNavHeader();
+    }
+
+    renderLoadingState() {
+        const feedContainer = document.getElementById('listingsFeed');
+        if (!feedContainer) return;
+        feedContainer.className = 'listings-grid';
+        feedContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 80px 20px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 40px; color: var(--color-primary); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; font-weight: 800;">جاري تحميل الإعلانات الموثقة...</h3>
+            </div>
+        `;
+    }
+
+    renderErrorState(msg) {
+        const feedContainer = document.getElementById('listingsFeed');
+        if (!feedContainer) return;
+        feedContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: #fff5f5; border-radius: 18px; border: 1px dashed #ef4444;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
+                <h3 style="font-size: 20px; font-weight: 800; color: #991b1b;">خطأ في الاتصال بالشبكة</h3>
+                <p style="color: #7f1d1d; margin-top: 6px;">${msg}</p>
+            </div>
+        `;
     }
 
     async renderAuthNavHeader() {
@@ -55,6 +89,10 @@ class FinnMarketApp {
                     <span class="badge-count">1</span>
                 </button>
                 
+                <a href="admin.html" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" title="لوحة التحكّم الإدارية">
+                    <i class="fa-solid fa-shield-halved"></i> الإدارة
+                </a>
+
                 <div class="user-profile-btn" onclick="window.location.href='profile.html'" title="بروفايلي وإعلاناتي">
                     <img src="${authUser.avatar}" class="user-avatar-head">
                     <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${authUser.name}</span>
@@ -188,7 +226,14 @@ class FinnMarketApp {
         if (!files.length) return;
 
         files.forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+            if (!file.type.startsWith('image/')) {
+                alert('يرجى اختيار صور فقط.');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('حجم الصورة كبير جداً. أقصى حجم مسموح به هو 5 ميجابايت.');
+                return;
+            }
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.state.uploadedImages.push(e.target.result);
@@ -294,7 +339,7 @@ class FinnMarketApp {
             return `
                 <div class="listing-card" onclick="window.location.href='listing.html?id=${item.id}'">
                     <div class="listing-thumb-wrap">
-                        <img src="${item.images[0]}" alt="${item.title}" class="listing-thumb" loading="lazy">
+                        <img src="${item.images[0]}" alt="${item.title}" class="listing-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'">
                         <span class="badge-tag ${badgeClass}">${badgeText}</span>
                         <button class="btn-fav-card ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); app.toggleFav('${item.id}')">
                             <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
