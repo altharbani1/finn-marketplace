@@ -39,9 +39,33 @@
             margin-bottom: 60px;
         }
 
+        .listing-detail-layout > * {
+            min-width: 0;
+        }
+
         @media (max-width: 992px) {
             .listing-detail-layout {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .breadcrumb-nav {
+                flex-wrap: wrap;
+            }
+
+            #mainListingCol > div:first-child,
+            .comments-section-box {
+                padding: 18px !important;
+            }
+
+            #mainListingCol > div:first-child > div:first-child {
+                align-items: flex-start !important;
+                flex-wrap: wrap;
+            }
+
+            .gallery-main-box {
+                height: 300px;
             }
         }
 
