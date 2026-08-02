@@ -4,7 +4,9 @@ const path = require('node:path');
 const test = require('node:test');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+const indexSource = read('index.html');
 const appSource = read('js/app.js');
+const mainStyles = read('css/main.css');
 const databaseSource = read('js/supabase-config.js');
 const listingSource = read('listing.html');
 const adminSource = read('admin.html');
@@ -67,5 +69,18 @@ test('seller ratings and reports have real storage and protected policies', () =
     assert.match(databaseSource, /async submitReport/);
     assert.match(databaseSource, /async getAdminReports/);
     assert.match(adminSource, /renderReports\(\)/);
+    assert.match(adminSource, /setReportStatus\('\$\{report\.id\}', 'reviewed'\)/);
+    assert.match(adminSource, /setReportStatus\('\$\{report\.id\}', 'resolved'\)/);
     assert.doesNotMatch(adminSource, /إدارة البلاغات قيد التجهيز/);
+});
+
+test('marketplace uses text search and a permanent list layout', () => {
+    assert.match(indexSource, /id="globalSearch"/);
+    assert.doesNotMatch(indexSource, /class="filter-sidebar"/);
+    assert.doesNotMatch(indexSource, /id="filterCity"|id="minPrice"|id="maxPrice"|id="filterCondition"/);
+    assert.doesNotMatch(indexSource, /id="viewGridBtn"|id="viewListBtn"|id="sortBy"/);
+    assert.match(appSource, /feedContainer\.className = 'listings-grid list-view'/);
+    assert.match(appSource, /item\.subCategory/);
+    assert.match(appSource, /item\.city/);
+    assert.match(mainStyles, /\.listings-grid\.list-view \.listing-card/);
 });
