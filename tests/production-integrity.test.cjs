@@ -9,6 +9,7 @@ const databaseSource = read('js/supabase-config.js');
 const listingSource = read('listing.html');
 const adminSource = read('admin.html');
 const profileSource = read('profile.html');
+const communicationMigration = read('supabase/migrations/20260802052237_enable_marketplace_communication_ratings_reports.sql');
 
 test('listing questions use Supabase comments instead of fabricated local data', () => {
     assert.match(databaseSource, /from\('comments'\)/);
@@ -37,4 +38,24 @@ test('signed-in favorites persist in Supabase and profile status is truthful', (
     assert.match(appSource, /await finnDB\.syncFavorites\(\)/);
     assert.doesNotMatch(profileSource, /5\.0 ★/);
     assert.match(profileSource, /currentUser\.verified \? 'هوية موثقة' : 'حساب مسجل'/);
+});
+
+test('private chats are backed by participant-scoped Supabase tables', () => {
+    assert.match(databaseSource, /async getChatThreads\(\)/);
+    assert.match(databaseSource, /from\('chat_threads'\)/);
+    assert.match(databaseSource, /from\('messages'\)/);
+    assert.match(appSource, /async openChatsModal/);
+    assert.match(communicationMigration, /buyer_id <> seller_id/);
+    assert.match(communicationMigration, /Buyers create listing threads/);
+});
+
+test('seller ratings and reports have real storage and protected policies', () => {
+    assert.match(communicationMigration, /create table if not exists public\.seller_ratings/);
+    assert.match(communicationMigration, /seller_ratings_no_self_rating/);
+    assert.match(communicationMigration, /refresh_seller_rating_after_change/);
+    assert.match(databaseSource, /async rateSeller/);
+    assert.match(databaseSource, /async submitReport/);
+    assert.match(databaseSource, /async getAdminReports/);
+    assert.match(adminSource, /renderReports\(\)/);
+    assert.doesNotMatch(adminSource, /إدارة البلاغات قيد التجهيز/);
 });

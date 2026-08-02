@@ -139,7 +139,7 @@ class FinnSeniorProductionEngine {
                 name: profile.full_name || 'معلن',
                 avatar: profile.avatar_url || DEFAULT_AVATAR,
                 phone: '',
-                rating: Number(profile.rating || 5),
+                rating: Number(profile.rating || 0),
                 verified: Boolean(profile.verified_seller)
             },
             description: item.description,
@@ -223,6 +223,151 @@ class FinnSeniorProductionEngine {
         });
         if (error) throw new Error(`تعذر نشر الرد: ${error.message}`);
         return this.getListingComments(listingId);
+    }
+
+    async getChatThreads() {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول لعرض المحادثات.');
+        const { data, error } = await this.requireClient().from('chat_threads')
+            .select('id, listing_id, buyer_id, seller_id, last_message, updated_at')
+            .order('updated_at', { ascending: false });
+        if (error) throw new Error(`تعذر جلب المحادثات: ${error.message}`);
+
+        const threads = data || [];
+        const listingIds = [...new Set(threads.map(thread => thread.listing_id))];
+        const participantIds = [...new Set(threads.flatMap(thread => [thread.buyer_id, thread.seller_id]))];
+        const [{ data: listings }, { data: profiles }] = await Promise.all([
+            listingIds.length
+                ? this.requireClient().from('listings').select('id, title').in('id', listingIds)
+                : Promise.resolve({ data: [] }),
+            participantIds.length
+                ? this.requireClient().from('profiles').select('id, full_name, avatar_url').in('id', participantIds)
+                : Promise.resolve({ data: [] })
+        ]);
+        const listingMap = new Map((listings || []).map(listing => [listing.id, listing]));
+        const profileMap = new Map((profiles || []).map(profile => [profile.id, profile]));
+        return threads.map(thread => {
+            const otherId = thread.buyer_id === authUser.id ? thread.seller_id : thread.buyer_id;
+            const other = profileMap.get(otherId) || {};
+            return {
+                id: thread.id,
+                listingId: thread.listing_id,
+                listingTitle: listingMap.get(thread.listing_id)?.title || 'إعلان غير متاح',
+                participantName: other.full_name || 'عضو',
+                participantAvatar: other.avatar_url || DEFAULT_AVATAR,
+                lastMessage: thread.last_message || 'ابدأ المحادثة الآن',
+                updatedAt: thread.updated_at
+            };
+        });
+    }
+
+    async openOrCreateChat(listingId) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول لمراسلة المعلن.');
+        const { data: listing, error: listingError } = await this.requireClient().from('listings')
+            .select('id, user_id, title')
+            .eq('id', listingId)
+            .single();
+        if (listingError || !listing) throw new Error('الإعلان غير متاح للمراسلة.');
+        if (listing.user_id === authUser.id) throw new Error('لا يمكنك مراسلة نفسك على إعلانك.');
+
+        const { data: existing, error: lookupError } = await this.requireClient().from('chat_threads')
+            .select('id')
+            .eq('listing_id', listing.id)
+            .eq('buyer_id', authUser.id)
+            .eq('seller_id', listing.user_id)
+            .maybeSingle();
+        if (lookupError) throw new Error(`تعذر فتح المحادثة: ${lookupError.message}`);
+        if (existing) return existing.id;
+
+        const { data: created, error } = await this.requireClient().from('chat_threads').insert({
+            listing_id: listing.id,
+            buyer_id: authUser.id,
+            seller_id: listing.user_id
+        }).select('id').single();
+        if (error) throw new Error(`تعذر إنشاء المحادثة: ${error.message}`);
+        return created.id;
+    }
+
+    async getThreadMessages(threadId) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول.');
+        const { data, error } = await this.requireClient().from('messages')
+            .select('id, sender_id, message_text, is_read, created_at')
+            .eq('thread_id', threadId)
+            .order('created_at', { ascending: true });
+        if (error) throw new Error(`تعذر جلب الرسائل: ${error.message}`);
+        await this.requireClient().from('messages').update({ is_read: true })
+            .eq('thread_id', threadId)
+            .neq('sender_id', authUser.id)
+            .eq('is_read', false);
+        return (data || []).map(message => ({
+            id: message.id,
+            sender: message.sender_id === authUser.id ? 'sent' : 'received',
+            text: message.message_text,
+            time: new Date(message.created_at).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' })
+        }));
+    }
+
+    async sendChatMessage(threadId, messageText) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول.');
+        const text = messageText.trim();
+        if (!text || text.length > 2000) throw new Error('يجب أن تكون الرسالة بين 1 و2000 حرف.');
+        const { error } = await this.requireClient().from('messages').insert({
+            thread_id: threadId,
+            sender_id: authUser.id,
+            message_text: text
+        });
+        if (error) throw new Error(`تعذر إرسال الرسالة: ${error.message}`);
+        return this.getThreadMessages(threadId);
+    }
+
+    async getSellerRating(sellerId) {
+        if (!sellerId) return { average: 0, count: 0 };
+        const { data, error } = await this.requireClient().from('seller_ratings')
+            .select('rating')
+            .eq('seller_id', sellerId);
+        if (error) throw new Error(`تعذر جلب تقييم المعلن: ${error.message}`);
+        const ratings = (data || []).map(item => Number(item.rating));
+        const average = ratings.length
+            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
+            : 0;
+        return { average, count: ratings.length };
+    }
+
+    async rateSeller(listingId, sellerId, rating) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول لإضافة تقييم.');
+        if (authUser.id === sellerId) throw new Error('لا يمكنك تقييم نفسك.');
+        const score = Number(rating);
+        if (!Number.isInteger(score) || score < 1 || score > 5) throw new Error('التقييم غير صالح.');
+        const { error: deleteError } = await this.requireClient().from('seller_ratings')
+            .delete()
+            .eq('listing_id', listingId);
+        if (deleteError) throw new Error(`تعذر تحديث التقييم: ${deleteError.message}`);
+        const { error } = await this.requireClient().from('seller_ratings').insert({
+            listing_id: listingId,
+            seller_id: sellerId,
+            reviewer_id: authUser.id,
+            rating: score
+        });
+        if (error) throw new Error(`تعذر حفظ التقييم: ${error.message}`);
+        return this.getSellerRating(sellerId);
+    }
+
+    async submitReport(listingId, reason) {
+        const authUser = await this.getAuthUser();
+        if (!authUser) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
+        const reportReason = reason.trim();
+        if (!reportReason || reportReason.length > 2000) throw new Error('اكتب سببًا واضحًا لا يتجاوز 2000 حرف.');
+        const { error } = await this.requireClient().from('reports').insert({
+            listing_id: listingId,
+            reporter_id: authUser.id,
+            reason: reportReason
+        });
+        if (error?.code === '23505') throw new Error('لديك بلاغ قيد المراجعة على هذا الإعلان بالفعل.');
+        if (error) throw new Error(`تعذر إرسال البلاغ: ${error.message}`);
     }
 
     async uploadListingImages(listingId, images, userId) {
@@ -420,6 +565,48 @@ class FinnSeniorProductionEngine {
             verified: Boolean(profile.verified_seller),
             createdAt: profile.created_at
         }));
+    }
+
+    async getAdminReports() {
+        const authUser = await this.getAuthUser();
+        if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بقراءة البلاغات.');
+        const { data, error } = await this.requireClient().from('reports')
+            .select('id, listing_id, reporter_id, reason, status, created_at')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(`تعذر جلب البلاغات: ${error.message}`);
+        const reports = data || [];
+        const listingIds = [...new Set(reports.map(report => report.listing_id).filter(Boolean))];
+        const reporterIds = [...new Set(reports.map(report => report.reporter_id))];
+        const [{ data: listings }, { data: profiles }] = await Promise.all([
+            listingIds.length
+                ? this.requireClient().from('listings').select('id, title').in('id', listingIds)
+                : Promise.resolve({ data: [] }),
+            reporterIds.length
+                ? this.requireClient().from('profiles').select('id, full_name').in('id', reporterIds)
+                : Promise.resolve({ data: [] })
+        ]);
+        const listingMap = new Map((listings || []).map(item => [item.id, item.title]));
+        const profileMap = new Map((profiles || []).map(item => [item.id, item.full_name]));
+        return reports.map(report => ({
+            id: report.id,
+            listingId: report.listing_id,
+            listingTitle: listingMap.get(report.listing_id) || 'إعلان غير متاح',
+            reporterName: profileMap.get(report.reporter_id) || 'عضو',
+            reason: report.reason,
+            status: report.status,
+            createdAt: report.created_at
+        }));
+    }
+
+    async updateReportStatus(reportId, status) {
+        const authUser = await this.getAuthUser();
+        if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بتحديث البلاغات.');
+        if (!['reviewed', 'dismissed', 'resolved'].includes(status)) throw new Error('حالة البلاغ غير صالحة.');
+        const { error } = await this.requireClient().from('reports')
+            .update({ status })
+            .eq('id', reportId);
+        if (error) throw new Error(`تعذر تحديث البلاغ: ${error.message}`);
+        return this.getAdminReports();
     }
 
     async deleteComment(listingId, commentId) {

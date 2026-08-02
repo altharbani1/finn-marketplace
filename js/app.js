@@ -5,6 +5,7 @@ class FinnMarketApp {
     constructor() {
         this.listings = [];
         this.favorites = finnDB.getFavorites();
+        this.chatPollTimer = null;
         
         // Active Filters State
         this.state = {
@@ -22,6 +23,9 @@ class FinnMarketApp {
             uploadedImages: [],
             editingListingId: null,
             activeAuthTab: 'login',
+            activeThreadId: null,
+            pendingChatListingId: null,
+            pendingReturnUrl: null,
             isLoading: true
         };
 
@@ -48,9 +52,18 @@ class FinnMarketApp {
         this.setupEventListeners();
 
         const queryParams = new URLSearchParams(window.location.search);
+        const requestedReturnUrl = queryParams.get('next');
+        if (requestedReturnUrl && /^listing\.html\?id=[0-9a-f-]+$/i.test(requestedReturnUrl)) {
+            this.state.pendingReturnUrl = requestedReturnUrl;
+        }
         if (queryParams.get('login') === '1') {
             this.openAuthModal();
             history.replaceState(null, '', window.location.pathname);
+        }
+        const chatListingId = queryParams.get('chat');
+        if (chatListingId) {
+            this.state.pendingChatListingId = chatListingId;
+            await this.openChatsModal(chatListingId);
         }
         const editListingId = queryParams.get('edit');
         if (editListingId) {
@@ -94,6 +107,10 @@ class FinnMarketApp {
                 <button class="btn btn-outline btn-icon" id="btnHeaderFavs" onclick="app.toggleFavoritesFilter()" title="الإعلانات المفضلة">
                     <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
                     <span class="badge-count" id="favBadge" style="display: none;">0</span>
+                </button>
+
+                <button class="btn btn-outline btn-icon" onclick="app.openChatsModal()" title="المحادثات الخاصة" aria-label="المحادثات الخاصة">
+                    <i class="fa-regular fa-comments"></i>
                 </button>
 
                 ${authUser.role === 'admin' ? `<a href="admin.html" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" title="لوحة التحكّم الإدارية">
@@ -226,6 +243,11 @@ class FinnMarketApp {
             form.reset();
             this.closeModal('realAuthModal');
             await this.renderAuthNavHeader();
+            if (this.state.pendingChatListingId) await this.openChatsModal(this.state.pendingChatListingId);
+            if (this.state.pendingReturnUrl) {
+                window.location.href = this.state.pendingReturnUrl;
+                return;
+            }
             alert(`مرحبًا ${user.name}، تم تسجيل دخولك بنجاح.`);
         } catch (err) {
             this.setAuthNotice(err.message, 'error');
@@ -259,6 +281,11 @@ class FinnMarketApp {
             } else {
                 this.closeModal('realAuthModal');
                 await this.renderAuthNavHeader();
+                if (this.state.pendingChatListingId) await this.openChatsModal(this.state.pendingChatListingId);
+                if (this.state.pendingReturnUrl) {
+                    window.location.href = this.state.pendingReturnUrl;
+                    return;
+                }
                 alert(`مرحبًا ${name}، تم إنشاء حسابك وتسجيل دخولك بنجاح.`);
             }
         } catch (err) {
@@ -528,6 +555,10 @@ class FinnMarketApp {
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.classList.remove('active');
+        if (modalId === 'chatModal' && this.chatPollTimer) {
+            window.clearInterval(this.chatPollTimer);
+            this.chatPollTimer = null;
+        }
     }
 
     async openPostAdModal() {
@@ -642,8 +673,8 @@ class FinnMarketApp {
                 name: authUser.name || 'عضو موثق',
                 avatar: authUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
                 phone: authUser.phone || '+966 50 000 0000',
-                rating: 5.0,
-                verified: true
+                rating: 0,
+                verified: authUser.verified
             },
             specs: {
                 'الحالة': conditionText,
@@ -673,6 +704,98 @@ class FinnMarketApp {
         this.resetAdFormState();
         this.applyFiltersAndRender();
         alert(wasEditing ? 'تم حفظ تعديلات الإعلان والصور بنجاح.' : 'تم نشر الإعلان بنجاح.');
+    }
+
+    async openChatsModal(listingId = null) {
+        const authUser = await finnDB.getAuthUser();
+        if (!authUser) {
+            this.state.pendingChatListingId = listingId;
+            this.openAuthModal('login');
+            return;
+        }
+
+        const modal = document.getElementById('chatModal');
+        modal?.classList.add('active');
+        try {
+            if (listingId) this.state.activeThreadId = await finnDB.openOrCreateChat(listingId);
+            const threads = await finnDB.getChatThreads();
+            this.renderChatThreads(threads);
+            const activeId = this.state.activeThreadId || threads[0]?.id;
+            if (activeId) await this.selectChatThread(activeId, threads);
+            else this.renderChatMessages([]);
+            this.state.pendingChatListingId = null;
+            history.replaceState(null, '', window.location.pathname);
+            if (this.chatPollTimer) window.clearInterval(this.chatPollTimer);
+            this.chatPollTimer = window.setInterval(() => this.refreshChatMessages(), 5000);
+        } catch (error) {
+            this.renderChatMessages([]);
+            alert(error.message || 'تعذر فتح المحادثات.');
+        }
+    }
+
+    renderChatThreads(threads) {
+        const container = document.getElementById('chatThreadList');
+        if (!container) return;
+        container.innerHTML = threads.length ? threads.map(thread => `
+            <button class="chat-thread-item ${thread.id === this.state.activeThreadId ? 'active' : ''}" onclick="app.selectChatThread('${thread.id}')">
+                <img src="${escapeHTML(safeHttpUrl(thread.participantAvatar, DEFAULT_AVATAR))}" alt="${escapeHTML(thread.participantName)}">
+                <span style="min-width:0;">
+                    <strong style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(thread.participantName)}</strong>
+                    <small style="display:block; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(thread.listingTitle)}</small>
+                    <small style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(thread.lastMessage)}</small>
+                </span>
+            </button>
+        `).join('') : '<p class="chat-empty-state">لا توجد محادثات بعد. افتح إعلانًا واختر مراسلة المعلن.</p>';
+    }
+
+    async selectChatThread(threadId, knownThreads = null) {
+        this.state.activeThreadId = threadId;
+        const threads = knownThreads || await finnDB.getChatThreads();
+        this.renderChatThreads(threads);
+        const active = threads.find(thread => thread.id === threadId);
+        const title = document.getElementById('chatConversationTitle');
+        if (title) title.textContent = active ? `${active.participantName} — ${active.listingTitle}` : 'المحادثة';
+        await this.refreshChatMessages();
+    }
+
+    async refreshChatMessages() {
+        if (!this.state.activeThreadId || !document.getElementById('chatModal')?.classList.contains('active')) return;
+        try {
+            const messages = await finnDB.getThreadMessages(this.state.activeThreadId);
+            this.renderChatMessages(messages);
+        } catch (error) {
+            console.error('Chat refresh error:', error);
+        }
+    }
+
+    renderChatMessages(messages) {
+        const container = document.getElementById('chatMessagesBox');
+        if (!container) return;
+        container.innerHTML = messages.length ? messages.map(message => `
+            <div class="chat-bubble ${message.sender}">
+                <div>${escapeHTML(message.text)}</div>
+                <span class="chat-message-time">${escapeHTML(message.time)}</span>
+            </div>
+        `).join('') : '<p class="chat-empty-state">لا توجد رسائل بعد. ابدأ المحادثة برسالة واضحة.</p>';
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const button = document.getElementById('chatSendButton');
+        if (!this.state.activeThreadId || !input?.value.trim()) return;
+        button.disabled = true;
+        try {
+            const messages = await finnDB.sendChatMessage(this.state.activeThreadId, input.value);
+            input.value = '';
+            this.renderChatMessages(messages);
+            this.renderChatThreads(await finnDB.getChatThreads());
+        } catch (error) {
+            alert(error.message || 'تعذر إرسال الرسالة.');
+        } finally {
+            button.disabled = false;
+            input.focus();
+        }
     }
 
     setupEventListeners() {
@@ -721,6 +844,13 @@ class FinnMarketApp {
         document.getElementById('sortBy')?.addEventListener('change', (e) => {
             this.state.sortBy = e.target.value;
             this.applyFiltersAndRender();
+        });
+
+        document.getElementById('chatInput')?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                this.sendChatMessage();
+            }
         });
 
         document.getElementById('viewGridBtn')?.addEventListener('click', () => {
