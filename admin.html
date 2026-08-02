@@ -15,7 +15,7 @@
     
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=6.0">
-    <link rel="stylesheet" href="css/components.css?v=9.0">
+    <link rel="stylesheet" href="css/components.css?v=10.0">
 
     <style>
         .admin-layout {
@@ -209,7 +209,7 @@
                 </div>
                 <div class="admin-nav-item" onclick="switchAdminTab('reports', this)">
                     <span><i class="fa-solid fa-flag" style="margin-left: 8px;"></i> البلاغات والمراقبة</span>
-                    <span class="admin-badge-count" style="background: #ef4444;">0</span>
+                    <span class="admin-badge-count" id="badgeReportsCount" style="background: #ef4444;">0</span>
                 </div>
                 <div class="admin-nav-item" onclick="switchAdminTab('cities', this)">
                     <span><i class="fa-solid fa-city" style="margin-left: 8px;"></i> المدن والتصنيفات</span>
@@ -249,8 +249,8 @@
                     <div class="kpi-box">
                         <div class="kpi-icon" style="background: #8b5cf6;"><i class="fa-solid fa-comments"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;">—</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">إحصاءات التفاعل قريباً</div>
+                            <div style="font-size: 24px; font-weight: 900;" id="kpiPendingReports">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">بلاغات قيد المراجعة</div>
                         </div>
                     </div>
                 </div>
@@ -301,13 +301,7 @@
             <div id="tabReports" style="display: none;">
                 <div class="admin-card">
                     <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">بلاغات المحتوى والمخالفات</h2>
-                    <div id="reportsContainer">
-                        <div style="text-align: center; padding: 40px; background: var(--bg-surface-subtle); border-radius: var(--radius-md);">
-                            <i class="fa-solid fa-shield-cat" style="font-size: 40px; color: #10b981; margin-bottom: 12px;"></i>
-                            <h3 style="font-size: 16px; font-weight: 800;">إدارة البلاغات قيد التجهيز</h3>
-                            <p style="color: var(--text-muted); font-size: 13px;">لن تعرض اللوحة حالة امتثال قبل ربط سجل البلاغات الفعلي.</p>
-                        </div>
-                    </div>
+                    <div id="reportsContainer"></div>
                 </div>
             </div>
 
@@ -332,10 +326,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=11.0"></script>
+    <script src="js/supabase-config.js?v=12.0"></script>
     <script>
         let allListings = [];
         let allUsers = [];
+        let allReports = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const authUser = await finnDB.getAuthUser();
@@ -347,15 +342,21 @@
             document.getElementById('adminNameTxt').textContent = authUser.name;
             document.getElementById('adminAvatarImg').src = safeHttpUrl(authUser.avatar, DEFAULT_AVATAR);
 
-            [allListings, allUsers] = await Promise.all([finnDB.getListings(), finnDB.getAdminProfiles()]);
+            [allListings, allUsers, allReports] = await Promise.all([
+                finnDB.getListings(),
+                finnDB.getAdminProfiles(),
+                finnDB.getAdminReports()
+            ]);
             document.getElementById('kpiTotalAds').textContent = allListings.length;
             document.getElementById('badgeAdsCount').textContent = allListings.length;
             document.getElementById('kpiUsersCount').textContent = allUsers.length;
             document.getElementById('kpiVerifiedCount').textContent = allUsers.filter(user => user.verified).length;
+            updateReportsCounters();
             
             renderAllAdminTables();
             renderUsersTable();
             renderCitiesAdmin();
+            renderReports();
         });
 
         function switchAdminTab(tab, el) {
@@ -489,6 +490,58 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function updateReportsCounters() {
+            const pendingCount = allReports.filter(report => report.status === 'pending').length;
+            document.getElementById('badgeReportsCount').textContent = pendingCount;
+            document.getElementById('kpiPendingReports').textContent = pendingCount;
+        }
+
+        function renderReports() {
+            const container = document.getElementById('reportsContainer');
+            if (!allReports.length) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px; background:var(--bg-surface-subtle); border-radius:var(--radius-md);">
+                        <i class="fa-solid fa-shield-check" style="font-size:40px; color:#10b981; margin-bottom:12px;"></i>
+                        <h3 style="font-size:16px; font-weight:800;">لا توجد بلاغات مسجلة</h3>
+                    </div>
+                `;
+                return;
+            }
+            const statusLabels = { pending: 'قيد المراجعة', reviewed: 'تمت المراجعة', resolved: 'تم الحل', dismissed: 'مرفوض' };
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead><tr><th>الإعلان</th><th>المبلّغ</th><th>السبب</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead>
+                    <tbody>${allReports.map(report => `
+                        <tr>
+                            <td><a href="listing.html?id=${encodeURIComponent(report.listingId)}" style="color:var(--color-primary); font-weight:800;">${escapeHTML(report.listingTitle)}</a></td>
+                            <td>${escapeHTML(report.reporterName)}</td>
+                            <td style="max-width:320px; white-space:normal;">${escapeHTML(report.reason)}</td>
+                            <td>${new Date(report.createdAt).toLocaleDateString('ar-SA')}</td>
+                            <td>
+                                <span class="status-pill ${escapeHTML(report.status)}">${statusLabels[report.status] || escapeHTML(report.status)}</span>
+                                ${report.status === 'pending' ? `
+                                    <div style="display:flex; gap:6px; margin-top:8px;">
+                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#059669;" onclick="setReportStatus('${report.id}', 'resolved')">تم الحل</button>
+                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#64748b;" onclick="setReportStatus('${report.id}', 'dismissed')">رفض البلاغ</button>
+                                    </div>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            `;
+        }
+
+        async function setReportStatus(reportId, status) {
+            try {
+                allReports = await finnDB.updateReportStatus(reportId, status);
+                updateReportsCounters();
+                renderReports();
+            } catch (error) {
+                alert(error.message || 'تعذر تحديث البلاغ.');
+            }
         }
 
         function renderCitiesAdmin() {

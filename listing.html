@@ -15,7 +15,7 @@
     
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=6.0">
-    <link rel="stylesheet" href="css/components.css?v=9.0">
+    <link rel="stylesheet" href="css/components.css?v=10.0">
 
     <style>
         .breadcrumb-nav {
@@ -212,11 +212,23 @@
         </div>
     </main>
 
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal-box" style="max-width: 520px; padding: 28px;">
+            <button class="modal-close-btn" onclick="closeReportModal()" aria-label="إغلاق البلاغ"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 8px;"><i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> الإبلاغ عن الإعلان</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">اشرح المخالفة بوضوح. سيظهر البلاغ للمشرفين فقط.</p>
+            <textarea id="reportReason" class="form-input" maxlength="2000" style="height: 130px; padding: 12px;" placeholder="مثال: معلومات مضللة، محتوى محظور، أو محاولة احتيال..."></textarea>
+            <button class="btn btn-primary" id="submitReportButton" style="width:100%; margin-top:12px; background:var(--color-danger);" onclick="submitListingReport()">
+                <i class="fa-solid fa-paper-plane"></i> إرسال البلاغ للمراجعة
+            </button>
+        </div>
+    </div>
+
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=11.0"></script>
+    <script src="js/supabase-config.js?v=12.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
@@ -242,12 +254,17 @@
             }
             
             try {
-                const [comments, seller] = await Promise.all([
+                const [comments, seller, ratingStats] = await Promise.all([
                     finnDB.getListingComments(currentItem.id),
-                    finnDB.getListingSeller(currentItem.userId)
+                    finnDB.getListingSeller(currentItem.userId),
+                    finnDB.getSellerRating(currentItem.userId).catch((error) => {
+                        console.error(error);
+                        return { average: 0, count: 0 };
+                    })
                 ]);
                 currentItem.comments = comments;
                 if (seller) currentItem.seller = seller;
+                currentItem.ratingStats = ratingStats;
             } catch (error) {
                 console.error(error);
                 currentItem.comments = [];
@@ -334,7 +351,11 @@
                                 <button class="btn btn-outline" style="height: 38px; color: #ef4444; border-color: #ef4444;" onclick="handleDeleteAd('${currentItem.id}')">
                                     <i class="fa-solid fa-trash"></i> حذف الإعلان
                                 </button>
-                            ` : ''}
+                            ` : `
+                                <button class="btn btn-outline" style="height: 38px; color: var(--color-danger);" onclick="openReportModal()">
+                                    <i class="fa-regular fa-flag"></i> إبلاغ
+                                </button>
+                            `}
                         </div>
                     </div>
 
@@ -445,6 +466,11 @@
                                 <i class="fa-solid fa-lock"></i> سجل الدخول لإظهار وسيلة التواصل
                             </a>
                         `}
+                        ${currentUser && !isOwner ? `
+                            <a href="index.html?chat=${encodeURIComponent(currentItem.id)}" class="btn btn-outline" style="height: 48px; font-size: 16px;">
+                                <i class="fa-regular fa-comments"></i> مراسلة المعلن
+                            </a>
+                        ` : ''}
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
@@ -454,6 +480,19 @@
                                 <h4 style="font-size: 16px; font-weight: 800;">${escapeHTML(sellerObj.name)} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
                                 <span style="font-size: 13px; color: var(--text-muted);">${sellerObj.verified ? 'هوية المعلن موثقة' : 'عضو في FinnMarket'}</span>
                             </div>
+                        </div>
+
+                        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-color);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+                                <strong style="font-size:13px;">تقييمات المعلن</strong>
+                                <span id="sellerRatingDisplay" style="font-size:13px; color:var(--text-muted);">${currentItem.ratingStats?.count ? `${currentItem.ratingStats.average} من 5 (${currentItem.ratingStats.count})` : 'لا توجد تقييمات'}</span>
+                            </div>
+                            ${!isOwner ? `
+                                <div style="display:flex; gap:4px;" aria-label="تقييم المعلن من خمس نجوم">
+                                    ${[1,2,3,4,5].map(score => `<button class="star-btn" style="font-size:24px; border:0; background:transparent; color:#f59e0b; cursor:pointer;" onclick="submitSellerRating(${score})" title="${score} نجوم">★</button>`).join('')}
+                                </div>
+                                <small style="color:var(--text-muted);">يمكنك تعديل تقييمك باختيار نجمة أخرى.</small>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -478,6 +517,52 @@
             document.getElementById('mainHeroImg').src = src;
             document.querySelectorAll('.gallery-thumb-item').forEach(item => item.classList.remove('active'));
             el.classList.add('active');
+        }
+
+        async function submitSellerRating(score) {
+            if (!currentUser) {
+                window.location.href = `index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}`;
+                return;
+            }
+            try {
+                currentItem.ratingStats = await finnDB.rateSeller(currentItem.id, currentItem.userId, score);
+                await renderListingPageContent();
+                alert('تم حفظ تقييمك بنجاح.');
+            } catch (error) {
+                alert(error.message || 'تعذر حفظ التقييم.');
+            }
+        }
+
+        function openReportModal() {
+            if (!currentUser) {
+                window.location.href = `index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}`;
+                return;
+            }
+            document.getElementById('reportModal')?.classList.add('active');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal')?.classList.remove('active');
+        }
+
+        async function submitListingReport() {
+            const input = document.getElementById('reportReason');
+            const button = document.getElementById('submitReportButton');
+            if (!input?.value.trim()) {
+                alert('اكتب سبب البلاغ أولاً.');
+                return;
+            }
+            button.disabled = true;
+            try {
+                await finnDB.submitReport(currentItem.id, input.value);
+                input.value = '';
+                closeReportModal();
+                alert('تم إرسال البلاغ للمشرفين وسيتم مراجعته.');
+            } catch (error) {
+                alert(error.message || 'تعذر إرسال البلاغ.');
+            } finally {
+                button.disabled = false;
+            }
         }
 
         async function handleDeleteAd(id) {
