@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=7.0">
-    <link rel="stylesheet" href="css/components.css?v=11.0">
+    <link rel="stylesheet" href="css/main.css?v=8.0">
+    <link rel="stylesheet" href="css/components.css?v=12.0">
 
     <style>
         .breadcrumb-nav {
@@ -228,8 +228,8 @@
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
-    <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=12.0"></script>
+    <script src="js/security.js?v=10.0"></script>
+    <script src="js/supabase-config.js?v=13.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
@@ -487,7 +487,9 @@
 
             // Render Sidebar Column with Real Interactive Rating Widget
             const sidebarCol = document.getElementById('sidebarListingCol');
-            const sellerObj = currentItem.seller || { name: 'معلن موثق', phone: '+966 50 000 0000', rating: 5.0, verified: true, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80' };
+            const sellerObj = currentItem.seller || { name: 'معلن', phone: '', rating: 0, verified: false, avatar: DEFAULT_AVATAR };
+            const whatsappNumber = safeWhatsAppNumber(sellerObj.phone);
+            const whatsappMessage = encodeURIComponent(`مرحباً، أتواصل معك بخصوص إعلان: ${currentItem.title}\n${window.location.href}`);
 
             sidebarCol.innerHTML = `
                 <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 24px; position: sticky; top: 96px;">
@@ -496,9 +498,16 @@
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
                         ${currentUser && sellerObj.phone ? `
-                            <a href="tel:${escapeHTML(safeTel(sellerObj.phone))}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
-                                <i class="fa-solid fa-phone"></i> اتصال بالمعلن
-                            </a>
+                            <button type="button" class="btn btn-primary" id="showSellerPhoneButton" style="height: 44px; font-size: 14px;" onclick="revealSellerContact()">
+                                <i class="fa-solid fa-phone"></i> إظهار رقم المعلن
+                            </button>
+                            <div id="sellerContactActions" hidden>
+                                <div class="seller-phone-display"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> <bdi>${escapeHTML(sellerObj.phone)}</bdi></div>
+                                <div class="seller-contact-buttons">
+                                    <a href="tel:${escapeHTML(safeTel(sellerObj.phone))}" class="btn btn-outline"><i class="fa-solid fa-phone"></i> اتصال</a>
+                                    ${whatsappNumber ? `<a href="https://wa.me/${escapeHTML(whatsappNumber)}?text=${whatsappMessage}" target="_blank" rel="noopener noreferrer" class="btn whatsapp-btn"><i class="fa-brands fa-whatsapp"></i> واتساب</a>` : ''}
+                                </div>
+                            </div>
                         ` : `
                             <a href="index.html?login=1" class="btn btn-primary" style="height: 48px; font-size: 16px;">
                                 <i class="fa-solid fa-lock"></i> سجل الدخول لإظهار وسيلة التواصل
@@ -539,6 +548,13 @@
             mainCol.querySelectorAll('[data-gallery-image]').forEach((thumb) => {
                 thumb.addEventListener('click', () => switchPageImg(thumb.dataset.galleryImage, thumb));
             });
+        }
+
+        function revealSellerContact() {
+            const button = document.getElementById('showSellerPhoneButton');
+            const actions = document.getElementById('sellerContactActions');
+            if (button) button.hidden = true;
+            if (actions) actions.hidden = false;
         }
 
         async function togglePageFav(id) {
