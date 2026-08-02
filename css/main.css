@@ -279,12 +279,16 @@ button {
     color: var(--color-primary);
 }
 
-/* 4. Main Layout (Sidebar + Feed) */
+/* 4. Main Search Results */
 .main-layout {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 30px;
+    display: block;
     margin-bottom: 60px;
+}
+
+.listings-section {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
 }
 
 .filter-sidebar {
@@ -367,6 +371,14 @@ button {
     gap: 14px;
 }
 
+.search-only-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
 .results-count {
     font-size: 14px;
     font-weight: 700;
@@ -409,6 +421,32 @@ button {
 
 .listings-grid.list-view {
     grid-template-columns: 1fr;
+}
+
+.listings-grid.list-view .listing-card {
+    min-height: 190px;
+    flex-direction: row;
+}
+
+.listings-grid.list-view .listing-thumb-wrap {
+    width: 290px;
+    height: auto;
+    min-height: 190px;
+    flex: 0 0 290px;
+}
+
+.listings-grid.list-view .listing-body {
+    min-width: 0;
+    padding: 20px 22px;
+}
+
+.listings-grid.list-view .listing-card-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.listings-grid.list-view .listing-price-tag {
+    font-size: 21px;
 }
 
 /* Listing Card */
@@ -628,6 +666,19 @@ button {
     }
     .listings-grid {
         grid-template-columns: 1fr;
+    }
+    .listings-grid.list-view .listing-card {
+        min-height: 0;
+        flex-direction: column;
+    }
+    .listings-grid.list-view .listing-thumb-wrap {
+        width: 100%;
+        height: 210px;
+        min-height: 0;
+        flex-basis: auto;
+    }
+    .search-only-hint {
+        width: 100%;
     }
     .navbar-inner {
         flex-direction: column;

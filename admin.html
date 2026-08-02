@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/main.css?v=7.0">
     <link rel="stylesheet" href="css/components.css?v=11.0">
 
     <style>
@@ -522,6 +522,11 @@
                             <td>
                                 <span class="status-pill ${escapeHTML(report.status)}">${statusLabels[report.status] || escapeHTML(report.status)}</span>
                                 ${report.status === 'pending' ? `
+                                    <div style="display:flex; gap:6px; margin-top:8px;">
+                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:var(--color-primary);" onclick="setReportStatus('${report.id}', 'reviewed')">بدء المراجعة</button>
+                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#64748b;" onclick="setReportStatus('${report.id}', 'dismissed')">رفض البلاغ</button>
+                                    </div>
+                                ` : report.status === 'reviewed' ? `
                                     <div style="display:flex; gap:6px; margin-top:8px;">
                                         <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#059669;" onclick="setReportStatus('${report.id}', 'resolved')">تم الحل</button>
                                         <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#64748b;" onclick="setReportStatus('${report.id}', 'dismissed')">رفض البلاغ</button>

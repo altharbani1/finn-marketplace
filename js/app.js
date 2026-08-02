@@ -10,13 +10,7 @@ class FinnMarketApp {
         // Active Filters State
         this.state = {
             category: 'all',
-            city: 'جميع المدن',
             searchQuery: '',
-            minPrice: null,
-            maxPrice: null,
-            condition: 'all',
-            sortBy: 'newest',
-            viewMode: 'grid',
             showFavoritesOnly: false,
             currentDetailListing: null,
             activeImageIdx: 0,
@@ -387,16 +381,11 @@ class FinnMarketApp {
     }
 
     renderCityOptions() {
-        const citySelect = document.getElementById('filterCity');
         const postAdCitySelect = document.querySelector('select[name="adCity"]');
         const categorySelect = document.querySelector('select[name="adCategory"]');
 
-        const filterOptionsHTML = INITIAL_CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
         const postAdOptionsHTML = INITIAL_CITIES.filter(c => c !== 'جميع المدن').map(c => `<option value="${c}">${c}</option>`).join('');
 
-        if (citySelect) {
-            citySelect.innerHTML = filterOptionsHTML;
-        }
         if (postAdCitySelect) {
             postAdCitySelect.innerHTML = postAdOptionsHTML;
         }
@@ -480,36 +469,15 @@ class FinnMarketApp {
             filtered = filtered.filter(item => item.category === this.state.category);
         }
 
-        if (this.state.city !== 'جميع المدن') {
-            filtered = filtered.filter(item => item.city === this.state.city);
-        }
-
         if (this.state.searchQuery.trim() !== '') {
-            const q = this.state.searchQuery.toLowerCase();
-            filtered = filtered.filter(item => 
-                item.title.toLowerCase().includes(q) ||
-                item.description.toLowerCase().includes(q) ||
-                (item.neighborhood && item.neighborhood.toLowerCase().includes(q))
-            );
-        }
-
-        if (this.state.condition !== 'all') {
-            filtered = filtered.filter(item => item.condition === this.state.condition);
-        }
-
-        if (this.state.minPrice !== null && !isNaN(this.state.minPrice)) {
-            filtered = filtered.filter(item => item.price >= this.state.minPrice);
-        }
-        if (this.state.maxPrice !== null && !isNaN(this.state.maxPrice)) {
-            filtered = filtered.filter(item => item.price <= this.state.maxPrice);
-        }
-
-        if (this.state.sortBy === 'price_asc') {
-            filtered.sort((a, b) => a.price - b.price);
-        } else if (this.state.sortBy === 'price_desc') {
-            filtered.sort((a, b) => b.price - a.price);
-        } else if (this.state.sortBy === 'popular') {
-            filtered.sort((a, b) => b.views - a.views);
+            const q = this.state.searchQuery.trim().toLocaleLowerCase('ar');
+            filtered = filtered.filter(item => [
+                item.title,
+                item.description,
+                item.subCategory,
+                item.city,
+                item.neighborhood
+            ].filter(Boolean).some(value => String(value).toLocaleLowerCase('ar').includes(q)));
         }
 
         this.renderListings(filtered);
@@ -529,14 +497,14 @@ class FinnMarketApp {
             feedContainer.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: white; border-radius: 18px; border: 1px dashed var(--border-color);">
                     <i class="fa-solid fa-magnifying-glass-minus" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                    <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">لم نجد نتائج مطابقة لمحددات البحث</h3>
-                    <p style="color: var(--text-muted);">جرب تغيير الفلاتر أو إعادة كتابة الكلمات المفتاحية</p>
+                    <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">لم نجد نتائج مطابقة لعبارة البحث</h3>
+                    <p style="color: var(--text-muted);">جرّب كتابة كلمات أقصر أو اسم القسم أو المدينة</p>
                 </div>
             `;
             return;
         }
 
-        feedContainer.className = `listings-grid ${this.state.viewMode === 'list' ? 'list-view' : ''}`;
+        feedContainer.className = 'listings-grid list-view';
         feedContainer.innerHTML = items.map(item => {
             const isFav = this.favorites.includes(item.id);
             const badgeClass = item.isFree ? 'badge-freebie' : `badge-${item.category}`;
@@ -864,25 +832,6 @@ class FinnMarketApp {
             this.applyFiltersAndRender();
         });
 
-        document.getElementById('filterCity')?.addEventListener('change', (e) => {
-            this.state.city = e.target.value;
-            this.applyFiltersAndRender();
-        });
-
-        document.getElementById('minPrice')?.addEventListener('input', (e) => {
-            this.state.minPrice = parseFloat(e.target.value) || null;
-            this.applyFiltersAndRender();
-        });
-        document.getElementById('maxPrice')?.addEventListener('input', (e) => {
-            this.state.maxPrice = parseFloat(e.target.value) || null;
-            this.applyFiltersAndRender();
-        });
-
-        document.getElementById('sortBy')?.addEventListener('change', (e) => {
-            this.state.sortBy = e.target.value;
-            this.applyFiltersAndRender();
-        });
-
         document.getElementById('chatInput')?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -890,18 +839,6 @@ class FinnMarketApp {
             }
         });
 
-        document.getElementById('viewGridBtn')?.addEventListener('click', () => {
-            this.state.viewMode = 'grid';
-            document.getElementById('viewGridBtn').classList.add('active');
-            document.getElementById('viewListBtn').classList.remove('active');
-            this.applyFiltersAndRender();
-        });
-        document.getElementById('viewListBtn')?.addEventListener('click', () => {
-            this.state.viewMode = 'list';
-            document.getElementById('viewListBtn').classList.add('active');
-            document.getElementById('viewGridBtn').classList.remove('active');
-            this.applyFiltersAndRender();
-        });
     }
 }
 

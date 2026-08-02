@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS with Cache Buster v8.0 -->
-    <link rel="stylesheet" href="css/main.css?v=6.0">
+    <link rel="stylesheet" href="css/main.css?v=7.0">
     <link rel="stylesheet" href="css/components.css?v=11.0">
 </head>
 <body>
@@ -32,7 +32,7 @@
             <!-- Global Search Bar -->
             <div class="search-bar-global">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="globalSearch" placeholder="ابحث عن عقار، سيارة، قارب، أو وظيفة..." autocomplete="off">
+                <input type="search" id="globalSearch" placeholder="اكتب ما تبحث عنه..." autocomplete="off" aria-label="البحث في الإعلانات">
             </div>
 
             <!-- Header Action Buttons -->
@@ -73,67 +73,12 @@
         </div>
     </section>
 
-    <!-- 4. Main Content Layout (Filter Sidebar + Listings Grid) -->
+    <!-- 4. Search Results List -->
     <main class="container main-layout">
-        <!-- Sidebar Filter Engine -->
-        <aside class="filter-sidebar">
-            <div class="filter-header">
-                <h3 class="filter-title"><i class="fa-solid fa-sliders"></i> تصفية وتحديد البحث</h3>
-                <button class="reset-filter-btn" onclick="window.location.reload();">إعادة تصفية</button>
-            </div>
-
-            <!-- City Filter -->
-            <div class="filter-group">
-                <label class="filter-label">المدينة / المنطقة</label>
-                <select class="form-select" id="filterCity">
-                    <!-- Populated dynamically -->
-                </select>
-            </div>
-
-            <!-- Price Range Filter -->
-            <div class="filter-group">
-                <label class="filter-label">نطاق السعر (ر.س)</label>
-                <div class="price-range-inputs">
-                    <input type="number" class="form-input" id="minPrice" placeholder="من السعر">
-                    <input type="number" class="form-input" id="maxPrice" placeholder="إلى السعر">
-                </div>
-            </div>
-
-            <!-- Condition Filter -->
-            <div class="filter-group">
-                <label class="filter-label">حالة المنتج</label>
-                <select class="form-select" id="filterCondition" onchange="app.state.condition=this.value; app.applyFiltersAndRender();">
-                    <option value="all">جميع الحالات</option>
-                    <option value="new">جديد بالكامل (New)</option>
-                    <option value="like_new">شبه جديد (Like New)</option>
-                    <option value="good">استعمال نظيف (Good)</option>
-                </select>
-            </div>
-
-        </aside>
-
-        <!-- Listings Content Area -->
-        <section>
-            <!-- Feed Toolbar -->
+        <section class="listings-section">
             <div class="feed-toolbar">
                 <div class="results-count" id="resultsCount">جاري تحميل الإعلانات...</div>
-                
-                <div class="toolbar-controls">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">الترتيب:</span>
-                        <select class="form-select" id="sortBy" style="height: 38px; width: 160px;">
-                            <option value="newest">الأحدث أولاً</option>
-                            <option value="price_asc">الأقل سعراً</option>
-                            <option value="price_desc">الأعلى سعراً</option>
-                            <option value="popular">الأكثر مشاهدة</option>
-                        </select>
-                    </div>
-
-                    <div class="view-mode-switch">
-                        <button class="view-mode-btn active" id="viewGridBtn" title="عرض شبكي" aria-label="عرض الإعلانات بشكل شبكي"><i class="fa-solid fa-border-all" aria-hidden="true"></i></button>
-                        <button class="view-mode-btn" id="viewListBtn" title="عرض قائمة" aria-label="عرض الإعلانات كقائمة"><i class="fa-solid fa-list" aria-hidden="true"></i></button>
-                    </div>
-                </div>
+                <p class="search-only-hint"><i class="fa-solid fa-keyboard" aria-hidden="true"></i> اكتب في البحث للوصول إلى إعلانك بسرعة</p>
             </div>
 
             <!-- Listings Feed Grid -->
@@ -408,6 +353,6 @@
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
     <script src="js/supabase-config.js?v=12.0"></script>
-    <script src="js/app.js?v=13.0"></script>
+    <script src="js/app.js?v=14.0"></script>
 </body>
 </html>
