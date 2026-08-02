@@ -410,3 +410,110 @@
     .chat-thread-item { min-width: 220px; border-bottom: 0; border-left: 1px solid var(--border-color); }
     .chat-messages-container { min-height: 300px; }
 }
+.account-menu {
+    position: relative;
+}
+
+.account-menu .user-profile-btn {
+    font-family: inherit;
+    color: inherit;
+}
+
+.account-menu-user-name {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.account-menu-chevron {
+    color: var(--text-muted);
+    font-size: 11px;
+    transition: transform var(--transition-fast);
+}
+
+.account-menu.open .account-menu-chevron {
+    transform: rotate(180deg);
+}
+
+.account-dropdown {
+    position: absolute;
+    z-index: 1200;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 210px;
+    overflow: hidden;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.account-dropdown[hidden] {
+    display: none;
+}
+
+.account-dropdown-item {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 11px;
+    color: var(--text-main);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-md);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    cursor: pointer;
+}
+
+.account-dropdown-item:hover,
+.account-dropdown-item:focus-visible {
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    outline: none;
+}
+
+.account-dropdown-item i {
+    width: 20px;
+    color: var(--color-primary);
+    text-align: center;
+}
+
+.account-dropdown-logout {
+    margin-top: 5px;
+    padding-top: 11px;
+    color: var(--color-danger);
+    border-top: 1px solid var(--border-color);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.account-dropdown-logout i {
+    color: var(--color-danger);
+}
+
+@media (max-width: 600px) {
+    .account-menu-user-name {
+        display: none;
+    }
+
+    .account-menu .user-profile-btn {
+        padding: 6px 9px;
+    }
+
+    .account-dropdown {
+        position: fixed;
+        top: 70px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+    }
+}

@@ -15,7 +15,7 @@
     
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=6.0">
-    <link rel="stylesheet" href="css/components.css?v=10.0">
+    <link rel="stylesheet" href="css/components.css?v=11.0">
 
     <style>
         .profile-hero-card {
@@ -215,6 +215,8 @@
             await renderMyAds();
             await renderMyFavs();
             populateSettingsForm();
+            const requestedTab = new URLSearchParams(window.location.search).get('tab');
+            if (['myAds', 'favs', 'settings'].includes(requestedTab)) switchProfileTab(requestedTab);
         });
 
         function renderProfileHero() {
@@ -260,6 +262,9 @@
                 document.getElementById('tabSettings').classList.add('active');
                 document.getElementById('sectionSettings').style.display = 'block';
             }
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tab);
+            history.replaceState(null, '', `${url.pathname}${url.search}`);
         }
 
         async function renderMyAds() {

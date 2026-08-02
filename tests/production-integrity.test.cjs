@@ -40,6 +40,16 @@ test('signed-in favorites persist in Supabase and profile status is truthful', (
     assert.match(profileSource, /currentUser\.verified \? 'هوية موثقة' : 'حساب مسجل'/);
 });
 
+test('signed-in user menu exposes the four account destinations', () => {
+    assert.match(appSource, /profile\.html\?tab=myAds/);
+    assert.match(appSource, /profile\.html\?tab=favs/);
+    assert.match(appSource, /profile\.html\?tab=settings/);
+    assert.match(appSource, />تسجيل خروج</);
+    assert.match(appSource, /aria-haspopup="menu"/);
+    assert.match(appSource, /closeAccountMenu/);
+    assert.match(profileSource, /URLSearchParams\(window\.location\.search\)\.get\('tab'\)/);
+});
+
 test('private chats are backed by participant-scoped Supabase tables', () => {
     assert.match(databaseSource, /async getChatThreads\(\)/);
     assert.match(databaseSource, /from\('chat_threads'\)/);

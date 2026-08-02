@@ -117,14 +117,19 @@ class FinnMarketApp {
                     <i class="fa-solid fa-shield-halved"></i> الإدارة
                 </a>` : ''}
 
-                <div class="user-profile-btn" onclick="window.location.href='profile.html'" title="بروفايلي وإعلاناتي">
-                    <img src="${escapeHTML(safeHttpUrl(authUser.avatar, DEFAULT_AVATAR))}" class="user-avatar-head">
-                    <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">${escapeHTML(authUser.name)}</span>
+                <div class="account-menu" id="accountMenu">
+                    <button type="button" class="user-profile-btn" id="accountMenuButton" onclick="app.toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" title="قائمة الحساب">
+                        <img src="${escapeHTML(safeHttpUrl(authUser.avatar, DEFAULT_AVATAR))}" class="user-avatar-head" alt="">
+                        <span class="account-menu-user-name">${escapeHTML(authUser.name)}</span>
+                        <i class="fa-solid fa-chevron-down account-menu-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="account-dropdown" id="accountDropdown" role="menu" hidden>
+                        <a href="profile.html?tab=myAds" class="account-dropdown-item" role="menuitem"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>إعلاناتي</span></a>
+                        <a href="profile.html?tab=favs" class="account-dropdown-item" role="menuitem"><i class="fa-solid fa-heart" aria-hidden="true"></i><span>المفضلة</span></a>
+                        <a href="profile.html?tab=settings" class="account-dropdown-item" role="menuitem"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>الحساب</span></a>
+                        <button type="button" class="account-dropdown-item account-dropdown-logout" role="menuitem" onclick="app.handleLogout()"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>تسجيل خروج</span></button>
+                    </div>
                 </div>
-
-                <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="app.handleLogout()" title="تسجيل الخروج">
-                    <i class="fa-solid fa-right-from-bracket"></i> خروج
-                </button>
 
                 <button class="btn btn-primary" onclick="app.openPostAdModal()">
                     <i class="fa-solid fa-circle-plus"></i>
@@ -149,6 +154,28 @@ class FinnMarketApp {
             `;
         }
         this.updateHeaderBadges();
+    }
+
+    toggleAccountMenu(event) {
+        event?.stopPropagation();
+        const menu = document.getElementById('accountMenu');
+        const dropdown = document.getElementById('accountDropdown');
+        const button = document.getElementById('accountMenuButton');
+        if (!menu || !dropdown || !button) return;
+        const shouldOpen = dropdown.hidden;
+        dropdown.hidden = !shouldOpen;
+        menu.classList.toggle('open', shouldOpen);
+        button.setAttribute('aria-expanded', String(shouldOpen));
+    }
+
+    closeAccountMenu() {
+        const menu = document.getElementById('accountMenu');
+        const dropdown = document.getElementById('accountDropdown');
+        const button = document.getElementById('accountMenuButton');
+        if (!dropdown || dropdown.hidden) return;
+        dropdown.hidden = true;
+        menu?.classList.remove('open');
+        button?.setAttribute('aria-expanded', 'false');
     }
 
     toggleFavoritesFilter() {
@@ -799,6 +826,16 @@ class FinnMarketApp {
     }
 
     setupEventListeners() {
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('#accountMenu')) this.closeAccountMenu();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.closeAccountMenu();
+                document.getElementById('accountMenuButton')?.focus();
+            }
+        });
+
         document.getElementById('listingsFeed')?.addEventListener('click', (event) => {
             const favoriteButton = event.target.closest('[data-favorite-id]');
             if (favoriteButton) {
