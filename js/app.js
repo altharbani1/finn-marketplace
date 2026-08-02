@@ -33,6 +33,7 @@ class FinnMarketApp {
         this.renderLoadingState();
         try {
             this.listings = await finnDB.getListings();
+            this.favorites = await finnDB.syncFavorites();
             this.state.isLoading = false;
         } catch (err) {
             console.error('Listings Load Error:', err);
@@ -221,6 +222,7 @@ class FinnMarketApp {
         this.setFormLoading(form, true, 'جاري تسجيل الدخول...');
         try {
             const user = await finnDB.loginRealUser(email, password);
+            this.favorites = await finnDB.syncFavorites();
             form.reset();
             this.closeModal('realAuthModal');
             await this.renderAuthNavHeader();
@@ -513,10 +515,14 @@ class FinnMarketApp {
         }).join('');
     }
 
-    toggleFav(id) {
-        this.favorites = finnDB.toggleFavorite(id);
-        this.updateHeaderBadges();
-        this.applyFiltersAndRender();
+    async toggleFav(id) {
+        try {
+            this.favorites = await finnDB.toggleFavorite(id);
+            this.updateHeaderBadges();
+            this.applyFiltersAndRender();
+        } catch (error) {
+            alert(error.message || 'تعذر تحديث المفضلة.');
+        }
     }
 
     closeModal(modalId) {

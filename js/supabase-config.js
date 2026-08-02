@@ -103,6 +103,7 @@ class FinnSeniorProductionEngine {
         if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw new Error(`تعذر تسجيل الخروج: ${error.message}`);
+        localStorage.removeItem(this.FAVS_KEY);
     }
 
     translateAuthError(message = '') {
@@ -449,9 +450,30 @@ class FinnSeniorProductionEngine {
         try { return JSON.parse(localStorage.getItem(this.FAVS_KEY)) || []; } catch (_) { return []; }
     }
 
-    toggleFavorite(id) {
+    async syncFavorites() {
+        const authUser = await this.getAuthUser();
+        if (!authUser) return this.getFavorites();
+        const { data, error } = await this.requireClient().from('favorites')
+            .select('listing_id')
+            .eq('user_id', authUser.id);
+        if (error) throw new Error(`تعذر مزامنة المفضلة: ${error.message}`);
+        const favorites = (data || []).map(item => item.listing_id);
+        localStorage.setItem(this.FAVS_KEY, JSON.stringify(favorites));
+        return favorites;
+    }
+
+    async toggleFavorite(id) {
         const current = this.getFavorites();
-        const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        const isFavorite = current.includes(id);
+        const authUser = await this.getAuthUser();
+        if (authUser) {
+            const query = isFavorite
+                ? this.requireClient().from('favorites').delete().eq('user_id', authUser.id).eq('listing_id', id)
+                : this.requireClient().from('favorites').insert({ user_id: authUser.id, listing_id: id });
+            const { error } = await query;
+            if (error) throw new Error(`تعذر تحديث المفضلة: ${error.message}`);
+        }
+        const next = isFavorite ? current.filter((value) => value !== id) : [...current, id];
         localStorage.setItem(this.FAVS_KEY, JSON.stringify(next));
         return next;
     }

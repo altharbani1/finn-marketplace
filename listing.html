@@ -216,13 +216,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=10.0"></script>
+    <script src="js/supabase-config.js?v=11.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = await finnDB.getAuthUser();
+            await finnDB.syncFavorites();
             await renderHeaderAuth();
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -463,10 +464,14 @@
             });
         }
 
-        function togglePageFav(id) {
-            finnDB.toggleFavorite(id);
-            renderHeaderAuth();
-            renderListingPageContent();
+        async function togglePageFav(id) {
+            try {
+                await finnDB.toggleFavorite(id);
+                await renderHeaderAuth();
+                await renderListingPageContent();
+            } catch (error) {
+                alert(error.message || 'تعذر تحديث المفضلة.');
+            }
         }
 
         function switchPageImg(src, el) {
