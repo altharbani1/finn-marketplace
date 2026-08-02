@@ -623,14 +623,51 @@ class FinnSeniorProductionEngine {
     async updateProfile(values) {
         const user = await this.getAuthUser();
         if (!user) throw new Error('يجب تسجيل الدخول.');
+        let uploadedAvatar = null;
+        let avatarUrl = user.avatar;
+        if (values.avatarFile) {
+            const file = values.avatarFile;
+            if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+                throw new Error('صورة الحساب يجب أن تكون PNG أو JPG أو WEBP.');
+            }
+            if (file.size > 2 * 1024 * 1024) throw new Error('حجم صورة الحساب يجب ألا يتجاوز 2 ميجابايت.');
+            const extension = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' })[file.type];
+            const path = `${user.id}/avatar-${Date.now()}.${extension}`;
+            const { error: uploadError } = await this.requireClient().storage
+                .from('profile-avatars')
+                .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+            if (uploadError) throw new Error(`تعذر رفع صورة الحساب: ${uploadError.message}`);
+            const { data } = this.requireClient().storage.from('profile-avatars').getPublicUrl(path);
+            uploadedAvatar = path;
+            avatarUrl = data.publicUrl;
+        }
         const { error } = await this.requireClient().from('profiles').update({
             full_name: values.name.trim(),
             phone_number: values.phone.trim(),
-            avatar_url: values.avatar.trim() || null,
+            avatar_url: avatarUrl || null,
             updated_at: new Date().toISOString()
         }).eq('id', user.id);
-        if (error) throw new Error(`تعذر تحديث الملف الشخصي: ${error.message}`);
+        if (error) {
+            if (uploadedAvatar) await this.requireClient().storage.from('profile-avatars').remove([uploadedAvatar]);
+            throw new Error(`تعذر تحديث الملف الشخصي: ${error.message}`);
+        }
+        const previousAvatarPath = this.profileAvatarPathFromUrl(user.avatar, user.id);
+        if (uploadedAvatar && previousAvatarPath) {
+            await this.requireClient().storage.from('profile-avatars').remove([previousAvatarPath]);
+        }
         return this.getAuthUser();
+    }
+
+    profileAvatarPathFromUrl(url, userId) {
+        try {
+            const marker = '/storage/v1/object/public/profile-avatars/';
+            const pathname = new URL(url).pathname;
+            if (!pathname.includes(marker)) return null;
+            const path = decodeURIComponent(pathname.split(marker)[1]);
+            return path.startsWith(`${userId}/`) ? path : null;
+        } catch (_) {
+            return null;
+        }
     }
 
     getFavorites() {

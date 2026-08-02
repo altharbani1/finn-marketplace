@@ -12,6 +12,7 @@ const listingSource = read('listing.html');
 const adminSource = read('admin.html');
 const profileSource = read('profile.html');
 const communicationMigration = read('supabase/migrations/20260802052237_enable_marketplace_communication_ratings_reports.sql');
+const avatarMigration = read('supabase/migrations/20260802112000_enable_profile_avatar_storage.sql');
 
 test('listing questions use Supabase comments instead of fabricated local data', () => {
     assert.match(databaseSource, /from\('comments'\)/);
@@ -83,4 +84,16 @@ test('marketplace uses text search and a permanent list layout', () => {
     assert.match(appSource, /item\.subCategory/);
     assert.match(appSource, /item\.city/);
     assert.match(mainStyles, /\.listings-grid\.list-view \.listing-card/);
+});
+
+test('seller contact and profile avatar uploads are production-backed', () => {
+    assert.match(listingSource, /إظهار رقم المعلن/);
+    assert.match(listingSource, /https:\/\/wa\.me\//);
+    assert.match(listingSource, /rel="noopener noreferrer"/);
+    assert.match(profileSource, /id="editAvatarFile"/);
+    assert.match(databaseSource, /from\('profile-avatars'\)/);
+    assert.match(databaseSource, /avatarFile/);
+    assert.match(avatarMigration, /'profile-avatars'/);
+    assert.match(avatarMigration, /Owners upload avatar objects/);
+    assert.match(avatarMigration, /storage\.foldername\(name\)/);
 });

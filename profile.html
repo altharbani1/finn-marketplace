@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=7.0">
-    <link rel="stylesheet" href="css/components.css?v=11.0">
+    <link rel="stylesheet" href="css/main.css?v=8.0">
+    <link rel="stylesheet" href="css/components.css?v=12.0">
 
     <style>
         .profile-hero-card {
@@ -180,8 +180,16 @@
                     </div>
 
                     <div style="margin-bottom: 24px;">
-                        <label class="filter-label">رابط صورة البروفايل</label>
-                        <input type="url" id="editAvatar" class="form-input">
+                        <label class="filter-label">صورة البروفايل</label>
+                        <div class="profile-avatar-upload">
+                            <img id="profileAvatarPreview" src="" alt="معاينة صورة البروفايل">
+                            <div class="upload-dropzone profile-avatar-dropzone">
+                                <i class="fa-solid fa-camera upload-icon" aria-hidden="true"></i>
+                                <h4>اختر صورة من جهازك</h4>
+                                <p>PNG أو JPG أو WEBP — حتى 2 ميجابايت</p>
+                                <input type="file" id="editAvatarFile" accept="image/png,image/jpeg,image/webp" onchange="previewProfileAvatar(event)" aria-label="رفع صورة البروفايل">
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary" style="height: 48px; font-size: 15px;">
@@ -195,8 +203,8 @@
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
-    <script src="js/security.js?v=9.0"></script>
-    <script src="js/supabase-config.js?v=12.0"></script>
+    <script src="js/security.js?v=10.0"></script>
+    <script src="js/supabase-config.js?v=13.0"></script>
     <script>
         let currentUser = null;
 
@@ -323,7 +331,18 @@
             document.getElementById('editName').value = currentUser.name || '';
             document.getElementById('editEmail').value = currentUser.email || '';
             document.getElementById('editPhone').value = currentUser.phone || '';
-            document.getElementById('editAvatar').value = currentUser.avatar || '';
+            document.getElementById('profileAvatarPreview').src = safeHttpUrl(currentUser.avatar, DEFAULT_AVATAR);
+        }
+
+        function previewProfileAvatar(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                alert('اختر صورة PNG أو JPG أو WEBP بحجم لا يتجاوز 2 ميجابايت.');
+                event.target.value = '';
+                return;
+            }
+            document.getElementById('profileAvatarPreview').src = URL.createObjectURL(file);
         }
 
         async function saveProfileSettings(e) {
@@ -332,10 +351,12 @@
                 currentUser = await finnDB.updateProfile({
                     name: document.getElementById('editName').value,
                     phone: document.getElementById('editPhone').value,
-                    avatar: document.getElementById('editAvatar').value
+                    avatarFile: document.getElementById('editAvatarFile').files?.[0] || null
                 });
                 alert('تم تحديث بيانات الملف الشخصي بنجاح.');
                 renderProfileHero();
+                populateSettingsForm();
+                document.getElementById('editAvatarFile').value = '';
             } catch (error) {
                 alert(error.message || 'تعذر تحديث الملف الشخصي.');
             }

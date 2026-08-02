@@ -500,7 +500,86 @@
     color: var(--color-danger);
 }
 
+.profile-avatar-upload {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    align-items: center;
+    gap: 16px;
+}
+
+.profile-avatar-upload > img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--border-color);
+}
+
+.profile-avatar-dropzone {
+    padding: 16px;
+}
+
+.profile-avatar-dropzone .upload-icon {
+    margin-bottom: 4px;
+    font-size: 26px;
+}
+
+.profile-avatar-dropzone h4 {
+    font-size: 13px;
+}
+
+.profile-avatar-dropzone p {
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.seller-phone-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-bottom: 8px;
+    color: var(--text-main);
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 16px;
+}
+
+.seller-contact-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.seller-contact-buttons .btn {
+    height: 42px;
+    padding: 0 10px;
+}
+
+.whatsapp-btn {
+    color: #fff;
+    background: #16a34a;
+}
+
+.whatsapp-btn:hover {
+    color: #fff;
+    background: #15803d;
+}
+
 @media (max-width: 600px) {
+    .profile-avatar-upload {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .profile-avatar-dropzone {
+        width: 100%;
+    }
+
     .account-menu-user-name {
         display: none;
     }

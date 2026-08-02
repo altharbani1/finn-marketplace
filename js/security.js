@@ -23,6 +23,14 @@ function safeTel(value) {
     return String(value ?? '').replace(/[^+0-9()\s-]/g, '');
 }
 
+function safeWhatsAppNumber(value) {
+    let digits = String(value ?? '').replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('0')) digits = `966${digits.slice(1)}`;
+    if (digits.length === 9 && digits.startsWith('5')) digits = `966${digits}`;
+    return digits;
+}
+
 function validatePassword(password) {
     const value = String(password ?? '');
     if (value.length < 8) return 'كلمة المرور يجب ألا تقل عن 8 أحرف.';
