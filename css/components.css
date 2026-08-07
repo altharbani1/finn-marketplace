@@ -34,8 +34,8 @@
     position: absolute;
     top: 12px;
     left: 12px;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(4px);
@@ -133,6 +133,7 @@
     font-size: 13px;
     font-weight: 800;
     cursor: pointer;
+    min-height: 44px;
 }
 
 .auth-back-btn {
@@ -556,7 +557,7 @@
 }
 
 .seller-contact-buttons .btn {
-    height: 42px;
+    height: 44px;
     padding: 0 10px;
 }
 
@@ -568,6 +569,37 @@
 .whatsapp-btn:hover {
     color: #fff;
     background: #15803d;
+}
+
+.profile-state-card {
+    grid-column: 1 / -1;
+    padding: 48px 20px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    background: white;
+    text-align: center;
+}
+
+.profile-state-card > i {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--color-primary);
+    font-size: 42px;
+}
+
+.profile-state-card h2 {
+    margin-bottom: 8px;
+    font-size: 20px;
+}
+
+.profile-state-card p {
+    margin-bottom: 18px;
+    color: var(--text-muted);
+}
+
+.star-btn {
+    min-width: 44px;
+    min-height: 44px;
 }
 
 @media (max-width: 600px) {

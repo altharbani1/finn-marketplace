@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=8.0">
-    <link rel="stylesheet" href="css/components.css?v=12.0">
+    <link rel="stylesheet" href="css/main.css?v=9.0">
+    <link rel="stylesheet" href="css/components.css?v=13.0">
 
     <style>
         .breadcrumb-nav {
@@ -64,9 +64,6 @@
                 flex-wrap: wrap;
             }
 
-            .gallery-main-box {
-                height: 300px;
-            }
         }
 
         .gallery-main-box {
@@ -84,6 +81,13 @@
             object-fit: cover;
         }
 
+        @media (max-width: 600px) {
+            .gallery-main-box {
+                height: auto;
+                aspect-ratio: 4 / 3;
+            }
+        }
+
         .gallery-thumbs-row {
             display: flex;
             gap: 12px;
@@ -99,6 +103,8 @@
             cursor: pointer;
             border: 2px solid transparent;
             transition: var(--transition-fast);
+            padding: 0;
+            background: transparent;
         }
 
         .gallery-thumb-item.active {
@@ -212,12 +218,13 @@
         </div>
     </main>
 
-    <div class="modal-overlay" id="reportModal">
-        <div class="modal-box" style="max-width: 520px; padding: 28px;">
+    <div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportDialogTitle" aria-hidden="true" hidden inert>
+        <div class="modal-box" style="max-width: 520px; padding: 28px;" tabindex="-1">
             <button class="modal-close-btn" onclick="closeReportModal()" aria-label="إغلاق البلاغ"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 8px;"><i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> الإبلاغ عن الإعلان</h2>
+            <h2 id="reportDialogTitle" style="font-size: 20px; font-weight: 900; margin-bottom: 8px;"><i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> الإبلاغ عن الإعلان</h2>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">اشرح المخالفة بوضوح. سيظهر البلاغ للمشرفين فقط.</p>
             <div class="auth-notice info" style="margin-bottom: 14px;"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> نظام البلاغات فعّال ومحمي؛ تُرسل البيانات مباشرة إلى لوحة المشرفين.</div>
+            <label class="filter-label" for="reportReason">سبب البلاغ</label>
             <textarea id="reportReason" class="form-input" maxlength="2000" style="height: 130px; padding: 12px;" placeholder="مثال: معلومات مضللة، محتوى محظور، أو محاولة احتيال..."></textarea>
             <button class="btn btn-primary" id="submitReportButton" style="width:100%; margin-top:12px; background:var(--color-danger);" onclick="submitListingReport()">
                 <i class="fa-solid fa-paper-plane"></i> إرسال البلاغ للمراجعة
@@ -229,10 +236,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
-    <script src="js/supabase-config.js?v=13.0"></script>
+    <script src="js/supabase-config.js?v=14.0"></script>
     <script>
         let currentItem = null;
         let currentUser = null;
+        let reportReturnFocus = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = await finnDB.getAuthUser();
@@ -257,7 +265,7 @@
             try {
                 const [comments, seller, ratingStats] = await Promise.all([
                     finnDB.getListingComments(currentItem.id),
-                    finnDB.getListingSeller(currentItem.userId),
+                    finnDB.getListingSeller(currentItem.id),
                     finnDB.getSellerRating(currentItem.userId).catch((error) => {
                         console.error(error);
                         return { average: 0, count: 0 };
@@ -359,6 +367,27 @@
             if (!event.target.closest('#listingAccountMenu')) closeListingAccountMenu();
         });
         document.addEventListener('keydown', (event) => {
+            const reportModal = document.getElementById('reportModal');
+            if (reportModal?.classList.contains('active')) {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeReportModal();
+                    return;
+                }
+                if (event.key === 'Tab') {
+                    const focusable = [...reportModal.querySelectorAll('button:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])')].filter(element => element.getClientRects().length);
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+                return;
+            }
             if (event.key === 'Escape') {
                 closeListingAccountMenu();
                 document.getElementById('listingAccountMenuButton')?.focus();
@@ -399,7 +428,7 @@
 
                     <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px; line-height: 1.4;">${escapeHTML(currentItem.title)}</h1>
                     <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${escapeHTML(currentItem.city)} - ${escapeHTML(currentItem.neighborhood || 'وسط المدينة')}
+                        <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${escapeHTML([currentItem.city, currentItem.neighborhood].filter(Boolean).join(' - '))}
                         &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${escapeHTML(currentItem.timeAgo)}
                         &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${Number(currentItem.views) || 0} مشاهدة
                     </p>
@@ -412,9 +441,9 @@
                     ${currentItem.images.length > 1 ? `
                         <div class="gallery-thumbs-row">
                             ${currentItem.images.map((img, idx) => `
-                                <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" data-gallery-image="${escapeHTML(safeHttpUrl(img, DEFAULT_LISTING_IMAGE))}">
+                                <button type="button" class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" data-gallery-image="${escapeHTML(safeHttpUrl(img, DEFAULT_LISTING_IMAGE))}" aria-label="عرض صورة الإعلان ${idx + 1}" aria-pressed="${idx === 0}">
                                     <img src="${escapeHTML(safeHttpUrl(img, DEFAULT_LISTING_IMAGE))}" alt="صورة ${idx + 1}">
-                                </div>
+                                </button>
                             `).join('')}
                         </div>
                     ` : ''}
@@ -432,7 +461,7 @@
 
                     <!-- Description -->
                     <h3 style="font-size: 18px; font-weight: 800; margin: 32px 0 12px;">وصف الإعلان كامل</h3>
-                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${escapeHTML(currentItem.description)}</p>
+                    <p style="font-size: 15px; color: var(--text-main); line-height: 1.8; white-space: pre-line;">${escapeHTML(currentItem.description).replace(/\*\*/g, '')}</p>
                 </div>
 
                 <!-- Comments & Replies Section -->
@@ -477,7 +506,7 @@
                     ` : `
                         <div style="background-color: #fffbebf5; border: 1.5px dashed #f59e0b; padding: 20px; border-radius: var(--radius-md); text-align: center; margin-top: 20px;">
                             <h4 style="font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 6px;">الردود مخصصة للأعضاء المشتركين فقط</h4>
-                            <button class="btn btn-primary" onclick="window.location.href='index.html'">
+                            <button class="btn btn-primary" onclick="window.location.href='index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}'">
                                 <i class="fa-solid fa-user-check"></i> تسجيل الدخول من الرئيسية للرد
                             </button>
                         </div>
@@ -509,7 +538,7 @@
                                 </div>
                             </div>
                         ` : `
-                            <a href="index.html?login=1" class="btn btn-primary" style="height: 48px; font-size: 16px;">
+                            <a href="index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}" class="btn btn-primary" style="height: 48px; font-size: 16px;">
                                 <i class="fa-solid fa-lock"></i> سجل الدخول لإظهار وسيلة التواصل
                             </a>
                         `}
@@ -522,7 +551,7 @@
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${escapeHTML(safeHttpUrl(sellerObj.avatar, DEFAULT_AVATAR))}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
+                            <img src="${escapeHTML(safeHttpUrl(sellerObj.avatar, DEFAULT_AVATAR))}" alt="صورة المعلن ${escapeHTML(sellerObj.name)}" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover;">
                             <div>
                                 <h4 style="font-size: 16px; font-weight: 800;">${escapeHTML(sellerObj.name)} ${sellerObj.verified ? '<i class="fa-solid fa-circle-check" style="color: #0063fb;"></i>' : ''}</h4>
                                 <span style="font-size: 13px; color: var(--text-muted);">${sellerObj.verified ? 'هوية المعلن موثقة' : 'عضو في FinnMarket'}</span>
@@ -536,7 +565,7 @@
                             </div>
                             ${!isOwner ? `
                                 <div style="display:flex; gap:4px;" aria-label="تقييم المعلن من خمس نجوم">
-                                    ${[1,2,3,4,5].map(score => `<button class="star-btn" style="font-size:24px; border:0; background:transparent; color:#f59e0b; cursor:pointer;" onclick="submitSellerRating(${score})" title="${score} نجوم">★</button>`).join('')}
+                                    ${[1,2,3,4,5].map(score => `<button type="button" class="star-btn" style="font-size:24px; border:0; background:transparent; color:#f59e0b; cursor:pointer;" onclick="submitSellerRating(${score})" aria-label="تقييم المعلن ${score} من 5 نجوم">★</button>`).join('')}
                                 </div>
                                 <small style="color:var(--text-muted);">يمكنك تعديل تقييمك باختيار نجمة أخرى.</small>
                             ` : ''}
@@ -569,8 +598,12 @@
 
         function switchPageImg(src, el) {
             document.getElementById('mainHeroImg').src = src;
-            document.querySelectorAll('.gallery-thumb-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.gallery-thumb-item').forEach(item => {
+                item.classList.remove('active');
+                item.setAttribute('aria-pressed', 'false');
+            });
             el.classList.add('active');
+            el.setAttribute('aria-pressed', 'true');
         }
 
         async function submitSellerRating(score) {
@@ -592,11 +625,25 @@
                 window.location.href = `index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}`;
                 return;
             }
-            document.getElementById('reportModal')?.classList.add('active');
+            const modal = document.getElementById('reportModal');
+            reportReturnFocus = document.activeElement;
+            modal.hidden = false;
+            modal.inert = false;
+            modal.setAttribute('aria-hidden', 'false');
+            modal.classList.add('active');
+            window.setTimeout(() => document.getElementById('reportReason')?.focus(), 0);
         }
 
         function closeReportModal() {
-            document.getElementById('reportModal')?.classList.remove('active');
+            const modal = document.getElementById('reportModal');
+            modal?.classList.remove('active');
+            if (modal) {
+                modal.setAttribute('aria-hidden', 'true');
+                modal.inert = true;
+                modal.hidden = true;
+            }
+            if (reportReturnFocus?.isConnected) reportReturnFocus.focus();
+            reportReturnFocus = null;
         }
 
         async function submitListingReport() {
@@ -651,7 +698,7 @@
             }
 
             try {
-                currentItem.comments = await finnDB.addComment(listingId, textInput.value, currentItem.userId);
+                currentItem.comments = await finnDB.addComment(listingId, textInput.value);
                 await renderListingPageContent();
             } catch (error) {
                 alert(error.message || 'تعذر نشر الرد.');

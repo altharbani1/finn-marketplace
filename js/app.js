@@ -6,6 +6,7 @@ class FinnMarketApp {
         this.listings = [];
         this.favorites = finnDB.getFavorites();
         this.chatPollTimer = null;
+        this.modalFocusOrigins = new Map();
         
         // Active Filters State
         this.state = {
@@ -85,7 +86,8 @@ class FinnMarketApp {
             <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: #fff5f5; border-radius: 18px; border: 1px dashed #ef4444;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
                 <h3 style="font-size: 20px; font-weight: 800; color: #991b1b;">خطأ في الاتصال بالشبكة</h3>
-                <p style="color: #7f1d1d; margin-top: 6px;">${msg}</p>
+                <p style="color: #7f1d1d; margin: 6px 0 16px;">${escapeHTML(msg)}</p>
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> إعادة المحاولة</button>
             </div>
         `;
     }
@@ -401,6 +403,8 @@ class FinnMarketApp {
     handleImageFileUpload(event) {
         const files = Array.from(event.target.files);
         if (!files.length) return;
+        const countLabel = document.getElementById('imageCountLabel');
+        if (countLabel) countLabel.textContent = 'جاري تجهيز الصور للمعاينة...';
 
         const remainingSlots = MAX_LISTING_IMAGES - this.state.uploadedImages.length;
         if (remainingSlots <= 0) {
@@ -425,14 +429,8 @@ class FinnMarketApp {
             alert(`تم قبول ${acceptedFiles.length} صورة فقط لإكمال الحد الأقصى البالغ ${MAX_LISTING_IMAGES} صورة.`);
         }
 
-        acceptedFiles.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.state.uploadedImages.push(e.target.result);
-                this.renderImagePreviews();
-            };
-            reader.readAsDataURL(file);
-        });
+        this.state.uploadedImages.push(...acceptedFiles);
+        this.renderImagePreviews();
         event.target.value = '';
     }
 
@@ -443,14 +441,19 @@ class FinnMarketApp {
 
         if (countLabel) countLabel.textContent = `${this.state.uploadedImages.length} من ${MAX_LISTING_IMAGES} صورة`;
 
-        container.innerHTML = this.state.uploadedImages.map((imgDataUrl, idx) => `
+        container.querySelectorAll('img[data-object-url]').forEach(img => URL.revokeObjectURL(img.src));
+        container.innerHTML = this.state.uploadedImages.map((image, idx) => {
+            const isFile = typeof File !== 'undefined' && image instanceof File;
+            const previewUrl = isFile ? URL.createObjectURL(image) : image;
+            return `
             <div class="preview-thumb-card">
-                <img src="${imgDataUrl}" alt="صورة الإعلان ${idx + 1}">
+                <img src="${escapeHTML(previewUrl)}" ${isFile ? 'data-object-url="true"' : ''} alt="صورة الإعلان ${idx + 1}">
                 <button type="button" class="remove-thumb-btn" onclick="event.stopPropagation(); app.removeUploadedImage(${idx})" title="إزالة الصورة" aria-label="إزالة الصورة ${idx + 1}">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     removeUploadedImage(index) {
@@ -497,8 +500,9 @@ class FinnMarketApp {
             feedContainer.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: white; border-radius: 18px; border: 1px dashed var(--border-color);">
                     <i class="fa-solid fa-magnifying-glass-minus" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                    <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">لم نجد نتائج مطابقة لعبارة البحث</h3>
-                    <p style="color: var(--text-muted);">جرّب كتابة كلمات أقصر أو اسم القسم أو المدينة</p>
+                    <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">لا توجد إعلانات مطابقة</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 16px;">${this.state.searchQuery.trim() ? 'جرّب كتابة كلمات أقصر أو اسم القسم أو المدينة.' : 'لا توجد إعلانات في هذا القسم حاليًا.'}</p>
+                    <button type="button" class="btn btn-outline" onclick="app.clearFilters()">عرض جميع الإعلانات</button>
                 </div>
             `;
             return;
@@ -508,33 +512,46 @@ class FinnMarketApp {
         feedContainer.innerHTML = items.map(item => {
             const isFav = this.favorites.includes(item.id);
             const badgeClass = item.isFree ? 'badge-freebie' : `badge-${item.category}`;
-            const badgeText = item.isFree ? 'إهداء مجاني Gis bort' : item.subCategory;
+            const badgeText = item.isFree ? 'إهداء مجاني' : item.subCategory;
             const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
+            const hasListingImage = item.images?.[0] && item.images[0] !== DEFAULT_LISTING_IMAGE;
 
             return `
-                <div class="listing-card" data-listing-id="${escapeHTML(item.id)}">
-                    <div class="listing-thumb-wrap">
-                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" alt="${escapeHTML(item.title)}" class="listing-thumb" loading="lazy" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
-                        <span class="badge-tag ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
-                        <button class="btn-fav-card ${isFav ? 'active' : ''}" data-favorite-id="${escapeHTML(item.id)}">
-                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
-                        </button>
-                    </div>
-                    <div class="listing-body">
-                        <div class="listing-meta-sub">
-                            <i class="fa-solid fa-location-dot"></i>
-                            <span>${escapeHTML(item.city)} - ${escapeHTML(item.neighborhood || '')}</span>
+                <article class="listing-card" data-listing-id="${escapeHTML(item.id)}">
+                    <a class="listing-card-main-link" href="listing.html?id=${encodeURIComponent(item.id)}" aria-label="عرض إعلان ${escapeHTML(item.title)}">
+                        <div class="listing-thumb-wrap">
+                            <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" alt="${hasListingImage ? escapeHTML(item.title) : 'لا توجد صورة مرفوعة لهذا الإعلان'}" class="listing-thumb" loading="lazy" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                            <span class="badge-tag ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
+                            ${hasListingImage ? '' : '<span class="no-image-badge">لا توجد صورة</span>'}
                         </div>
-                        <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
-                        <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
-                        <div class="listing-footer-info">
-                            <span><i class="fa-regular fa-clock"></i> ${escapeHTML(item.timeAgo)}</span>
-                            <span><i class="fa-regular fa-eye"></i> ${Number(item.views) || 0} مشاهدة</span>
+                        <div class="listing-body">
+                            <div class="listing-meta-sub">
+                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                <span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span>
+                            </div>
+                            <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
+                            <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
+                            <div class="listing-footer-info">
+                                <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</span>
+                                <span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(item.views) || 0} مشاهدة</span>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </a>
+                    <button type="button" class="btn-fav-card ${isFav ? 'active' : ''}" data-favorite-id="${escapeHTML(item.id)}" aria-label="${isFav ? 'إزالة الإعلان من المفضلة' : 'إضافة الإعلان إلى المفضلة'}" aria-pressed="${isFav}"><i class="fa-${isFav ? 'solid' : 'regular'} fa-heart" aria-hidden="true"></i></button>
+                </article>
             `;
         }).join('');
+    }
+
+    clearFilters() {
+        this.state.category = 'all';
+        this.state.searchQuery = '';
+        this.state.showFavoritesOnly = false;
+        const searchInput = document.getElementById('globalSearch');
+        if (searchInput) searchInput.value = '';
+        this.renderCategoryBar();
+        this.applyFiltersAndRender();
+        searchInput?.focus();
     }
 
     async toggleFav(id) {
@@ -549,11 +566,33 @@ class FinnMarketApp {
 
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            modal.inert = true;
+            modal.hidden = true;
+            const returnTarget = this.modalFocusOrigins.get(modalId);
+            if (returnTarget?.isConnected) returnTarget.focus();
+            this.modalFocusOrigins.delete(modalId);
+        }
         if (modalId === 'chatModal' && this.chatPollTimer) {
             window.clearInterval(this.chatPollTimer);
             this.chatPollTimer = null;
         }
+    }
+
+    showModal(modalId, initialFocusSelector = null) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        this.modalFocusOrigins.set(modalId, document.activeElement);
+        modal.hidden = false;
+        modal.inert = false;
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.add('active');
+        window.setTimeout(() => {
+            const initialFocus = initialFocusSelector ? modal.querySelector(initialFocusSelector) : null;
+            (initialFocus || modal.querySelector('input, select, textarea, button, [href]') || modal.querySelector('.modal-box'))?.focus();
+        }, 0);
     }
 
     async openPostAdModal() {
@@ -564,7 +603,7 @@ class FinnMarketApp {
         }
 
         this.resetAdFormState();
-        document.getElementById('postAdModal')?.classList.add('active');
+        this.showModal('postAdModal', '[name="adTitle"]');
     }
 
     async openEditAdModal(listingId) {
@@ -582,15 +621,17 @@ class FinnMarketApp {
         form.adCategory.value = listing.category;
         form.adSubCategory.value = listing.subCategory || '';
         form.adCity.value = listing.city;
+        form.adNeighborhood.value = listing.neighborhood || '';
         form.adPrice.value = listing.price || '';
         form.adIsFree.checked = listing.isFree;
+        this.syncFreePriceField();
         form.adCondition.value = listing.condition;
         form.adDescription.value = listing.description;
         document.getElementById('adModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان والصور';
         document.getElementById('adSubmitLabel').textContent = 'حفظ التعديلات';
         document.getElementById('cancelAdEditBtn').style.display = 'block';
         this.renderImagePreviews();
-        document.getElementById('postAdModal')?.classList.add('active');
+        this.showModal('postAdModal', '[name="adTitle"]');
     }
 
     resetAdFormState() {
@@ -600,6 +641,7 @@ class FinnMarketApp {
         this.state.uploadedImages = [];
         const categorySelect = form?.querySelector('[name="adCategory"]');
         if (categorySelect) categorySelect.value = 'marketplace';
+        this.syncFreePriceField();
         document.getElementById('adModalTitle').innerHTML = '<i class="fa-solid fa-plus-circle"></i> نشر إعلان جديد في المنصة';
         document.getElementById('adSubmitLabel').textContent = 'نشر الإعلان';
         document.getElementById('cancelAdEditBtn').style.display = 'none';
@@ -622,7 +664,16 @@ class FinnMarketApp {
         }
 
         this.switchAuthTab(reason === 'recovery' ? 'recovery' : 'login');
-        modal?.classList.add('active');
+        this.showModal('realAuthModal', reason === 'recovery' ? '[name="newPassword"]' : '[name="loginEmail"]');
+    }
+
+    syncFreePriceField() {
+        const form = document.getElementById('adForm');
+        if (!form) return;
+        const isFree = Boolean(form.adIsFree?.checked);
+        form.adPrice.disabled = isFree;
+        form.adPrice.required = !isFree;
+        if (isFree) form.adPrice.value = '0';
     }
 
     async submitAd(event) {
@@ -637,9 +688,9 @@ class FinnMarketApp {
 
         const form = event.target;
 
-        const imagesToUse = this.state.uploadedImages.length > 0 
-            ? [...this.state.uploadedImages] 
-            : ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80'];
+        const imagesToUse = this.state.uploadedImages.length > 0
+            ? [...this.state.uploadedImages]
+            : [DEFAULT_LISTING_IMAGE];
 
         const selectedCategoryText = (form.adCategory && form.adCategory.options[form.adCategory.selectedIndex])
             ? form.adCategory.options[form.adCategory.selectedIndex].text
@@ -658,7 +709,7 @@ class FinnMarketApp {
             price: form.adIsFree.checked ? 0 : parseFloat(form.adPrice.value || 0),
             isFree: form.adIsFree.checked,
             city: form.adCity.value,
-            neighborhood: 'وسط المدينة',
+            neighborhood: form.adNeighborhood.value.trim(),
             condition: form.adCondition.value,
             timeAgo: 'الآن',
             views: 1,
@@ -671,10 +722,10 @@ class FinnMarketApp {
                 rating: 0,
                 verified: authUser.verified
             },
-            specs: {
+            specs: Object.assign({
                 'الحالة': conditionText,
                 'المنطقة': form.adCity.value
-            },
+            }, form.adNeighborhood.value.trim() ? { 'الحي': form.adNeighborhood.value.trim() } : {}),
             description: form.adDescription.value,
             comments: []
         };
@@ -710,7 +761,7 @@ class FinnMarketApp {
         }
 
         const modal = document.getElementById('chatModal');
-        modal?.classList.add('active');
+        this.showModal('chatModal', '#chatInput');
         try {
             if (listingId) this.state.activeThreadId = await finnDB.openOrCreateChat(listingId);
             const threads = await finnDB.getChatThreads();
@@ -811,8 +862,6 @@ class FinnMarketApp {
                 this.toggleFav(favoriteButton.dataset.favoriteId);
                 return;
             }
-            const card = event.target.closest('[data-listing-id]');
-            if (card) window.location.href = `listing.html?id=${encodeURIComponent(card.dataset.listingId)}`;
         });
 
         const searchInput = document.getElementById('globalSearch');
@@ -830,6 +879,31 @@ class FinnMarketApp {
             this.state.showFavoritesOnly = false;
             this.renderCategoryBar();
             this.applyFiltersAndRender();
+        });
+
+        document.getElementById('adIsFree')?.addEventListener('change', () => this.syncFreePriceField());
+
+        document.addEventListener('keydown', (event) => {
+            const modal = document.querySelector('.modal-overlay.active');
+            if (!modal) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.closeModal(modal.id);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = [...modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                .filter(element => !element.hidden && element.getClientRects().length);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         });
 
         document.getElementById('chatInput')?.addEventListener('keydown', (event) => {

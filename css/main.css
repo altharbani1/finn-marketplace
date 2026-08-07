@@ -68,6 +68,18 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 a {
     color: inherit;
     text-decoration: none;
@@ -272,6 +284,7 @@ button {
     font-weight: 700;
     cursor: pointer;
     transition: var(--transition-fast);
+    min-height: 44px;
 }
 
 .hero-tag-btn:hover, .hero-tag-btn.active {
@@ -459,6 +472,43 @@ button {
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    position: relative;
+}
+
+.listing-card-main-link {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.listings-grid.list-view .listing-card-main-link {
+    flex-direction: row;
+}
+
+.listing-card-main-link:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: -3px;
+}
+
+.no-image-badge {
+    position: absolute;
+    inset-inline: 12px;
+    bottom: 10px;
+    padding: 5px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(15, 23, 42, 0.78);
+    color: white;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ad-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
 }
 
 .listing-card:hover {
@@ -619,6 +669,10 @@ button {
     padding: 20px;
 }
 
+.modal-overlay[hidden] {
+    display: none;
+}
+
 .modal-overlay.active {
     opacity: 1;
     pointer-events: auto;
@@ -640,8 +694,9 @@ button {
     position: absolute;
     top: 20px;
     left: 20px;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
     border-radius: 50%;
     background: var(--bg-surface-subtle);
     border: none;
@@ -658,17 +713,47 @@ button {
 }
 
 @media (max-width: 600px) {
+    .navbar-inner {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding-block: 8px;
+    }
+    .brand-logo {
+        font-size: 20px;
+    }
+    .brand-badge {
+        font-size: 10px;
+    }
+    .nav-actions {
+        gap: 8px;
+    }
+    .nav-actions .btn {
+        min-height: 44px;
+        flex: 1;
+    }
+    .hero-banner {
+        padding: 22px 0;
+        margin-bottom: 20px;
+    }
     .hero-title {
-        font-size: 24px;
+        font-size: 22px;
     }
     .hero-subtitle {
         font-size: 14px;
+        margin-bottom: 0;
+    }
+    .hero-tags {
+        display: none;
     }
     .listings-grid {
         grid-template-columns: 1fr;
     }
     .listings-grid.list-view .listing-card {
         min-height: 0;
+        flex-direction: column;
+    }
+    .listings-grid.list-view .listing-card-main-link {
         flex-direction: column;
     }
     .listings-grid.list-view .listing-thumb-wrap {
@@ -680,12 +765,19 @@ button {
     .search-only-hint {
         width: 100%;
     }
-    .navbar-inner {
-        flex-direction: column;
-        align-items: stretch;
-        height: auto;
-    }
     .search-bar-global {
         max-width: 100%;
+    }
+    .ad-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .modal-overlay {
+        padding: 10px;
+        align-items: flex-end;
+    }
+    .modal-box {
+        max-height: 94vh;
+        padding: 24px 18px;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 }

@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=8.0">
-    <link rel="stylesheet" href="css/components.css?v=12.0">
+    <link rel="stylesheet" href="css/main.css?v=9.0">
+    <link rel="stylesheet" href="css/components.css?v=13.0">
 
     <style>
         .profile-hero-card {
@@ -95,6 +95,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            background: transparent;
+            border-top: 0;
+            border-right: 0;
+            border-left: 0;
+            min-height: 48px;
         }
 
         .profile-tab-item.active {
@@ -130,34 +135,34 @@
         </div>
 
         <!-- Dashboard Navigation Tabs -->
-        <div class="profile-tabs-bar">
-            <div class="profile-tab-item active" id="tabMyAds" onclick="switchProfileTab('myAds')">
+        <div class="profile-tabs-bar" role="tablist" aria-label="أقسام الملف الشخصي">
+            <button type="button" class="profile-tab-item active" id="tabMyAds" role="tab" aria-selected="true" aria-controls="sectionMyAds" onclick="switchProfileTab('myAds')">
                 <i class="fa-solid fa-layer-group"></i> إعلاناتي النشطة (<span id="myAdsCount">0</span>)
-            </div>
-            <div class="profile-tab-item" id="tabFavs" onclick="switchProfileTab('favs')">
+            </button>
+            <button type="button" class="profile-tab-item" id="tabFavs" role="tab" aria-selected="false" aria-controls="sectionFavs" onclick="switchProfileTab('favs')">
                 <i class="fa-solid fa-heart"></i> المفضلة (<span id="myFavsCount">0</span>)
-            </div>
-            <div class="profile-tab-item" id="tabSettings" onclick="switchProfileTab('settings')">
+            </button>
+            <button type="button" class="profile-tab-item" id="tabSettings" role="tab" aria-selected="false" aria-controls="sectionSettings" onclick="switchProfileTab('settings')">
                 <i class="fa-solid fa-gear"></i> إعدادات الحساب والتوثيق
-            </div>
+            </button>
         </div>
 
         <!-- Tab 1: My Active Ads Grid -->
-        <section id="sectionMyAds">
+        <section id="sectionMyAds" role="tabpanel" aria-labelledby="tabMyAds">
             <div class="listings-grid" id="myAdsGrid">
                 <!-- Rendered dynamically -->
             </div>
         </section>
 
         <!-- Tab 2: Saved Favorites Grid -->
-        <section id="sectionFavs" style="display: none;">
+        <section id="sectionFavs" role="tabpanel" aria-labelledby="tabFavs" style="display: none;">
             <div class="listings-grid" id="myFavsGrid">
                 <!-- Rendered dynamically -->
             </div>
         </section>
 
         <!-- Tab 3: Account Settings Form -->
-        <section id="sectionSettings" style="display: none;">
+        <section id="sectionSettings" role="tabpanel" aria-labelledby="tabSettings" style="display: none;">
             <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 32px; max-width: 600px;">
                 <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--color-primary);">
                     <i class="fa-solid fa-user-pen"></i> تعديل بيانات الملف الشخصي
@@ -165,22 +170,23 @@
 
                 <form onsubmit="saveProfileSettings(event)">
                     <div style="margin-bottom: 16px;">
-                        <label class="filter-label">الاسم الكامل (سيظهر للمستفيدين) *</label>
+                        <label class="filter-label" for="editName">الاسم الكامل (سيظهر للمستفيدين) *</label>
                         <input type="text" id="editName" class="form-input" required>
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label class="filter-label">البريد الإلكتروني *</label>
-                        <input type="email" id="editEmail" class="form-input" required>
+                        <label class="filter-label" for="editEmail">البريد الإلكتروني</label>
+                        <input type="email" id="editEmail" class="form-input" readonly aria-describedby="emailReadonlyHint">
+                        <small id="emailReadonlyHint" style="display:block; margin-top:6px; color:var(--text-muted);">لتغيير البريد الإلكتروني تواصل مع الدعم حفاظًا على أمان الحساب.</small>
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label class="filter-label">رقم الجوال لتلقي الاتصالات *</label>
+                        <label class="filter-label" for="editPhone">رقم الجوال لتلقي الاتصالات *</label>
                         <input type="tel" id="editPhone" class="form-input" required>
                     </div>
 
                     <div style="margin-bottom: 24px;">
-                        <label class="filter-label">صورة البروفايل</label>
+                        <label class="filter-label" for="editAvatarFile">صورة البروفايل</label>
                         <div class="profile-avatar-upload">
                             <img id="profileAvatarPreview" src="" alt="معاينة صورة البروفايل">
                             <div class="upload-dropzone profile-avatar-dropzone">
@@ -204,7 +210,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
-    <script src="js/supabase-config.js?v=13.0"></script>
+    <script src="js/supabase-config.js?v=14.0"></script>
     <script>
         let currentUser = null;
 
@@ -217,14 +223,23 @@
                 return;
             }
 
-            await finnDB.syncFavorites();
-
-            renderProfileHero();
-            await renderMyAds();
-            await renderMyFavs();
-            populateSettingsForm();
-            const requestedTab = new URLSearchParams(window.location.search).get('tab');
-            if (['myAds', 'favs', 'settings'].includes(requestedTab)) switchProfileTab(requestedTab);
+            try {
+                await finnDB.syncFavorites();
+                renderProfileHero();
+                await renderMyAds();
+                await renderMyFavs();
+                populateSettingsForm();
+                const requestedTab = new URLSearchParams(window.location.search).get('tab');
+                if (['myAds', 'favs', 'settings'].includes(requestedTab)) switchProfileTab(requestedTab);
+            } catch (error) {
+                document.querySelector('main').innerHTML = `
+                    <div class="profile-state-card" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <h2>تعذر تحميل الملف الشخصي</h2>
+                        <p>${escapeHTML(error.message || 'تحقق من اتصالك ثم حاول مرة أخرى.')}</p>
+                        <button type="button" class="btn btn-primary" onclick="window.location.reload()">إعادة المحاولة</button>
+                    </div>`;
+            }
         });
 
         function renderProfileHero() {
@@ -255,19 +270,25 @@
         }
 
         function switchProfileTab(tab) {
-            document.querySelectorAll('.profile-tab-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.profile-tab-item').forEach(el => {
+                el.classList.remove('active');
+                el.setAttribute('aria-selected', 'false');
+            });
             document.getElementById('sectionMyAds').style.display = 'none';
             document.getElementById('sectionFavs').style.display = 'none';
             document.getElementById('sectionSettings').style.display = 'none';
 
             if (tab === 'myAds') {
                 document.getElementById('tabMyAds').classList.add('active');
+                document.getElementById('tabMyAds').setAttribute('aria-selected', 'true');
                 document.getElementById('sectionMyAds').style.display = 'block';
             } else if (tab === 'favs') {
                 document.getElementById('tabFavs').classList.add('active');
+                document.getElementById('tabFavs').setAttribute('aria-selected', 'true');
                 document.getElementById('sectionFavs').style.display = 'block';
             } else if (tab === 'settings') {
                 document.getElementById('tabSettings').classList.add('active');
+                document.getElementById('tabSettings').setAttribute('aria-selected', 'true');
                 document.getElementById('sectionSettings').style.display = 'block';
             }
             const url = new URL(window.location.href);
@@ -283,14 +304,14 @@
             document.getElementById('statAdsCount').textContent = myAds.length;
 
             const grid = document.getElementById('myAdsGrid');
-            grid.innerHTML = myAds.map(item => `
-                <div class="listing-card" onclick="window.location.href='listing.html?id=${encodeURIComponent(item.id)}'">
+            grid.innerHTML = myAds.length ? myAds.map(item => `
+                <article class="listing-card">
                     <div class="listing-thumb-wrap">
-                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                        <a href="listing.html?id=${encodeURIComponent(item.id)}" aria-label="عرض إعلان ${escapeHTML(item.title)}"><img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" alt="${escapeHTML(item.title)}" onerror="this.src='${DEFAULT_LISTING_IMAGE}'"></a>
                         <span class="badge-tag badge-${escapeHTML(item.category)}">${escapeHTML(item.subCategory)}</span>
                     </div>
                     <div class="listing-body">
-                        <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
+                        <h3 class="listing-card-title"><a href="listing.html?id=${encodeURIComponent(item.id)}">${escapeHTML(item.title)}</a></h3>
                         <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
                         <div style="display: flex; gap: 8px; margin-top: 10px;">
                             <button class="btn btn-outline" style="flex: 1; height: 36px; font-size: 12px;" onclick="event.stopPropagation(); window.location.href='index.html?edit=${encodeURIComponent(item.id)}'">
@@ -301,8 +322,14 @@
                             </button>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </article>
+            `).join('') : `
+                <div class="profile-state-card">
+                    <i class="fa-regular fa-rectangle-list" aria-hidden="true"></i>
+                    <h2>لا توجد إعلانات منشورة</h2>
+                    <p>ابدأ بإضافة إعلانك الأول ليظهر هنا.</p>
+                    <a class="btn btn-primary" href="index.html">إضافة إعلان</a>
+                </div>`;
         }
 
         async function renderMyFavs() {
@@ -313,18 +340,26 @@
             document.getElementById('myFavsCount').textContent = favListings.length;
             const grid = document.getElementById('myFavsGrid');
 
-            grid.innerHTML = favListings.map(item => `
-                <div class="listing-card" onclick="window.location.href='listing.html?id=${encodeURIComponent(item.id)}'">
+            grid.innerHTML = favListings.length ? favListings.map(item => `
+                <article class="listing-card">
+                    <a class="listing-card-main-link" href="listing.html?id=${encodeURIComponent(item.id)}" aria-label="عرض إعلان ${escapeHTML(item.title)}">
                     <div class="listing-thumb-wrap">
-                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
+                        <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" class="listing-thumb" alt="${escapeHTML(item.title)}" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
                         <span class="badge-tag badge-${escapeHTML(item.category)}">${escapeHTML(item.subCategory)}</span>
                     </div>
                     <div class="listing-body">
                         <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
                         <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
                     </div>
-                </div>
-            `).join('');
+                    </a>
+                </article>
+            `).join('') : `
+                <div class="profile-state-card">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <h2>المفضلة فارغة</h2>
+                    <p>احفظ الإعلانات التي تهمك لتجدها بسرعة هنا.</p>
+                    <a class="btn btn-primary" href="index.html">تصفح الإعلانات</a>
+                </div>`;
         }
 
         function populateSettingsForm() {
