@@ -53,7 +53,8 @@ test('login returns to listing and listing data avoids fabricated neighborhood',
 });
 
 test('profile and loading states give users a recovery path', () => {
-    assert.match(profileSource, /id="editEmail"[^>]*readonly/);
+    assert.match(profileSource, /<input(?=[^>]*id="editEmail")(?=[^>]*type="email")[^>]*>/);
+    assert.match(profileSource, /requestEmailChange/);
     assert.match(profileSource, /لا توجد إعلانات منشورة/);
     assert.match(profileSource, /المفضلة فارغة/);
     assert.match(profileSource, /تعذر تحميل الملف الشخصي/);

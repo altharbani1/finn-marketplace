@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-SA" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تفاصيل الإعلان | FinnMarket</title>
+    <meta id="listingMetaDescription" name="description" content="تفاصيل إعلان منشور في FinnMarket السعودية.">
+    <meta id="listingRobots" name="robots" content="index,follow,max-image-preview:large">
+    <link id="listingCanonical" rel="canonical" href="https://fann1.netlify.app/listing.html">
+    <meta id="listingOgTitle" property="og:title" content="تفاصيل الإعلان | FinnMarket"><meta id="listingOgDescription" property="og:description" content="تفاصيل إعلان منشور في FinnMarket السعودية.">
+    <meta id="listingOgUrl" property="og:url" content="https://fann1.netlify.app/listing.html"><meta property="og:type" content="product"><meta property="og:locale" content="ar_SA"><meta property="og:site_name" content="FinnMarket">
+    <meta id="listingOgImage" property="og:image" content="">
+    <meta name="twitter:card" content="summary_large_image">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +23,7 @@
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=9.0">
     <link rel="stylesheet" href="css/components.css?v=13.0">
+    <link rel="stylesheet" href="css/legal.css?v=1.0">
 
     <style>
         .breadcrumb-nav {
@@ -218,6 +226,8 @@
         </div>
     </main>
 
+<footer class="site-footer"><div class="container site-footer-inner"><p>© 2026 FinnMarket</p><nav class="site-footer-links" aria-label="روابط معلوماتية"><a href="about.html">عن المنصة</a><a href="privacy.html">الخصوصية</a><a href="terms.html">الشروط</a><a href="safety.html">الأمان</a><a href="contact.html">التواصل</a></nav></div></footer>
+
     <div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportDialogTitle" aria-hidden="true" hidden inert>
         <div class="modal-box" style="max-width: 520px; padding: 28px;" tabindex="-1">
             <button class="modal-close-btn" onclick="closeReportModal()" aria-label="إغلاق البلاغ"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
@@ -233,7 +243,7 @@
     </div>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0" integrity="sha384-fPWur1rx/DE6YtXP/x0MD6dd90RgnVsz5yX/DIg7CcVAnTBZsENWuIcpvVTM39ti" crossorigin="anonymous"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
     <script src="js/supabase-config.js?v=14.0"></script>
@@ -254,8 +264,13 @@
                 return;
             }
             
-            const listings = await finnDB.getListings();
-            currentItem = listings.find(l => l.id === listingId);
+            try {
+                currentItem = await finnDB.getListingById(listingId);
+            } catch (error) {
+                console.error(error);
+                renderMissingListing();
+                return;
+            }
 
             if (!currentItem) {
                 renderMissingListing();
@@ -281,6 +296,7 @@
 
             document.getElementById('bcCategory').textContent = currentItem.subCategory;
             document.getElementById('bcTitle').textContent = currentItem.title;
+            updateListingSeo(currentItem);
 
             await renderListingPageContent();
         });
@@ -297,6 +313,20 @@
                 </section>
             `;
             document.title = 'الإعلان غير متاح | FinnMarket';
+            document.getElementById('listingRobots').content = 'noindex,follow';
+        }
+
+        function updateListingSeo(item) {
+            const canonicalUrl = `https://fann1.netlify.app/listing.html?id=${encodeURIComponent(item.id)}`;
+            const description = String(item.description || `${item.title} في ${item.city}`).replace(/\s+/g, ' ').trim().slice(0, 155);
+            document.title = `${item.title} في ${item.city} | FinnMarket`;
+            document.getElementById('listingMetaDescription').content = description;
+            document.getElementById('listingCanonical').href = canonicalUrl;
+            document.getElementById('listingOgTitle').content = document.title;
+            document.getElementById('listingOgDescription').content = description;
+            document.getElementById('listingOgUrl').content = canonicalUrl;
+            const image = item.images?.find(url => /^https:\/\//i.test(url));
+            if (image) document.getElementById('listingOgImage').content = image;
         }
 
         async function renderHeaderAuth() {
@@ -430,7 +460,6 @@
                     <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
                         <i class="fa-solid fa-location-dot" style="color: var(--color-primary);"></i> ${escapeHTML([currentItem.city, currentItem.neighborhood].filter(Boolean).join(' - '))}
                         &nbsp;•&nbsp; <i class="fa-regular fa-clock"></i> ${escapeHTML(currentItem.timeAgo)}
-                        &nbsp;•&nbsp; <i class="fa-regular fa-eye"></i> ${Number(currentItem.views) || 0} مشاهدة
                     </p>
 
                     <!-- Main Gallery Slider -->

@@ -53,6 +53,7 @@ test('listing validation normalizes safe values and rejects invalid business dat
     assert.throws(() => engine.validateListing(validListing({ price: -1 })), /سعر الإعلان/);
     assert.throws(() => engine.validateListing(validListing({ city: 'مدينة غير معتمدة' })), /مدينة الإعلان/);
     assert.throws(() => engine.validateListing(validListing({ title: 'س' })), /عنوان الإعلان/);
+    assert.throws(() => engine.validateListing(validListing({ description: 'ؤؤؤؤؤؤؤؤؤؤؤؤؤؤ' })), /تكرار الحرف/);
     assert.throws(
         () => engine.validateListing(validListing({ images: Array(16).fill('https://example.com/image.jpg') })),
         /الحد الأقصى/

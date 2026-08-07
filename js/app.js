@@ -7,6 +7,7 @@ class FinnMarketApp {
         this.favorites = finnDB.getFavorites();
         this.chatPollTimer = null;
         this.modalFocusOrigins = new Map();
+        this.favoriteUpdates = new Set();
         
         // Active Filters State
         this.state = {
@@ -21,6 +22,9 @@ class FinnMarketApp {
             activeThreadId: null,
             pendingChatListingId: null,
             pendingReturnUrl: null,
+            listingsPage: 0,
+            listingsPageSize: 30,
+            hasMoreListings: true,
             isLoading: true
         };
 
@@ -31,7 +35,8 @@ class FinnMarketApp {
         this.setupAuthLifecycle();
         this.renderLoadingState();
         try {
-            this.listings = await finnDB.getListings();
+            this.listings = await finnDB.getListings(0, this.state.listingsPageSize);
+            this.state.hasMoreListings = this.listings.length === this.state.listingsPageSize;
             this.favorites = await finnDB.syncFavorites();
             this.state.isLoading = false;
         } catch (err) {
@@ -176,6 +181,10 @@ class FinnMarketApp {
 
     toggleFavoritesFilter() {
         this.state.showFavoritesOnly = !this.state.showFavoritesOnly;
+        const button = document.getElementById('btnHeaderFavs');
+        button?.setAttribute('aria-pressed', String(this.state.showFavoritesOnly));
+        button?.classList.toggle('active', this.state.showFavoritesOnly);
+        if (button) button.title = this.state.showFavoritesOnly ? 'عرض جميع الإعلانات' : 'عرض المفضلة فقط';
         this.applyFiltersAndRender();
     }
 
@@ -201,6 +210,8 @@ class FinnMarketApp {
         });
         tabLoginBtn?.classList.toggle('active', tab === 'login');
         tabRegBtn?.classList.toggle('active', tab === 'register');
+        tabLoginBtn?.setAttribute('aria-selected', String(tab === 'login'));
+        tabRegBtn?.setAttribute('aria-selected', String(tab === 'register'));
 
         if (tab === 'login' && loginForm) loginForm.style.display = 'block';
         if (tab === 'register' && regForm) regForm.style.display = 'block';
@@ -374,12 +385,17 @@ class FinnMarketApp {
 
         catNav.innerHTML = INITIAL_CATEGORIES.map(cat => `
             <li class="cat-nav-item ${this.state.category === cat.id ? 'active' : ''}">
-                <button data-cat="${cat.id}">
+                <button type="button" data-cat="${cat.id}" aria-pressed="${this.state.category === cat.id}">
                     <i class="fa-solid ${cat.icon}"></i>
                     <span>${cat.name}</span>
                 </button>
             </li>
         `).join('');
+        document.querySelectorAll('.hero-tag-btn[data-cat]').forEach(button => {
+            const active = button.dataset.cat === this.state.category;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
+        });
     }
 
     renderCityOptions() {
@@ -400,7 +416,7 @@ class FinnMarketApp {
         }
     }
 
-    handleImageFileUpload(event) {
+    async handleImageFileUpload(event) {
         const files = Array.from(event.target.files);
         if (!files.length) return;
         const countLabel = document.getElementById('imageCountLabel');
@@ -429,9 +445,38 @@ class FinnMarketApp {
             alert(`تم قبول ${acceptedFiles.length} صورة فقط لإكمال الحد الأقصى البالغ ${MAX_LISTING_IMAGES} صورة.`);
         }
 
-        this.state.uploadedImages.push(...acceptedFiles);
+        for (let index = 0; index < acceptedFiles.length; index += 1) {
+            if (countLabel) countLabel.textContent = `جاري تحسين الصورة ${index + 1} من ${acceptedFiles.length}...`;
+            try {
+                this.state.uploadedImages.push(await this.optimizeListingImage(acceptedFiles[index]));
+            } catch (_) {
+                this.state.uploadedImages.push(acceptedFiles[index]);
+            }
+        }
         this.renderImagePreviews();
         event.target.value = '';
+    }
+
+    async optimizeListingImage(file) {
+        const bitmap = await createImageBitmap(file);
+        const maxDimension = 1600;
+        const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+        if (scale === 1 && file.type === 'image/webp' && file.size <= 1200 * 1024) {
+            bitmap.close();
+            return file;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        canvas.getContext('2d', { alpha: false }).drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const blob = await new Promise((resolve, reject) => canvas.toBlob(
+            result => result ? resolve(result) : reject(new Error('تعذر ضغط الصورة.')),
+            'image/webp',
+            0.82
+        ));
+        const safeName = file.name.replace(/\.[^.]+$/, '').slice(0, 80) || 'listing-image';
+        return new File([blob], `${safeName}.webp`, { type: 'image/webp', lastModified: Date.now() });
     }
 
     renderImagePreviews() {
@@ -495,6 +540,10 @@ class FinnMarketApp {
         }
 
         if (!feedContainer) return;
+        const loadMoreButton = document.getElementById('loadMoreListingsButton');
+        if (loadMoreButton) {
+            loadMoreButton.hidden = this.state.showFavoritesOnly || !this.state.hasMoreListings;
+        }
 
         if (items.length === 0) {
             feedContainer.innerHTML = `
@@ -533,7 +582,6 @@ class FinnMarketApp {
                             <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
                             <div class="listing-footer-info">
                                 <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</span>
-                                <span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(item.views) || 0} مشاهدة</span>
                             </div>
                         </div>
                     </a>
@@ -541,6 +589,32 @@ class FinnMarketApp {
                 </article>
             `;
         }).join('');
+    }
+
+    async loadMoreListings() {
+        const button = document.getElementById('loadMoreListingsButton');
+        if (!this.state.hasMoreListings || button?.disabled) return;
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'جاري تحميل المزيد...';
+        }
+        try {
+            const nextPage = this.state.listingsPage + 1;
+            const nextListings = await finnDB.getListings(nextPage, this.state.listingsPageSize);
+            const knownIds = new Set(this.listings.map(item => item.id));
+            this.listings.push(...nextListings.filter(item => !knownIds.has(item.id)));
+            this.state.listingsPage = nextPage;
+            this.state.hasMoreListings = nextListings.length === this.state.listingsPageSize;
+            this.applyFiltersAndRender();
+        } catch (error) {
+            alert(error.message || 'تعذر تحميل المزيد من الإعلانات.');
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'تحميل المزيد من الإعلانات';
+                button.hidden = !this.state.hasMoreListings;
+            }
+        }
     }
 
     clearFilters() {
@@ -555,12 +629,16 @@ class FinnMarketApp {
     }
 
     async toggleFav(id) {
+        if (this.favoriteUpdates.has(id)) return;
+        this.favoriteUpdates.add(id);
         try {
             this.favorites = await finnDB.toggleFavorite(id);
             this.updateHeaderBadges();
             this.applyFiltersAndRender();
         } catch (error) {
             alert(error.message || 'تعذر تحديث المفضلة.');
+        } finally {
+            this.favoriteUpdates.delete(id);
         }
     }
 
@@ -866,9 +944,11 @@ class FinnMarketApp {
 
         const searchInput = document.getElementById('globalSearch');
         if (searchInput) {
+            let searchTimer;
             searchInput.addEventListener('input', (e) => {
                 this.state.searchQuery = e.target.value;
-                this.applyFiltersAndRender();
+                window.clearTimeout(searchTimer);
+                searchTimer = window.setTimeout(() => this.applyFiltersAndRender(), 180);
             });
         }
 

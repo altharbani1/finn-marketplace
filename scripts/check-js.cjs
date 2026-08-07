@@ -4,7 +4,7 @@ const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const jsFiles = ['js/data.js', 'js/security.js', 'js/supabase-config.js', 'js/app.js'];
-const htmlFiles = ['index.html', 'listing.html', 'profile.html', 'admin.html'];
+const htmlFiles = fs.readdirSync(root).filter(file => file.endsWith('.html'));
 
 for (const relativePath of jsFiles) {
     const source = fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -13,8 +13,9 @@ for (const relativePath of jsFiles) {
 
 for (const relativePath of htmlFiles) {
     const source = fs.readFileSync(path.join(root, relativePath), 'utf8');
-    const blocks = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
-        .map((match) => match[1])
+    const blocks = [...source.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+        .filter((match) => !/type=["']application\/ld\+json["']/i.test(match[1] || ''))
+        .map((match) => match[2])
         .filter((block) => block.trim());
     blocks.forEach((block, index) => new vm.Script(block, { filename: `${relativePath}:inline-${index + 1}` }));
 }

@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_-vcUUwqYtYMGTF-TAHK4jQ_gezyBqMD';
-const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
-const DEFAULT_LISTING_IMAGE = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80';
+const DEFAULT_AVATAR = 'assets/default-avatar.svg';
+const DEFAULT_LISTING_IMAGE = 'assets/no-image.svg';
 const LISTING_SELECT_COLUMNS = [
     'id', 'user_id', 'title', 'description', 'price', 'is_free',
     'category_type', 'sub_category', 'condition', 'city', 'neighborhood',
@@ -49,12 +49,23 @@ class FinnSeniorProductionEngine {
         const normEmail = email.trim().toLowerCase();
         const normPhone = phone.trim().replace(/\s+/g, '');
         const normName = fullName.trim();
+        if (normPhone && !/^(?:\+?966|0)?5\d{8}$/.test(normPhone)) {
+            throw new Error('أدخل رقم جوال سعودي صحيحًا أو اترك الحقل فارغًا.');
+        }
         const { data, error } = await client.auth.signUp({
             email: normEmail,
             password,
             options: {
                 emailRedirectTo,
-                data: { full_name: normName, phone: normPhone, avatar_url: DEFAULT_AVATAR }
+                data: {
+                    full_name: normName,
+                    phone: normPhone,
+                    avatar_url: DEFAULT_AVATAR,
+                    terms_accepted: true,
+                    terms_version: '2026-08-07',
+                    privacy_version: '2026-08-07',
+                    accepted_at: new Date().toISOString()
+                }
             }
         });
         if (error) throw new Error(this.translateAuthError(error.message));
@@ -97,6 +108,16 @@ class FinnSeniorProductionEngine {
         if (error) throw new Error(this.translateAuthError(error.message));
     }
 
+    async requestEmailChange(email, redirectTo) {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) throw new Error('أدخل بريدًا إلكترونيًا صحيحًا.');
+        const { error } = await this.requireClient().auth.updateUser(
+            { email: normalizedEmail },
+            { emailRedirectTo: redirectTo }
+        );
+        if (error) throw new Error(this.translateAuthError(error.message));
+    }
+
     onAuthStateChange(callback) {
         return this.requireClient().auth.onAuthStateChange(callback);
     }
@@ -106,6 +127,22 @@ class FinnSeniorProductionEngine {
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw new Error(`تعذر تسجيل الخروج: ${error.message}`);
         localStorage.removeItem(this.FAVS_KEY);
+    }
+
+    async requestAccountDeletion(reason = '') {
+        const normalizedReason = String(reason || '').trim();
+        if (normalizedReason.length > 1000) throw new Error('سبب طلب الحذف يجب ألا يتجاوز 1000 حرف.');
+        const { data, error } = await this.requireClient().rpc('request_account_deletion', {
+            p_reason: normalizedReason || null
+        });
+        if (error) throw new Error(`تعذر إرسال طلب حذف الحساب: ${error.message}`);
+        return data;
+    }
+
+    async getMyAccountDeletionRequest() {
+        const { data, error } = await this.requireClient().rpc('get_my_account_deletion_request');
+        if (error) throw new Error(`تعذر قراءة حالة طلب حذف الحساب: ${error.message}`);
+        return Array.isArray(data) ? (data[0] || null) : data;
     }
 
     translateAuthError(message = '') {
@@ -150,14 +187,31 @@ class FinnSeniorProductionEngine {
         };
     }
 
-    async getListings() {
-        if (!supabaseClient) return [...MOCK_LISTINGS];
+    async getListings(page = 0, pageSize = 30) {
+        if (!supabaseClient) throw new Error('تعذر تحميل خدمة البيانات. أعد المحاولة بعد التحقق من الاتصال.');
+        const safePage = Math.max(0, Number(page) || 0);
+        const safeSize = Math.min(100, Math.max(1, Number(pageSize) || 30));
+        const from = safePage * safeSize;
         const { data, error } = await supabaseClient
             .from('listings')
             .select(LISTING_SELECT_COLUMNS)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .range(from, from + safeSize - 1);
         if (error) throw new Error(`تعذر جلب الإعلانات: ${error.message}`);
         return (data || []).map((item) => this.mapListing(item));
+    }
+
+    async getAdminListings() {
+        const authUser = await this.getAuthUser();
+        if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بقراءة جميع الإعلانات.');
+        const pageSize = 100;
+        const listings = [];
+        for (let page = 0; page < 50; page += 1) {
+            const batch = await this.getListings(page, pageSize);
+            listings.push(...batch);
+            if (batch.length < pageSize) break;
+        }
+        return listings;
     }
 
     async getListingById(listingId) {
@@ -236,6 +290,7 @@ class FinnSeniorProductionEngine {
         if (!authUser) throw new Error('يجب تسجيل الدخول لإضافة رد.');
         const text = commentText.trim();
         if (!text || text.length > 2000) throw new Error('يجب أن يكون الرد بين 1 و2000 حرف.');
+        if (!this.hasMeaningfulText(text)) throw new Error('اكتب ردًا واضحًا بدل تكرار الحرف نفسه.');
         const { error } = await this.requireClient().from('comments').insert({
             listing_id: listingId,
             user_id: authUser.id,
@@ -305,6 +360,15 @@ class FinnSeniorProductionEngine {
             buyer_id: authUser.id,
             seller_id: listing.user_id
         }).select('id').single();
+        if (error?.code === '23505') {
+            const { data: racedThread, error: racedError } = await this.requireClient().from('chat_threads')
+                .select('id')
+                .eq('listing_id', listing.id)
+                .eq('buyer_id', authUser.id)
+                .eq('seller_id', listing.user_id)
+                .single();
+            if (!racedError && racedThread) return racedThread.id;
+        }
         if (error) throw new Error(`تعذر إنشاء المحادثة: ${error.message}`);
         return created.id;
     }
@@ -417,7 +481,7 @@ class FinnSeniorProductionEngine {
                 const path = `${userId}/${listingId}/${crypto.randomUUID()}.${extension}`;
                 const { error } = await this.requireClient().storage
                     .from('listing-images')
-                    .upload(path, blob, { contentType: blob.type, upsert: false });
+                    .upload(path, blob, { cacheControl: '31536000', contentType: blob.type, upsert: false });
                 if (error) throw error;
                 uploadedPaths.push(path);
                 const { data } = this.requireClient().storage.from('listing-images').getPublicUrl(path);
@@ -460,6 +524,9 @@ class FinnSeniorProductionEngine {
         if (description.length < 10 || description.length > 5000) {
             throw new Error('وصف الإعلان يجب أن يكون بين 10 و5000 حرف.');
         }
+        if (!this.hasMeaningfulText(title) || !this.hasMeaningfulText(description)) {
+            throw new Error('اكتب عنوانًا ووصفًا واضحين بدل تكرار الحرف نفسه.');
+        }
         if (subCategory.length > 80) throw new Error('التصنيف الفرعي يجب ألا يتجاوز 80 حرفاً.');
         if (!INITIAL_CATEGORIES.some(category => category.id === values.category && category.id !== 'all')) {
             throw new Error('قسم الإعلان غير صالح.');
@@ -492,6 +559,11 @@ class FinnSeniorProductionEngine {
             price,
             images
         };
+    }
+
+    hasMeaningfulText(value) {
+        const characters = [...String(value || '').normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '')];
+        return characters.length < 8 || new Set(characters).size >= 3;
     }
 
     async saveListing(newListing) {
@@ -554,6 +626,7 @@ class FinnSeniorProductionEngine {
             category_type: listing.category,
             sub_category: listing.subCategory,
             city: listing.city,
+            neighborhood: listing.neighborhood || null,
             condition: listing.condition,
             images,
             attributes: listing.specs,
@@ -677,6 +750,28 @@ class FinnSeniorProductionEngine {
         }));
     }
 
+    async getAdminAccountDeletionRequests() {
+        const { data, error } = await this.requireClient().rpc('get_admin_account_deletion_requests');
+        if (error) throw new Error(`تعذر جلب طلبات حذف الحساب: ${error.message}`);
+        return (data || []).map(request => ({
+            id: request.id,
+            userId: request.user_id,
+            email: request.email || 'حساب محذوف',
+            reason: request.reason || '',
+            status: request.status,
+            requestedAt: request.requested_at,
+            reviewedAt: request.reviewed_at
+        }));
+    }
+
+    async processAccountDeletionRequest(requestId) {
+        const { data, error } = await this.requireClient().functions.invoke('process-account-deletion', {
+            body: { request_id: requestId }
+        });
+        if (error || !data?.ok) throw new Error('تعذر تنفيذ حذف الحساب بأمان. لم تُحذف البيانات جزئيًا.');
+        return this.getAdminAccountDeletionRequests();
+    }
+
     async updateReportStatus(reportId, status) {
         const authUser = await this.getAuthUser();
         if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بتحديث البلاغات.');
@@ -702,6 +797,10 @@ class FinnSeniorProductionEngine {
     async updateProfile(values) {
         const user = await this.getAuthUser();
         if (!user) throw new Error('يجب تسجيل الدخول.');
+        const normalizedPhone = String(values.phone || '').trim().replace(/\s+/g, '');
+        if (normalizedPhone && !/^(?:\+?966|0)?5\d{8}$/.test(normalizedPhone)) {
+            throw new Error('أدخل رقم جوال سعودي صحيحًا أو اترك الحقل فارغًا.');
+        }
         let uploadedAvatar = null;
         let avatarUrl = user.avatar;
         if (values.avatarFile) {
@@ -714,7 +813,7 @@ class FinnSeniorProductionEngine {
             const path = `${user.id}/avatar-${Date.now()}.${extension}`;
             const { error: uploadError } = await this.requireClient().storage
                 .from('profile-avatars')
-                .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+                .upload(path, file, { cacheControl: '31536000', upsert: false, contentType: file.type });
             if (uploadError) throw new Error(`تعذر رفع صورة الحساب: ${uploadError.message}`);
             const { data } = this.requireClient().storage.from('profile-avatars').getPublicUrl(path);
             uploadedAvatar = path;
@@ -722,7 +821,7 @@ class FinnSeniorProductionEngine {
         }
         const { error } = await this.requireClient().from('profiles').update({
             full_name: values.name.trim(),
-            phone_number: values.phone.trim(),
+            phone_number: normalizedPhone || null,
             avatar_url: avatarUrl || null,
             updated_at: new Date().toISOString()
         }).eq('id', user.id);
@@ -772,7 +871,10 @@ class FinnSeniorProductionEngine {
         if (authUser) {
             const query = isFavorite
                 ? this.requireClient().from('favorites').delete().eq('user_id', authUser.id).eq('listing_id', id)
-                : this.requireClient().from('favorites').insert({ user_id: authUser.id, listing_id: id });
+                : this.requireClient().from('favorites').upsert(
+                    { user_id: authUser.id, listing_id: id },
+                    { onConflict: 'user_id,listing_id', ignoreDuplicates: true }
+                );
             const { error } = await query;
             if (error) throw new Error(`تعذر تحديث المفضلة: ${error.message}`);
         }

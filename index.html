@@ -1,10 +1,16 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-SA" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinnMarket | أكبر منصة وسوق إلكتروني وعقارات وسيارات</title>
-    <meta name="description" content="منصة الإعلانات المبوبة والسوق الإلكتروني الأول المستوحى من Finn.no للتداول التجاري، العقارات، السيارات، الوظائف، والأشياء المجانية.">
+    <title>سوق الإعلانات المبوبة في السعودية | FinnMarket</title>
+    <meta name="description" content="اعثر على إعلانات العقارات والسيارات والمقاولات والخدمات والأثاث والأجهزة في مدن السعودية، أو انشر إعلانك مجانًا عبر FinnMarket.">
+    <link rel="canonical" href="https://fann1.netlify.app/">
+    <meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+    <meta property="og:site_name" content="FinnMarket"><meta property="og:title" content="سوق الإعلانات المبوبة في السعودية | FinnMarket">
+    <meta property="og:description" content="إعلانات عقارات وسيارات وخدمات وأثاث وأجهزة في مدن المملكة."><meta property="og:url" content="https://fann1.netlify.app/">
+    <meta name="twitter:card" content="summary"><meta name="twitter:title" content="FinnMarket السعودية"><meta name="twitter:description" content="سوق إعلانات مبوبة يخدم مدن المملكة.">
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://fann1.netlify.app/#organization","name":"FinnMarket","url":"https://fann1.netlify.app/"},{"@type":"WebSite","@id":"https://fann1.netlify.app/#website","url":"https://fann1.netlify.app/","name":"FinnMarket","inLanguage":"ar-SA","publisher":{"@id":"https://fann1.netlify.app/#organization"}}]}</script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +23,7 @@
     <!-- Custom CSS with Cache Buster v8.0 -->
     <link rel="stylesheet" href="css/main.css?v=9.0">
     <link rel="stylesheet" href="css/components.css?v=13.0">
+    <link rel="stylesheet" href="css/legal.css?v=1.0">
 </head>
 <body>
 
@@ -43,7 +50,7 @@
     </header>
 
     <!-- 2. Subbar Categories Navigation -->
-    <nav class="cat-nav-subbar">
+    <nav class="cat-nav-subbar" aria-label="أقسام الإعلانات">
         <div class="container">
             <ul class="cat-nav-list" id="catNavList">
                 <!-- Injected dynamically via app.js -->
@@ -58,17 +65,17 @@
             <p class="hero-subtitle">تصفح العقارات، السيارات، اليخوت، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
             <div class="hero-tags">
-                <button class="hero-tag-btn active" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
-                <button class="hero-tag-btn" onclick="app.state.category='real_estate'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-house-chimney"></i> العقارات</button>
-                <button class="hero-tag-btn" onclick="app.state.category='vehicles'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-car"></i> السيارات</button>
-                <button class="hero-tag-btn" onclick="app.state.category='contracting'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-helmet-safety"></i> المقاولات</button>
-                <button class="hero-tag-btn" onclick="app.state.category='services'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-handshake-angle"></i> الخدمات</button>
-                <button class="hero-tag-btn" onclick="app.state.category='furniture'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> الأثاث</button>
-                <button class="hero-tag-btn" onclick="app.state.category='electronics'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-tv"></i> الأجهزة</button>
-                <button class="hero-tag-btn" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
-                <button class="hero-tag-btn" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني</button>
-                <button class="hero-tag-btn" onclick="app.state.category='boats'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-ship"></i> القوارب والبحري</button>
-                <button class="hero-tag-btn" onclick="app.state.category='motorbikes'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-motorcycle"></i> الدراجات</button>
+                <button type="button" class="hero-tag-btn active" data-cat="all" aria-pressed="true" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
+                <button type="button" class="hero-tag-btn" data-cat="real_estate" aria-pressed="false" onclick="app.state.category='real_estate'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-house-chimney"></i> العقارات</button>
+                <button type="button" class="hero-tag-btn" data-cat="vehicles" aria-pressed="false" onclick="app.state.category='vehicles'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-car"></i> السيارات</button>
+                <button type="button" class="hero-tag-btn" data-cat="contracting" aria-pressed="false" onclick="app.state.category='contracting'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-helmet-safety"></i> المقاولات</button>
+                <button type="button" class="hero-tag-btn" data-cat="services" aria-pressed="false" onclick="app.state.category='services'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-handshake-angle"></i> الخدمات</button>
+                <button type="button" class="hero-tag-btn" data-cat="furniture" aria-pressed="false" onclick="app.state.category='furniture'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> الأثاث</button>
+                <button type="button" class="hero-tag-btn" data-cat="electronics" aria-pressed="false" onclick="app.state.category='electronics'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-tv"></i> الأجهزة</button>
+                <button type="button" class="hero-tag-btn" data-cat="jobs" aria-pressed="false" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
+                <button type="button" class="hero-tag-btn" data-cat="freebies" aria-pressed="false" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني</button>
+                <button type="button" class="hero-tag-btn" data-cat="boats" aria-pressed="false" onclick="app.state.category='boats'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-ship"></i> القوارب والبحري</button>
+                <button type="button" class="hero-tag-btn" data-cat="motorbikes" aria-pressed="false" onclick="app.state.category='motorbikes'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-motorcycle"></i> الدراجات</button>
             </div>
         </div>
     </section>
@@ -85,8 +92,11 @@
             <div id="listingsFeed">
                 <!-- Rendered dynamically via app.js -->
             </div>
+            <div style="text-align:center; margin-top:20px;"><button type="button" id="loadMoreListingsButton" class="btn btn-outline" onclick="app.loadMoreListings()" hidden>تحميل المزيد من الإعلانات</button></div>
         </section>
     </main>
+
+    <footer class="site-footer"><div class="container site-footer-inner"><p>© 2026 FinnMarket — منصة إعلانات مبوبة</p><nav class="site-footer-links" aria-label="روابط معلوماتية"><a href="about.html">عن المنصة</a><a href="privacy.html">الخصوصية</a><a href="terms.html">الشروط</a><a href="safety.html">الأمان</a><a href="contact.html">التواصل</a></nav></div></footer>
 
     <!-- 5. Real Auth Security Modal -->
     <div class="modal-overlay" id="realAuthModal" role="dialog" aria-modal="true" aria-labelledby="authDialogTitle" aria-hidden="true" hidden inert>
@@ -98,10 +108,10 @@
             <!-- Tab Switcher (Login / Register) -->
             <h2 class="sr-only" id="authDialogTitle">الدخول أو إنشاء حساب</h2>
             <div class="auth-tabs-switcher" role="tablist" aria-label="خيارات الحساب">
-                <button class="auth-tab-btn active" id="tabLoginBtn" onclick="app.switchAuthTab('login')">
+                <button type="button" class="auth-tab-btn active" id="tabLoginBtn" role="tab" aria-selected="true" aria-controls="loginAuthForm" onclick="app.switchAuthTab('login')">
                     <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
                 </button>
-                <button class="auth-tab-btn" id="tabRegisterBtn" onclick="app.switchAuthTab('register')">
+                <button type="button" class="auth-tab-btn" id="tabRegisterBtn" role="tab" aria-selected="false" aria-controls="registerAuthForm" onclick="app.switchAuthTab('register')">
                     <i class="fa-solid fa-user-plus"></i> حساب جديد
                 </button>
             </div>
@@ -109,7 +119,7 @@
             <div class="auth-divider"><span>بالبريد الإلكتروني المعتمد</span></div>
 
             <!-- Login Form -->
-            <form id="loginAuthForm" onsubmit="app.handleRealLogin(event)">
+            <form id="loginAuthForm" role="tabpanel" aria-labelledby="tabLoginBtn" onsubmit="app.handleRealLogin(event)">
                 <div style="margin-bottom: 14px;">
                     <label class="filter-label" for="loginEmail">البريد الإلكتروني المسجل</label>
                     <div class="input-icon-wrap">
@@ -140,7 +150,7 @@
             </form>
 
             <!-- Register Form -->
-            <form id="registerAuthForm" style="display: none;" onsubmit="app.handleRealRegister(event)">
+            <form id="registerAuthForm" role="tabpanel" aria-labelledby="tabRegisterBtn" style="display: none;" onsubmit="app.handleRealRegister(event)">
                 <div style="margin-bottom: 14px;">
                     <label class="filter-label" for="regName">الاسم الكامل (سيظهر في إعلاناتك) *</label>
                     <div class="input-icon-wrap">
@@ -158,11 +168,12 @@
                 </div>
 
                 <div style="margin-bottom: 14px;">
-                    <label class="filter-label" for="regPhone">رقم الجوال لتلقي التنبيهات *</label>
+                    <label class="filter-label" for="regPhone">رقم الجوال للتواصل بخصوص إعلاناتك (اختياري)</label>
                     <div class="input-icon-wrap">
                         <i class="fa-solid fa-phone"></i>
-                        <input type="tel" id="regPhone" name="regPhone" class="form-input" placeholder="+966 50 123 4567" autocomplete="tel" inputmode="tel" required>
+                        <input type="tel" id="regPhone" name="regPhone" class="form-input" placeholder="مثال: 0501234567" autocomplete="tel" inputmode="tel" aria-describedby="phonePrivacyHint">
                     </div>
+                    <small id="phonePrivacyHint" style="display:block; margin-top:6px; color:var(--text-muted);">إن أدخلته، يظهر فقط لمستخدم مسجل عندما يطلب التواصل معك.</small>
                 </div>
 
                 <div style="margin-bottom: 20px;">
@@ -179,6 +190,13 @@
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" id="regPasswordConfirm" name="regPasswordConfirm" class="form-input" placeholder="أعد كتابة كلمة المرور" autocomplete="new-password" minlength="8" required>
                     </div>
+                </div>
+
+                <div style="margin-bottom: 18px; font-size: 13px; line-height: 1.7;">
+                    <label for="acceptTerms" style="display:flex; gap:9px; align-items:flex-start; cursor:pointer;">
+                        <input type="checkbox" id="acceptTerms" name="acceptTerms" required style="margin-top:4px;">
+                        <span>أوافق على <a href="terms.html" target="_blank" rel="noopener">شروط الاستخدام</a> واطلعت على <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>. يظهر رقم الجوال فقط للمستخدم المسجل عند طلب التواصل مع معلن.</span>
+                    </label>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-size: 15px;">
@@ -356,7 +374,7 @@
     </div>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0" integrity="sha384-fPWur1rx/DE6YtXP/x0MD6dd90RgnVsz5yX/DIg7CcVAnTBZsENWuIcpvVTM39ti" crossorigin="anonymous"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
     <script src="js/supabase-config.js?v=14.0"></script>

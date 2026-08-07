@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">لا توجد صورة</title><desc id="description">عنصر بديل محايد للإعلان الذي لا يحتوي على صورة.</desc>
+  <rect width="1200" height="800" fill="#f1f5f9"/><rect x="330" y="210" width="540" height="380" rx="32" fill="#fff" stroke="#cbd5e1" stroke-width="12"/>
+  <circle cx="485" cy="350" r="55" fill="#cbd5e1"/><path d="M380 525l150-140 105 95 70-65 115 110z" fill="#94a3b8"/>
+  <text x="600" y="690" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" fill="#475569">لا توجد صورة</text>
+</svg>

@@ -1,0 +1,28 @@
+name: Production availability
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  availability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check primary pages and SEO files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /robots.txt /sitemap.xml /privacy.html /terms.html; do
+            curl --fail --silent --show-error --location --max-time 20 \
+              --retry 2 --retry-delay 2 "https://fann1.netlify.app${path}" >/dev/null
+          done
+      - name: Check Supabase API gateway
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 20 \
+            "https://mjuaqlkddmgilmjehwlx.supabase.co/auth/v1/health" >/dev/null
