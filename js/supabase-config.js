@@ -2,6 +2,11 @@ const SUPABASE_URL = 'https://mjuaqlkddmgilmjehwlx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_-vcUUwqYtYMGTF-TAHK4jQ_gezyBqMD';
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
 const DEFAULT_LISTING_IMAGE = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80';
+const LISTING_SELECT_COLUMNS = [
+    'id', 'user_id', 'title', 'description', 'price', 'is_free',
+    'category_type', 'sub_category', 'condition', 'city', 'neighborhood',
+    'status', 'views_count', 'attributes', 'images', 'created_at', 'updated_at'
+].join(',');
 
 const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
     ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -24,13 +29,10 @@ class FinnSeniorProductionEngine {
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
         if (authError || !user) return null;
 
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('full_name, avatar_url, phone_number, role, verified_seller')
-            .eq('id', user.id)
-            .maybeSingle();
+        const { data: profileResult, error: profileError } = await supabaseClient.rpc('get_my_profile');
 
         if (profileError) throw new Error(`تعذر قراءة الملف الشخصي: ${profileError.message}`);
+        const profile = Array.isArray(profileResult) ? profileResult[0] : profileResult;
         return {
             id: user.id,
             email: user.email,
@@ -152,38 +154,57 @@ class FinnSeniorProductionEngine {
         if (!supabaseClient) return [...MOCK_LISTINGS];
         const { data, error } = await supabaseClient
             .from('listings')
-            .select('*')
+            .select(LISTING_SELECT_COLUMNS)
             .order('created_at', { ascending: false });
         if (error) throw new Error(`تعذر جلب الإعلانات: ${error.message}`);
         return (data || []).map((item) => this.mapListing(item));
     }
 
-    async getListingSeller(userId) {
-        if (!userId || !await this.getAuthUser()) return null;
+    async getListingById(listingId) {
+        if (!listingId) return null;
         const { data, error } = await this.requireClient()
-            .from('profiles')
-            .select('id, full_name, avatar_url, phone_number, rating, verified_seller')
-            .eq('id', userId)
+            .from('listings')
+            .select(LISTING_SELECT_COLUMNS)
+            .eq('id', listingId)
             .maybeSingle();
+        if (error) throw new Error(`تعذر جلب الإعلان: ${error.message}`);
+        return data ? this.mapListing(data) : null;
+    }
+
+    async getListingSeller(listingId) {
+        if (!listingId || !await this.getAuthUser()) return null;
+        const { data, error } = await this.requireClient().rpc('get_listing_contact', {
+            p_listing_id: listingId
+        });
         if (error) throw new Error(`تعذر جلب بيانات المعلن: ${error.message}`);
-        if (!data) return null;
+        const contact = Array.isArray(data) ? data[0] : data;
+        if (!contact) return null;
         return {
-            id: data.id,
-            name: data.full_name || 'معلن',
-            avatar: data.avatar_url || DEFAULT_AVATAR,
-            phone: data.phone_number || '',
-            rating: Number(data.rating || 0),
-            verified: Boolean(data.verified_seller)
+            id: contact.id || contact.seller_id,
+            name: contact.full_name || 'معلن',
+            avatar: contact.avatar_url || DEFAULT_AVATAR,
+            phone: contact.phone_number || '',
+            rating: Number(contact.rating || 0),
+            verified: Boolean(contact.verified_seller)
         };
     }
 
     async getListingComments(listingId) {
-        const { data, error } = await this.requireClient()
-            .from('comments')
-            .select('id, listing_id, user_id, comment_text, is_seller_reply, created_at')
-            .eq('listing_id', listingId)
-            .order('created_at', { ascending: true });
+        const [{ data, error }, { data: listing, error: listingError }] = await Promise.all([
+            this.requireClient()
+                .from('comments')
+                .select('id, listing_id, user_id, comment_text, created_at')
+                .eq('listing_id', listingId)
+                .order('created_at', { ascending: true }),
+            this.requireClient()
+                .from('listings')
+                .select('user_id')
+                .eq('id', listingId)
+                .maybeSingle()
+        ]);
         if (error) throw new Error(`تعذر جلب الردود: ${error.message}`);
+        if (listingError) throw new Error(`تعذر التحقق من صاحب الإعلان: ${listingError.message}`);
+        const listingOwnerId = listing?.user_id || null;
 
         const authUser = await this.getAuthUser();
         const profileMap = new Map();
@@ -203,14 +224,14 @@ class FinnSeniorProductionEngine {
                 userId: comment.user_id,
                 author: profile.full_name || 'عضو في FinnMarket',
                 avatar: profile.avatar_url || DEFAULT_AVATAR,
-                isSeller: Boolean(comment.is_seller_reply),
+                isSeller: Boolean(listingOwnerId && comment.user_id === listingOwnerId),
                 text: comment.comment_text,
                 time: new Date(comment.created_at).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })
             };
         });
     }
 
-    async addComment(listingId, commentText, listingOwnerId) {
+    async addComment(listingId, commentText) {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول لإضافة رد.');
         const text = commentText.trim();
@@ -218,8 +239,7 @@ class FinnSeniorProductionEngine {
         const { error } = await this.requireClient().from('comments').insert({
             listing_id: listingId,
             user_id: authUser.id,
-            comment_text: text,
-            is_seller_reply: authUser.id === listingOwnerId
+            comment_text: text
         });
         if (error) throw new Error(`تعذر نشر الرد: ${error.message}`);
         return this.getListingComments(listingId);
@@ -342,15 +362,10 @@ class FinnSeniorProductionEngine {
         if (authUser.id === sellerId) throw new Error('لا يمكنك تقييم نفسك.');
         const score = Number(rating);
         if (!Number.isInteger(score) || score < 1 || score > 5) throw new Error('التقييم غير صالح.');
-        const { error: deleteError } = await this.requireClient().from('seller_ratings')
-            .delete()
-            .eq('listing_id', listingId);
-        if (deleteError) throw new Error(`تعذر تحديث التقييم: ${deleteError.message}`);
-        const { error } = await this.requireClient().from('seller_ratings').insert({
-            listing_id: listingId,
-            seller_id: sellerId,
-            reviewer_id: authUser.id,
-            rating: score
+        const { error } = await this.requireClient().rpc('upsert_seller_rating', {
+            p_listing_id: listingId,
+            p_seller_id: sellerId,
+            p_rating: score
         });
         if (error) throw new Error(`تعذر حفظ التقييم: ${error.message}`);
         return this.getSellerRating(sellerId);
@@ -375,12 +390,21 @@ class FinnSeniorProductionEngine {
         const urls = [];
         try {
             for (const image of images) {
-                if (/^https?:\/\//i.test(image)) {
+                if (typeof image === 'string' && /^https?:\/\//i.test(image)) {
                     urls.push(image);
                     continue;
                 }
 
-                const blob = await fetch(image).then(response => response.blob());
+                let blob;
+                if (typeof Blob !== 'undefined' && image instanceof Blob) {
+                    blob = image;
+                } else if (typeof image === 'string' && /^data:image\//i.test(image)) {
+                    const response = await fetch(image);
+                    if (!response.ok) throw new Error('تعذر قراءة إحدى الصور المختارة.');
+                    blob = await response.blob();
+                } else {
+                    throw new Error('إحدى الصور ليست ملفاً أو رابطاً مدعوماً.');
+                }
                 const extension = ({
                     'image/png': 'png',
                     'image/jpeg': 'jpg',
@@ -420,33 +444,78 @@ class FinnSeniorProductionEngine {
         }
     }
 
+    validateListing(values) {
+        const title = String(values?.title || '').trim();
+        const description = String(values?.description || '').trim();
+        const subCategory = String(values?.subCategory || '').trim();
+        const city = String(values?.city || '').trim();
+        const condition = String(values?.condition || 'good');
+        const isFree = Boolean(values?.isFree);
+        const price = isFree ? 0 : Number(values?.price);
+        const images = Array.isArray(values?.images) ? values.images : [];
+
+        if (title.length < 3 || title.length > 120) {
+            throw new Error('عنوان الإعلان يجب أن يكون بين 3 و120 حرفاً.');
+        }
+        if (description.length < 10 || description.length > 5000) {
+            throw new Error('وصف الإعلان يجب أن يكون بين 10 و5000 حرف.');
+        }
+        if (subCategory.length > 80) throw new Error('التصنيف الفرعي يجب ألا يتجاوز 80 حرفاً.');
+        if (!INITIAL_CATEGORIES.some(category => category.id === values.category && category.id !== 'all')) {
+            throw new Error('قسم الإعلان غير صالح.');
+        }
+        if (!INITIAL_CITIES.includes(city) || city === 'جميع المدن') throw new Error('مدينة الإعلان غير صالحة.');
+        if (!['new', 'like_new', 'good', 'fair', 'for_parts'].includes(condition)) {
+            throw new Error('حالة المنتج غير صالحة.');
+        }
+        if (!Number.isFinite(price) || price < 0 || price > 9999999999.99) {
+            throw new Error('سعر الإعلان غير صالح.');
+        }
+        if (images.length > MAX_LISTING_IMAGES) {
+            throw new Error(`الحد الأقصى هو ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
+        }
+        images.forEach(image => {
+            const isBlob = typeof Blob !== 'undefined' && image instanceof Blob;
+            const isSupportedUrl = typeof image === 'string' && /^(https?:\/\/|data:image\/)/i.test(image);
+            if (!isBlob && !isSupportedUrl) throw new Error('إحدى صور الإعلان غير صالحة.');
+            if (isBlob && image.size > 5 * 1024 * 1024) throw new Error('إحدى الصور أكبر من 5 ميجابايت.');
+        });
+
+        return {
+            ...values,
+            title,
+            description,
+            subCategory,
+            city,
+            condition,
+            isFree,
+            price,
+            images
+        };
+    }
+
     async saveListing(newListing) {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول قبل نشر الإعلان.');
-        if (!INITIAL_CATEGORIES.some(category => category.id === newListing.category && category.id !== 'all')) {
-            throw new Error('قسم الإعلان غير صالح.');
-        }
-        if (!Array.isArray(newListing.images) || newListing.images.length > MAX_LISTING_IMAGES) {
-            throw new Error(`الحد الأقصى هو ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
-        }
+        const listing = this.validateListing(newListing);
         const listingId = crypto.randomUUID();
-        const imageUpload = await this.uploadListingImages(listingId, newListing.images, authUser.id);
+        const imageUpload = await this.uploadListingImages(listingId, listing.images, authUser.id);
         const images = imageUpload.urls.length ? imageUpload.urls : [DEFAULT_LISTING_IMAGE];
         const { data, error } = await this.requireClient().from('listings').insert({
             id: listingId,
             user_id: authUser.id,
-            title: newListing.title.trim(),
-            description: newListing.description.trim(),
-            price: Number(newListing.price || 0),
-            is_free: Boolean(newListing.isFree),
-            category_type: newListing.category,
-            sub_category: newListing.subCategory,
-            city: newListing.city,
-            neighborhood: newListing.neighborhood || null,
-            condition: newListing.condition,
+            title: listing.title,
+            description: listing.description,
+            price: listing.price,
+            is_free: listing.isFree,
+            category_type: listing.category,
+            sub_category: listing.subCategory,
+            city: listing.city,
+            neighborhood: listing.neighborhood || null,
+            condition: listing.condition,
             images,
-            attributes: newListing.specs
-        }).select('*').single();
+            attributes: listing.specs
+        }).select(LISTING_SELECT_COLUMNS).single();
         if (error) {
             if (imageUpload.uploadedPaths.length) {
                 await this.requireClient().storage.from('listing-images').remove(imageUpload.uploadedPaths);
@@ -465,12 +534,7 @@ class FinnSeniorProductionEngine {
     async updateListing(listingId, values) {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول قبل تعديل الإعلان.');
-        if (!INITIAL_CATEGORIES.some(category => category.id === values.category && category.id !== 'all')) {
-            throw new Error('قسم الإعلان غير صالح.');
-        }
-        if (!Array.isArray(values.images) || values.images.length > MAX_LISTING_IMAGES) {
-            throw new Error(`الحد الأقصى هو ${MAX_LISTING_IMAGES} صورة لكل إعلان.`);
-        }
+        const listing = this.validateListing(values);
 
         const { data: current, error: currentError } = await this.requireClient()
             .from('listings')
@@ -480,21 +544,21 @@ class FinnSeniorProductionEngine {
             .single();
         if (currentError) throw new Error('تعذر قراءة الإعلان أو أنك لا تملك صلاحية تعديله.');
 
-        const imageUpload = await this.uploadListingImages(listingId, values.images, authUser.id);
+        const imageUpload = await this.uploadListingImages(listingId, listing.images, authUser.id);
         const images = imageUpload.urls.length ? imageUpload.urls : [DEFAULT_LISTING_IMAGE];
         const { data, error } = await this.requireClient().from('listings').update({
-            title: values.title.trim(),
-            description: values.description.trim(),
-            price: Number(values.price || 0),
-            is_free: Boolean(values.isFree),
-            category_type: values.category,
-            sub_category: values.subCategory,
-            city: values.city,
-            condition: values.condition,
+            title: listing.title,
+            description: listing.description,
+            price: listing.price,
+            is_free: listing.isFree,
+            category_type: listing.category,
+            sub_category: listing.subCategory,
+            city: listing.city,
+            condition: listing.condition,
             images,
-            attributes: values.specs,
+            attributes: listing.specs,
             updated_at: new Date().toISOString()
-        }).eq('id', listingId).eq('user_id', authUser.id).select('*').single();
+        }).eq('id', listingId).eq('user_id', authUser.id).select(LISTING_SELECT_COLUMNS).single();
 
         if (error) {
             if (imageUpload.uploadedPaths.length) {
@@ -522,16 +586,33 @@ class FinnSeniorProductionEngine {
 
     async deleteListing(listingId) {
         const authUser = await this.getAuthUser();
-        const { data: listing } = authUser ? await this.requireClient()
-            .from('listings')
-            .select('images')
+        if (!authUser) throw new Error('يجب تسجيل الدخول لحذف الإعلان.');
+        if (authUser.role === 'admin') {
+            const { data, error } = await this.requireClient().rpc('delete_listing_as_admin', {
+                p_listing_id: listingId
+            });
+            if (error) throw new Error(`تعذر حذف الإعلان: ${error.message}`);
+            const deletedListing = Array.isArray(data) ? data[0] : data;
+            if (!deletedListing) throw new Error('الإعلان غير موجود أو تعذر حذفه.');
+            const imagePaths = (deletedListing.images || [])
+                .map(url => this.storagePathFromUrl(url, deletedListing.owner_id))
+                .filter(Boolean);
+            if (imagePaths.length) {
+                await this.requireClient().storage.from('listing-images').remove(imagePaths);
+            }
+            return this.getListings();
+        }
+        const listing = await this.getListingById(listingId);
+        if (!listing) throw new Error('الإعلان غير موجود أو لا تملك صلاحية حذفه.');
+        const { data: deleted, error } = await this.requireClient().from('listings')
+            .delete()
             .eq('id', listingId)
-            .eq('user_id', authUser.id)
-            .maybeSingle() : { data: null };
-        const { error } = await this.requireClient().from('listings').delete().eq('id', listingId);
+            .select('id')
+            .maybeSingle();
         if (error) throw new Error(`تعذر حذف الإعلان: ${error.message}`);
-        const imagePaths = (listing?.images || [])
-            .map(url => this.storagePathFromUrl(url, authUser.id))
+        if (!deleted) throw new Error('لم يُحذف الإعلان؛ تحقق من صلاحيات الحساب.');
+        const imagePaths = (listing.images || [])
+            .map(url => this.storagePathFromUrl(url, listing.userId))
             .filter(Boolean);
         if (imagePaths.length) {
             await this.requireClient().storage.from('listing-images').remove(imagePaths);
@@ -543,19 +624,17 @@ class FinnSeniorProductionEngine {
         if (!['active', 'pending', 'rejected', 'reserved', 'sold'].includes(status)) {
             throw new Error('حالة الإعلان غير صالحة.');
         }
-        const { error } = await this.requireClient().from('listings').update({
-            status,
-            updated_at: new Date().toISOString()
-        }).eq('id', listingId);
+        const { error } = await this.requireClient().rpc('set_listing_status', {
+            p_listing_id: listingId,
+            p_status: status
+        });
         if (error) throw new Error(`تعذر تحديث حالة الإعلان: ${error.message}`);
     }
 
     async getAdminProfiles() {
         const authUser = await this.getAuthUser();
         if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بقراءة بيانات الأعضاء.');
-        const { data, error } = await this.requireClient().from('profiles')
-            .select('id, full_name, phone_number, role, verified_seller, created_at')
-            .order('created_at', { ascending: false });
+        const { data, error } = await this.requireClient().rpc('get_admin_profiles');
         if (error) throw new Error(`تعذر جلب الأعضاء: ${error.message}`);
         return (data || []).map(profile => ({
             id: profile.id,

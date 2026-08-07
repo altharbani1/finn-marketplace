@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS v6.0 -->
-    <link rel="stylesheet" href="css/main.css?v=8.0">
-    <link rel="stylesheet" href="css/components.css?v=12.0">
+    <link rel="stylesheet" href="css/main.css?v=9.0">
+    <link rel="stylesheet" href="css/components.css?v=13.0">
 
     <style>
         .admin-layout {
@@ -69,6 +69,11 @@
             cursor: pointer;
             transition: var(--transition-fast);
             margin-bottom: 6px;
+            width: 100%;
+            border: 0;
+            background: transparent;
+            text-align: right;
+            min-height: 44px;
         }
 
         .admin-nav-item.active, .admin-nav-item:hover {
@@ -189,31 +194,31 @@
         <!-- Sidebar Navigation -->
         <aside class="admin-sidebar">
             <div class="admin-user-profile-card">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="admin-avatar" id="adminAvatarImg">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="admin-avatar" id="adminAvatarImg" alt="صورة مدير المنصة">
                 <div>
                     <h4 style="font-size: 15px; font-weight: 800;" id="adminNameTxt">مدير المنصة</h4>
                     <span style="font-size: 11px; color: #ef4444; font-weight: 700;">صلاحيات كاملة (Admin)</span>
                 </div>
             </div>
 
-            <nav>
-                <div class="admin-nav-item active" onclick="switchAdminTab('overview', this)">
+            <nav aria-label="أقسام لوحة التحكم">
+                <button type="button" class="admin-nav-item active" onclick="switchAdminTab('overview', this)">
                     <span><i class="fa-solid fa-chart-pie" style="margin-left: 8px;"></i> الإحصائيات</span>
-                </div>
-                <div class="admin-nav-item" onclick="switchAdminTab('listings', this)">
+                </button>
+                <button type="button" class="admin-nav-item" onclick="switchAdminTab('listings', this)">
                     <span><i class="fa-solid fa-boxes-stacked" style="margin-left: 8px;"></i> إدارة الإعلانات</span>
                     <span class="admin-badge-count" id="badgeAdsCount">0</span>
-                </div>
-                <div class="admin-nav-item" onclick="switchAdminTab('users', this)">
+                </button>
+                <button type="button" class="admin-nav-item" onclick="switchAdminTab('users', this)">
                     <span><i class="fa-solid fa-users-gear" style="margin-left: 8px;"></i> الأعضاء والتراخيص</span>
-                </div>
-                <div class="admin-nav-item" onclick="switchAdminTab('reports', this)">
+                </button>
+                <button type="button" class="admin-nav-item" onclick="switchAdminTab('reports', this)">
                     <span><i class="fa-solid fa-flag" style="margin-left: 8px;"></i> البلاغات والمراقبة</span>
                     <span class="admin-badge-count" id="badgeReportsCount" style="background: #ef4444;">0</span>
-                </div>
-                <div class="admin-nav-item" onclick="switchAdminTab('cities', this)">
+                </button>
+                <button type="button" class="admin-nav-item" onclick="switchAdminTab('cities', this)">
                     <span><i class="fa-solid fa-city" style="margin-left: 8px;"></i> المدن والتصنيفات</span>
-                </div>
+                </button>
             </nav>
         </aside>
 
@@ -271,7 +276,7 @@
                 <div class="admin-card">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                         <h2 style="font-size: 20px; font-weight: 800;">إدارة وحظر وتفعيل كافة الإعلانات</h2>
-                        <input type="text" class="search-admin-input" id="searchAdminAdsInput" placeholder="بحث بالكلمة أو المدينة..." oninput="filterAdminListingsTable(this.value)">
+                        <input type="search" class="search-admin-input" id="searchAdminAdsInput" aria-label="البحث في الإعلانات بالكلمة أو المدينة" placeholder="بحث بالكلمة أو المدينة..." oninput="filterAdminListingsTable(this.value)">
                     </div>
                     <div id="fullListingsTableWrapper"></div>
                 </div>
@@ -326,7 +331,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
-    <script src="js/supabase-config.js?v=13.0"></script>
+    <script src="js/supabase-config.js?v=14.0"></script>
     <script>
         let allListings = [];
         let allUsers = [];
