@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Private and administrative interfaces must not be crawled.
+Disallow: /admin.html
+Disallow: /profile.html
+
+Sitemap: https://fann1.netlify.app/sitemap.xml

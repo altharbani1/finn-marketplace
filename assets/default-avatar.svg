@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">صورة حساب افتراضية</title>
+  <rect width="256" height="256" rx="128" fill="#e2e8f0"/>
+  <circle cx="128" cy="96" r="48" fill="#64748b"/>
+  <path d="M42 226c8-52 40-80 86-80s78 28 86 80" fill="#64748b"/>
+</svg>

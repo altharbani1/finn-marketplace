@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-SA" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة الإدارة والتحكم الشاملة | FinnMarket Admin</title>
+    <meta name="robots" content="noindex,nofollow,noarchive">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +17,7 @@
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=9.0">
     <link rel="stylesheet" href="css/components.css?v=13.0">
+    <link rel="stylesheet" href="css/legal.css?v=1.0">
 
     <style>
         .admin-layout {
@@ -96,6 +98,7 @@
             border: 1px solid var(--border-color);
             padding: 24px;
             margin-bottom: 24px;
+            overflow-x: auto;
         }
 
         .admin-kpi-grid {
@@ -129,6 +132,7 @@
 
         .data-table {
             width: 100%;
+            min-width: 760px;
             border-collapse: collapse;
             background: white;
             border-radius: var(--radius-lg);
@@ -194,7 +198,7 @@
         <!-- Sidebar Navigation -->
         <aside class="admin-sidebar">
             <div class="admin-user-profile-card">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="admin-avatar" id="adminAvatarImg" alt="صورة مدير المنصة">
+                <img src="assets/default-avatar.svg" class="admin-avatar" id="adminAvatarImg" alt="صورة مدير المنصة">
                 <div>
                     <h4 style="font-size: 15px; font-weight: 800;" id="adminNameTxt">مدير المنصة</h4>
                     <span style="font-size: 11px; color: #ef4444; font-weight: 700;">صلاحيات كاملة (Admin)</span>
@@ -215,6 +219,10 @@
                 <button type="button" class="admin-nav-item" onclick="switchAdminTab('reports', this)">
                     <span><i class="fa-solid fa-flag" style="margin-left: 8px;"></i> البلاغات والمراقبة</span>
                     <span class="admin-badge-count" id="badgeReportsCount" style="background: #ef4444;">0</span>
+                </button>
+                <button type="button" class="admin-nav-item" onclick="switchAdminTab('deletions', this)">
+                    <span><i class="fa-solid fa-user-slash" style="margin-left: 8px;"></i> طلبات حذف الحساب</span>
+                    <span class="admin-badge-count" id="badgeDeletionCount" style="background:#b91c1c;">0</span>
                 </button>
                 <button type="button" class="admin-nav-item" onclick="switchAdminTab('cities', this)">
                     <span><i class="fa-solid fa-city" style="margin-left: 8px;"></i> المدن والتصنيفات</span>
@@ -324,11 +332,19 @@
                 </div>
             </div>
 
+            <div id="tabDeletions" style="display:none;">
+                <div class="admin-card">
+                    <h2 style="font-size:20px; font-weight:800; margin-bottom:8px;">طلبات حذف الحساب والبيانات</h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:18px;">تحقق من الطلب والالتزامات النظامية قبل التنفيذ. الإجراء نهائي ويحذف حساب Auth وبياناته المرتبطة وصوره.</p>
+                    <div id="deletionRequestsContainer"></div>
+                </div>
+            </div>
+
         </section>
     </main>
 
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0" integrity="sha384-fPWur1rx/DE6YtXP/x0MD6dd90RgnVsz5yX/DIg7CcVAnTBZsENWuIcpvVTM39ti" crossorigin="anonymous"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
     <script src="js/supabase-config.js?v=14.0"></script>
@@ -336,6 +352,7 @@
         let allListings = [];
         let allUsers = [];
         let allReports = [];
+        let allDeletionRequests = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const authUser = await finnDB.getAuthUser();
@@ -347,21 +364,24 @@
             document.getElementById('adminNameTxt').textContent = authUser.name;
             document.getElementById('adminAvatarImg').src = safeHttpUrl(authUser.avatar, DEFAULT_AVATAR);
 
-            [allListings, allUsers, allReports] = await Promise.all([
-                finnDB.getListings(),
+            [allListings, allUsers, allReports, allDeletionRequests] = await Promise.all([
+                finnDB.getAdminListings(),
                 finnDB.getAdminProfiles(),
-                finnDB.getAdminReports()
+                finnDB.getAdminReports(),
+                finnDB.getAdminAccountDeletionRequests()
             ]);
             document.getElementById('kpiTotalAds').textContent = allListings.length;
             document.getElementById('badgeAdsCount').textContent = allListings.length;
             document.getElementById('kpiUsersCount').textContent = allUsers.length;
             document.getElementById('kpiVerifiedCount').textContent = allUsers.filter(user => user.verified).length;
             updateReportsCounters();
+            updateDeletionRequests();
             
             renderAllAdminTables();
             renderUsersTable();
             renderCitiesAdmin();
             renderReports();
+            renderDeletionRequests();
         });
 
         function switchAdminTab(tab, el) {
@@ -373,12 +393,48 @@
             document.getElementById('tabUsers').style.display = 'none';
             document.getElementById('tabReports').style.display = 'none';
             document.getElementById('tabCities').style.display = 'none';
+            document.getElementById('tabDeletions').style.display = 'none';
 
             if (tab === 'overview') document.getElementById('tabOverview').style.display = 'block';
             if (tab === 'listings') document.getElementById('tabListings').style.display = 'block';
             if (tab === 'users') document.getElementById('tabUsers').style.display = 'block';
             if (tab === 'reports') document.getElementById('tabReports').style.display = 'block';
             if (tab === 'cities') document.getElementById('tabCities').style.display = 'block';
+            if (tab === 'deletions') document.getElementById('tabDeletions').style.display = 'block';
+        }
+
+        function updateDeletionRequests() {
+            document.getElementById('badgeDeletionCount').textContent = allDeletionRequests.filter(request => ['pending', 'processing'].includes(request.status)).length;
+        }
+
+        function renderDeletionRequests() {
+            const container = document.getElementById('deletionRequestsContainer');
+            if (!allDeletionRequests.length) {
+                container.innerHTML = '<p class="profile-state-card">لا توجد طلبات حذف حساب.</p>';
+                return;
+            }
+            const labels = { pending: 'قيد المراجعة', processing: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغي' };
+            container.innerHTML = `<table class="data-table"><thead><tr><th>الحساب</th><th>السبب</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead><tbody>${allDeletionRequests.map(request => `
+                <tr>
+                    <td>${escapeHTML(request.email)}</td>
+                    <td style="white-space:normal; max-width:320px;">${escapeHTML(request.reason || 'لم يذكر سببًا')}</td>
+                    <td>${new Date(request.requestedAt).toLocaleDateString('ar-SA')}</td>
+                    <td><strong>${escapeHTML(labels[request.status] || request.status)}</strong>${request.status === 'pending' ? `<button type="button" class="btn btn-outline" style="margin-top:8px; color:var(--color-danger);" onclick="processDeletionRequest('${request.id}')">تنفيذ الحذف النهائي</button>` : ''}</td>
+                </tr>`).join('')}</tbody></table>`;
+        }
+
+        async function processDeletionRequest(requestId) {
+            if (!confirm('هذا الإجراء نهائي: سيُحذف حساب المستخدم وإعلاناته وصوره. هل راجعت الطلب وتريد المتابعة؟')) return;
+            const repeatedConfirmation = prompt('للتأكيد اكتب كلمة: حذف');
+            if (repeatedConfirmation !== 'حذف') return;
+            try {
+                allDeletionRequests = await finnDB.processAccountDeletionRequest(requestId);
+                updateDeletionRequests();
+                renderDeletionRequests();
+                alert('تم حذف الحساب وبياناته المرتبطة بنجاح.');
+            } catch (error) {
+                alert(error.message || 'تعذر تنفيذ حذف الحساب.');
+            }
         }
 
         function renderAllAdminTables() {

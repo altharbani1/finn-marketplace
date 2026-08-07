@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-SA" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الملف الشخصي والعضوية | FinnMarket</title>
+    <meta name="robots" content="noindex,nofollow,noarchive">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +17,7 @@
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=9.0">
     <link rel="stylesheet" href="css/components.css?v=13.0">
+    <link rel="stylesheet" href="css/legal.css?v=1.0">
 
     <style>
         .profile-hero-card {
@@ -82,6 +84,7 @@
             gap: 12px;
             border-bottom: 2px solid var(--border-color);
             margin-bottom: 28px;
+            overflow-x: auto;
         }
 
         .profile-tab-item {
@@ -100,6 +103,7 @@
             border-right: 0;
             border-left: 0;
             min-height: 48px;
+            flex: 0 0 auto;
         }
 
         .profile-tab-item.active {
@@ -176,19 +180,20 @@
 
                     <div style="margin-bottom: 16px;">
                         <label class="filter-label" for="editEmail">البريد الإلكتروني</label>
-                        <input type="email" id="editEmail" class="form-input" readonly aria-describedby="emailReadonlyHint">
-                        <small id="emailReadonlyHint" style="display:block; margin-top:6px; color:var(--text-muted);">لتغيير البريد الإلكتروني تواصل مع الدعم حفاظًا على أمان الحساب.</small>
+                        <input type="email" id="editEmail" class="form-input" autocomplete="email" aria-describedby="emailReadonlyHint">
+                        <small id="emailReadonlyHint" style="display:block; margin-top:6px; color:var(--text-muted);">عند تغييره سترسل Supabase رسالة تأكيد إلى البريد وفق إعدادات أمان المشروع.</small>
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label class="filter-label" for="editPhone">رقم الجوال لتلقي الاتصالات *</label>
-                        <input type="tel" id="editPhone" class="form-input" required>
+                        <label class="filter-label" for="editPhone">رقم الجوال لتلقي الاتصالات (اختياري)</label>
+                        <input type="tel" id="editPhone" class="form-input" inputmode="tel" aria-describedby="editPhoneHint">
+                        <small id="editPhoneHint" style="display:block; margin-top:6px; color:var(--text-muted);">إن أدخلته، يظهر فقط لمستخدم مسجل عند طلب التواصل معك.</small>
                     </div>
 
                     <div style="margin-bottom: 24px;">
                         <label class="filter-label" for="editAvatarFile">صورة البروفايل</label>
                         <div class="profile-avatar-upload">
-                            <img id="profileAvatarPreview" src="" alt="معاينة صورة البروفايل">
+                            <img id="profileAvatarPreview" src="assets/default-avatar.svg" alt="معاينة صورة البروفايل">
                             <div class="upload-dropzone profile-avatar-dropzone">
                                 <i class="fa-solid fa-camera upload-icon" aria-hidden="true"></i>
                                 <h4>اختر صورة من جهازك</h4>
@@ -202,12 +207,24 @@
                         <i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات فوراً
                     </button>
                 </form>
+                <hr style="border:0; border-top:1px solid var(--border-color); margin:28px 0;">
+                <section aria-labelledby="deleteAccountTitle">
+                    <h3 id="deleteAccountTitle" style="font-size:18px; color:var(--color-danger); margin-bottom:8px;">حذف الحساب والبيانات</h3>
+                    <p style="color:var(--text-muted); font-size:13px; line-height:1.8; margin-bottom:12px;">أرسل طلب حذف لمراجعته بأمان. لن نحذف الحساب فورًا حتى لا تفقد بياناتك بالخطأ، وقد نحتفظ بما يلزم للبلاغات أو الالتزامات النظامية.</p>
+                    <div id="deletionRequestStatus" role="status" aria-live="polite"></div>
+                    <label class="filter-label" for="deletionReason">سبب الطلب (اختياري)</label>
+                    <textarea id="deletionReason" class="form-input" maxlength="1000" rows="3" placeholder="لا تكتب معلومات حساسة هنا"></textarea>
+                    <button type="button" id="requestDeletionButton" class="btn btn-outline" style="margin-top:10px; color:var(--color-danger); border-color:var(--color-danger);" onclick="submitAccountDeletionRequest()">طلب حذف الحساب</button>
+                    <p style="margin-top:10px; font-size:12px;"><a href="privacy.html#rights">اقرأ حقوقك وسياسة الخصوصية</a></p>
+                </section>
             </div>
         </section>
     </main>
 
+<footer class="site-footer"><div class="container site-footer-inner"><p>© 2026 FinnMarket</p><nav class="site-footer-links" aria-label="روابط معلوماتية"><a href="about.html">عن المنصة</a><a href="privacy.html">الخصوصية</a><a href="terms.html">الشروط</a><a href="safety.html">الأمان</a><a href="contact.html">التواصل</a></nav></div></footer>
+
     <!-- Supabase JS Client SDK + Production Scripts v6.0 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0" integrity="sha384-fPWur1rx/DE6YtXP/x0MD6dd90RgnVsz5yX/DIg7CcVAnTBZsENWuIcpvVTM39ti" crossorigin="anonymous"></script>
     <script src="js/data.js?v=9.0"></script>
     <script src="js/security.js?v=10.0"></script>
     <script src="js/supabase-config.js?v=14.0"></script>
@@ -229,6 +246,7 @@
                 await renderMyAds();
                 await renderMyFavs();
                 populateSettingsForm();
+                await loadAccountDeletionRequest();
                 const requestedTab = new URLSearchParams(window.location.search).get('tab');
                 if (['myAds', 'favs', 'settings'].includes(requestedTab)) switchProfileTab(requestedTab);
             } catch (error) {
@@ -383,12 +401,15 @@
         async function saveProfileSettings(e) {
             e.preventDefault();
             try {
+                const requestedEmail = document.getElementById('editEmail').value.trim().toLowerCase();
+                const emailChanged = requestedEmail !== String(currentUser.email || '').toLowerCase();
+                if (emailChanged) await finnDB.requestEmailChange(requestedEmail, `${window.location.origin}/profile.html?tab=settings`);
                 currentUser = await finnDB.updateProfile({
                     name: document.getElementById('editName').value,
                     phone: document.getElementById('editPhone').value,
                     avatarFile: document.getElementById('editAvatarFile').files?.[0] || null
                 });
-                alert('تم تحديث بيانات الملف الشخصي بنجاح.');
+                alert(emailChanged ? 'تم تحديث الملف وإرسال طلب تأكيد البريد الجديد.' : 'تم تحديث بيانات الملف الشخصي بنجاح.');
                 renderProfileHero();
                 populateSettingsForm();
                 document.getElementById('editAvatarFile').value = '';
@@ -397,8 +418,35 @@
             }
         }
 
+        async function loadAccountDeletionRequest() {
+            const request = await finnDB.getMyAccountDeletionRequest();
+            const statusBox = document.getElementById('deletionRequestStatus');
+            const button = document.getElementById('requestDeletionButton');
+            if (!request) {
+                statusBox.textContent = '';
+                return;
+            }
+            const labels = { pending: 'قيد المراجعة', processing: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغي' };
+            statusBox.innerHTML = `<p class="auth-notice info">حالة آخر طلب: <strong>${escapeHTML(labels[request.status] || request.status)}</strong></p>`;
+            if (['pending', 'processing'].includes(request.status)) button.disabled = true;
+        }
+
+        async function submitAccountDeletionRequest() {
+            if (!confirm('هل تريد إرسال طلب حذف الحساب؟ سيخضع الطلب للمراجعة قبل التنفيذ.')) return;
+            const button = document.getElementById('requestDeletionButton');
+            button.disabled = true;
+            try {
+                await finnDB.requestAccountDeletion(document.getElementById('deletionReason').value);
+                await loadAccountDeletionRequest();
+                alert('تم استلام طلب حذف الحساب بأمان.');
+            } catch (error) {
+                button.disabled = false;
+                alert(error.message || 'تعذر إرسال طلب حذف الحساب.');
+            }
+        }
+
         async function deleteMyAd(id) {
-            if (confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان نهائياً؟')) {
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا الإعلان نهائيًا؟')) {
                 await finnDB.deleteListing(id);
                 await renderMyAds();
                 alert('تم حذف الإعلان بنجاح.');
