@@ -158,12 +158,18 @@ class FinnSeniorProductionEngine {
 
     mapListing(item) {
         const profile = item.profiles || {};
+        const legacySubCategory = String(item.sub_category || item.category_type || '').trim();
+        const subCategory = legacySubCategory
+            .replace(/^Bil$/i, 'سيارات')
+            .replace(/^Gis bort$/i, 'إهداء مجاني')
+            .replace(/\s*\((?:Bil|Gis bort)\)\s*/gi, '')
+            .trim();
         return {
             id: item.id,
             userId: item.user_id,
             title: item.title,
             category: item.category_type,
-            subCategory: item.sub_category || item.category_type,
+            subCategory,
             price: Number(item.price || 0),
             isFree: Boolean(item.is_free),
             city: item.city,

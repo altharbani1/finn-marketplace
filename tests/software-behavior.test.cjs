@@ -91,6 +91,17 @@ test('getListingById requests only explicit columns and maps one row', async () 
     assert.equal(listing.id, 'listing-1');
 });
 
+test('legacy Scandinavian category labels are localized when reading old rows', () => {
+    const engine = new Engine();
+    const base = {
+        id: 'listing-legacy', user_id: 'seller-1', title: 'كامري', description: 'سيارة مستعملة بحالة جيدة',
+        price: 10, is_free: false, category_type: 'vehicles', condition: 'good', city: 'الرياض',
+        status: 'active', images: [], created_at: '2026-08-01T00:00:00Z'
+    };
+    assert.equal(engine.mapListing({ ...base, sub_category: 'السيارات (Bil)' }).subCategory, 'السيارات');
+    assert.equal(engine.mapListing({ ...base, sub_category: 'Gis bort' }).subCategory, 'إهداء مجاني');
+});
+
 test('privileged reads and mutations use the agreed RPC contracts', async () => {
     const calls = [];
     const engine = new Engine();
