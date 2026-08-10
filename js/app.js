@@ -570,13 +570,14 @@ class FinnMarketApp {
                     <a class="listing-card-main-link" href="listing.html?id=${encodeURIComponent(item.id)}" aria-label="عرض إعلان ${escapeHTML(item.title)}">
                         <div class="listing-thumb-wrap">
                             <img src="${escapeHTML(safeHttpUrl(item.images[0], DEFAULT_LISTING_IMAGE))}" alt="${hasListingImage ? escapeHTML(item.title) : 'لا توجد صورة مرفوعة لهذا الإعلان'}" class="listing-thumb" loading="lazy" onerror="this.src='${DEFAULT_LISTING_IMAGE}'">
-                            <span class="badge-tag ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
-                            ${hasListingImage ? '' : '<span class="no-image-badge">لا توجد صورة</span>'}
                         </div>
                         <div class="listing-body">
-                            <div class="listing-meta-sub">
-                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                                <span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span>
+                            <div class="listing-card-meta-row">
+                                <span class="badge-tag listing-card-category ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
+                                <div class="listing-meta-sub">
+                                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                    <span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span>
+                                </div>
                             </div>
                             <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
                             <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
