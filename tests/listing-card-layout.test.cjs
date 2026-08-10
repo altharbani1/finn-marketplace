@@ -21,4 +21,5 @@ test('listing image area contains no text overlays', () => {
     assert.ok(imageBlock, 'listing image block should exist');
     assert.doesNotMatch(imageBlock[1], /badge-tag|no-image-badge|<span/);
     assert.match(app, /badge-tag listing-card-category/);
+    assert.match(css, /\.listing-card \.listing-card-category \{\s*position: static;/);
 });
