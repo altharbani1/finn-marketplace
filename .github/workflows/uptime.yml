@@ -2,11 +2,15 @@ name: Production availability
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: production-availability
+  cancel-in-progress: true
 
 jobs:
   availability:
@@ -17,12 +21,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for path in / /robots.txt /sitemap.xml /privacy.html /terms.html; do
+          for path in / /robots.txt /sitemap.xml /privacy.html /terms.html /safety.html /contact.html; do
             curl --fail --silent --show-error --location --max-time 20 \
-              --retry 2 --retry-delay 2 "https://fann1.netlify.app${path}" >/dev/null
+              --retry 2 --retry-delay 2 --retry-all-errors \
+              "https://fann1.netlify.app${path}" >/dev/null
           done
       - name: Check Supabase API gateway
         shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_PUBLISHABLE_KEY}" ]]; then
+            echo "SUPABASE_PUBLISHABLE_KEY repository variable is not configured." >&2
+            exit 1
+          fi
           curl --fail --silent --show-error --max-time 20 \
+            --retry 2 --retry-delay 2 --retry-all-errors \
+            --header "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
             "https://mjuaqlkddmgilmjehwlx.supabase.co/auth/v1/health" >/dev/null
