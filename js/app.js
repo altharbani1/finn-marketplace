@@ -8,11 +8,16 @@ class FinnMarketApp {
         this.chatPollTimer = null;
         this.modalFocusOrigins = new Map();
         this.favoriteUpdates = new Set();
+        this.searchRequestId = 0;
         
         // Active Filters State
         this.state = {
             category: 'all',
             searchQuery: '',
+            searchResults: null,
+            searchPage: 0,
+            hasMoreSearchResults: false,
+            isSearching: false,
             showFavoritesOnly: false,
             currentDetailListing: null,
             activeImageIdx: 0,
@@ -507,7 +512,7 @@ class FinnMarketApp {
     }
 
     applyFiltersAndRender() {
-        let filtered = [...this.listings];
+        let filtered = [...(this.state.searchResults ?? this.listings)];
 
         if (this.state.showFavoritesOnly) {
             filtered = filtered.filter(item => this.favorites.includes(item.id));
@@ -517,18 +522,66 @@ class FinnMarketApp {
             filtered = filtered.filter(item => item.category === this.state.category);
         }
 
-        if (this.state.searchQuery.trim() !== '') {
-            const q = this.state.searchQuery.trim().toLocaleLowerCase('ar');
-            filtered = filtered.filter(item => [
-                item.title,
-                item.description,
-                item.subCategory,
-                item.city,
-                item.neighborhood
-            ].filter(Boolean).some(value => String(value).toLocaleLowerCase('ar').includes(q)));
+        this.renderListings(filtered);
+    }
+
+    renderSearchLoading(query) {
+        const feedContainer = document.getElementById('listingsFeed');
+        const countContainer = document.getElementById('resultsCount');
+        if (countContainer) countContainer.textContent = `جاري البحث عن «${query}»...`;
+        if (!feedContainer) return;
+        feedContainer.className = 'listings-grid list-view';
+        feedContainer.innerHTML = `
+            <div class="search-status" role="status" aria-live="polite">
+                <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+                <strong>جاري البحث في جميع الإعلانات...</strong>
+            </div>
+        `;
+    }
+
+    async submitSearch(rawQuery) {
+        const query = String(rawQuery || '').trim().replace(/\s+/g, ' ').slice(0, 100);
+        if (!query) {
+            this.clearFilters();
+            return;
+        }
+        if (query.length < 2) {
+            alert('اكتب حرفين على الأقل للبحث.');
+            document.getElementById('globalSearch')?.focus();
+            return;
         }
 
-        this.renderListings(filtered);
+        const requestId = ++this.searchRequestId;
+        const searchInput = document.getElementById('globalSearch');
+        const searchButton = document.getElementById('globalSearchButton');
+        this.state.isSearching = true;
+        this.state.searchQuery = query;
+        this.state.category = 'all';
+        this.state.showFavoritesOnly = false;
+        this.renderCategoryBar();
+        this.renderSearchLoading(query);
+        if (searchInput) searchInput.disabled = true;
+        if (searchButton) searchButton.disabled = true;
+
+        try {
+            const results = await finnDB.searchListings(query, 0, this.state.listingsPageSize);
+            if (requestId !== this.searchRequestId) return;
+            this.state.searchResults = results;
+            this.state.searchPage = 0;
+            this.state.hasMoreSearchResults = results.length === this.state.listingsPageSize;
+            this.applyFiltersAndRender();
+        } catch (error) {
+            if (requestId !== this.searchRequestId) return;
+            console.error('Search Error:', error);
+            this.renderErrorState(error.message || 'تعذر تنفيذ البحث. حاول مرة أخرى.');
+        } finally {
+            if (requestId === this.searchRequestId) {
+                this.state.isSearching = false;
+                if (searchInput) searchInput.disabled = false;
+                if (searchButton) searchButton.disabled = false;
+                searchInput?.focus();
+            }
+        }
     }
 
     renderListings(items) {
@@ -536,13 +589,18 @@ class FinnMarketApp {
         const countContainer = document.getElementById('resultsCount');
 
         if (countContainer) {
-            countContainer.innerHTML = `عرض <span>${items.length}</span> إعلان متاح`;
+            countContainer.innerHTML = this.state.searchResults === null
+                ? `عرض <span>${items.length}</span> إعلان متاح`
+                : `وجدنا <span>${items.length}</span> نتيجة قريبة من «${escapeHTML(this.state.searchQuery)}»`;
         }
 
         if (!feedContainer) return;
         const loadMoreButton = document.getElementById('loadMoreListingsButton');
         if (loadMoreButton) {
-            loadMoreButton.hidden = this.state.showFavoritesOnly || !this.state.hasMoreListings;
+            const hasMore = this.state.searchResults === null
+                ? this.state.hasMoreListings
+                : this.state.hasMoreSearchResults;
+            loadMoreButton.hidden = this.state.showFavoritesOnly || !hasMore;
         }
 
         if (items.length === 0) {
@@ -594,18 +652,28 @@ class FinnMarketApp {
 
     async loadMoreListings() {
         const button = document.getElementById('loadMoreListingsButton');
-        if (!this.state.hasMoreListings || button?.disabled) return;
+        const isSearchMode = this.state.searchResults !== null;
+        const hasMore = isSearchMode ? this.state.hasMoreSearchResults : this.state.hasMoreListings;
+        if (!hasMore || button?.disabled) return;
         if (button) {
             button.disabled = true;
             button.textContent = 'جاري تحميل المزيد...';
         }
         try {
-            const nextPage = this.state.listingsPage + 1;
-            const nextListings = await finnDB.getListings(nextPage, this.state.listingsPageSize);
-            const knownIds = new Set(this.listings.map(item => item.id));
-            this.listings.push(...nextListings.filter(item => !knownIds.has(item.id)));
-            this.state.listingsPage = nextPage;
-            this.state.hasMoreListings = nextListings.length === this.state.listingsPageSize;
+            const nextPage = isSearchMode ? this.state.searchPage + 1 : this.state.listingsPage + 1;
+            const nextListings = isSearchMode
+                ? await finnDB.searchListings(this.state.searchQuery, nextPage, this.state.listingsPageSize)
+                : await finnDB.getListings(nextPage, this.state.listingsPageSize);
+            const target = isSearchMode ? this.state.searchResults : this.listings;
+            const knownIds = new Set(target.map(item => item.id));
+            target.push(...nextListings.filter(item => !knownIds.has(item.id)));
+            if (isSearchMode) {
+                this.state.searchPage = nextPage;
+                this.state.hasMoreSearchResults = nextListings.length === this.state.listingsPageSize;
+            } else {
+                this.state.listingsPage = nextPage;
+                this.state.hasMoreListings = nextListings.length === this.state.listingsPageSize;
+            }
             this.applyFiltersAndRender();
         } catch (error) {
             alert(error.message || 'تعذر تحميل المزيد من الإعلانات.');
@@ -613,17 +681,29 @@ class FinnMarketApp {
             if (button) {
                 button.disabled = false;
                 button.textContent = 'تحميل المزيد من الإعلانات';
-                button.hidden = !this.state.hasMoreListings;
+                button.hidden = isSearchMode
+                    ? !this.state.hasMoreSearchResults
+                    : !this.state.hasMoreListings;
             }
         }
     }
 
     clearFilters() {
+        this.searchRequestId += 1;
         this.state.category = 'all';
         this.state.searchQuery = '';
+        this.state.searchResults = null;
+        this.state.searchPage = 0;
+        this.state.hasMoreSearchResults = false;
+        this.state.isSearching = false;
         this.state.showFavoritesOnly = false;
         const searchInput = document.getElementById('globalSearch');
-        if (searchInput) searchInput.value = '';
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.disabled = false;
+        }
+        const searchButton = document.getElementById('globalSearchButton');
+        if (searchButton) searchButton.disabled = false;
         this.renderCategoryBar();
         this.applyFiltersAndRender();
         searchInput?.focus();
@@ -944,14 +1024,15 @@ class FinnMarketApp {
         });
 
         const searchInput = document.getElementById('globalSearch');
-        if (searchInput) {
-            let searchTimer;
-            searchInput.addEventListener('input', (e) => {
-                this.state.searchQuery = e.target.value;
-                window.clearTimeout(searchTimer);
-                searchTimer = window.setTimeout(() => this.applyFiltersAndRender(), 180);
-            });
-        }
+        document.getElementById('globalSearchForm')?.addEventListener('submit', (event) => {
+            event.preventDefault();
+            this.submitSearch(searchInput?.value || '');
+        });
+        searchInput?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            this.submitSearch(event.currentTarget.value);
+        });
 
         document.getElementById('catNavList')?.addEventListener('click', (e) => {
             const btn = e.target.closest('button');

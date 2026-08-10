@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom CSS with Cache Buster v8.0 -->
-    <link rel="stylesheet" href="css/main.css?v=12.0">
+    <link rel="stylesheet" href="css/main.css?v=13.0">
     <link rel="stylesheet" href="css/components.css?v=14.0">
     <link rel="stylesheet" href="css/legal.css?v=1.0">
 </head>
@@ -37,10 +37,12 @@
             </a>
 
             <!-- Global Search Bar -->
-            <div class="search-bar-global">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="search" id="globalSearch" placeholder="اكتب ما تبحث عنه..." autocomplete="off" aria-label="البحث في الإعلانات">
-            </div>
+            <form class="search-bar-global" id="globalSearchForm" role="search">
+                <button type="submit" class="search-submit-button" id="globalSearchButton" aria-label="تنفيذ البحث">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                </button>
+                <input type="search" id="globalSearch" placeholder="اكتب ثم اضغط Enter للبحث..." autocomplete="off" aria-label="البحث في جميع الإعلانات" minlength="2" maxlength="100">
+            </form>
 
             <!-- Header Action Buttons -->
             <div class="nav-actions">
@@ -85,7 +87,7 @@
         <section class="listings-section">
             <div class="feed-toolbar">
                 <div class="results-count" id="resultsCount" role="status" aria-live="polite">جاري تحميل الإعلانات...</div>
-                <p class="search-only-hint"><i class="fa-solid fa-keyboard" aria-hidden="true"></i> اكتب في البحث للوصول إلى إعلانك بسرعة</p>
+                <p class="search-only-hint"><i class="fa-solid fa-keyboard" aria-hidden="true"></i> اكتب ما تبحث عنه واضغط Enter لعرض أقرب النتائج</p>
             </div>
 
             <!-- Listings Feed Grid -->
@@ -377,7 +379,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0" integrity="sha384-fPWur1rx/DE6YtXP/x0MD6dd90RgnVsz5yX/DIg7CcVAnTBZsENWuIcpvVTM39ti" crossorigin="anonymous"></script>
     <script src="js/data.js?v=10.0"></script>
     <script src="js/security.js?v=10.0"></script>
-    <script src="js/supabase-config.js?v=15.0"></script>
-    <script src="js/app.js?v=17.0"></script>
+    <script src="js/supabase-config.js?v=16.0"></script>
+    <script src="js/app.js?v=19.0"></script>
 </body>
 </html>

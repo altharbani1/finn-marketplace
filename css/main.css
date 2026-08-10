@@ -159,13 +159,53 @@ button {
     box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
-.search-icon {
+.search-submit-button {
     position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
+    z-index: 1;
+    right: 5px;
+    top: 5px;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
     color: var(--text-muted);
     font-size: 16px;
+    cursor: pointer;
+}
+
+.search-submit-button:hover,
+.search-submit-button:focus-visible {
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    outline: none;
+}
+
+.search-submit-button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+.search-status {
+    display: flex;
+    grid-column: 1 / -1;
+    min-height: 180px;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 30px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    background: white;
+    color: var(--text-muted);
+}
+
+.search-status i {
+    color: var(--color-primary);
+    font-size: 24px;
 }
 
 .nav-actions {
