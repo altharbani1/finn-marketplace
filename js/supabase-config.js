@@ -207,6 +207,21 @@ class FinnSeniorProductionEngine {
         return (data || []).map((item) => this.mapListing(item));
     }
 
+    async searchListings(query, page = 0, pageSize = 30) {
+        const normalizedQuery = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 100);
+        if (normalizedQuery.length < 2) return [];
+
+        const safePage = Math.max(0, Number(page) || 0);
+        const safeSize = Math.min(100, Math.max(1, Number(pageSize) || 30));
+        const { data, error } = await this.requireClient().rpc('search_marketplace_listings', {
+            p_query: normalizedQuery,
+            p_limit: safeSize,
+            p_offset: safePage * safeSize
+        });
+        if (error) throw new Error(`تعذر تنفيذ البحث: ${error.message}`);
+        return (data || []).map((item) => this.mapListing(item));
+    }
+
     async getAdminListings() {
         const authUser = await this.getAuthUser();
         if (!authUser || authUser.role !== 'admin') throw new Error('غير مصرح بقراءة جميع الإعلانات.');
