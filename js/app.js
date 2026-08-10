@@ -589,9 +589,10 @@ class FinnMarketApp {
         const countContainer = document.getElementById('resultsCount');
 
         if (countContainer) {
+            const resultLabel = items.length === 1 ? 'نتيجة' : 'نتائج';
             countContainer.innerHTML = this.state.searchResults === null
                 ? `عرض <span>${items.length}</span> إعلان متاح`
-                : `وجدنا <span>${items.length}</span> نتيجة قريبة من «${escapeHTML(this.state.searchQuery)}»`;
+                : `وجدنا <span>${items.length}</span> ${resultLabel} قريبة من «${escapeHTML(this.state.searchQuery)}»`;
         }
 
         if (!feedContainer) return;
