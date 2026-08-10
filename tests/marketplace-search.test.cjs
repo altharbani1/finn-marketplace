@@ -26,6 +26,7 @@ test('client searches the full marketplace through a paginated RPC', () => {
     assert.match(database, /rpc\('search_marketplace_listings'/);
     assert.match(app, /await finnDB\.searchListings\(query, 0, this\.state\.listingsPageSize\)/);
     assert.match(app, /await finnDB\.searchListings\(this\.state\.searchQuery, nextPage/);
+    assert.match(app, /items\.length === 1 \? 'نتيجة' : 'نتائج'/);
 });
 
 test('database search is fuzzy, ranked, RLS-aware, and narrowly granted', () => {
