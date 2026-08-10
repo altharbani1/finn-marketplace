@@ -544,7 +544,7 @@ button {
     margin-bottom: 6px;
 }
 
-.listing-card-category {
+.listing-card .listing-card-category {
     position: static;
     flex: 0 0 auto;
     max-width: 42%;
