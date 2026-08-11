@@ -10,6 +10,7 @@ const mainStyles = read('css/main.css');
 const databaseSource = read('js/supabase-config.js');
 const listingSource = read('listing.html');
 const adminSource = read('admin.html');
+const adminScript = read('js/admin.js');
 const profileSource = read('profile.html');
 const communicationMigration = read('supabase/migrations/20260802052237_enable_marketplace_communication_ratings_reports.sql');
 const avatarMigration = read('supabase/migrations/20260802112000_enable_profile_avatar_storage.sql');
@@ -29,8 +30,8 @@ test('production UI does not advertise placeholder chat or fake server ratings',
 });
 
 test('admin dashboard loads real profiles and contains no seeded fake users', () => {
-    assert.match(databaseSource, /getAdminProfiles/);
-    assert.match(adminSource, /finnDB\.getAdminProfiles\(\)/);
+    assert.match(databaseSource, /getAdminProfilesPage/);
+    assert.match(adminScript, /finnDB\.getAdminProfilesPage\(adminState\.users\)/);
     assert.doesNotMatch(adminSource, /usr-[1-4]/);
     assert.doesNotMatch(adminSource, />142</);
 });
@@ -69,9 +70,9 @@ test('seller ratings and reports have real storage and protected policies', () =
     assert.match(databaseSource, /async rateSeller/);
     assert.match(databaseSource, /async submitReport/);
     assert.match(databaseSource, /async getAdminReports/);
-    assert.match(adminSource, /renderReports\(\)/);
-    assert.match(adminSource, /setReportStatus\('\$\{report\.id\}', 'reviewed'\)/);
-    assert.match(adminSource, /setReportStatus\('\$\{report\.id\}', 'resolved'\)/);
+    assert.match(adminScript, /async function loadReports\(\)/);
+    assert.match(adminScript, /data-status="reviewed"/);
+    assert.match(adminScript, /data-status="resolved"/);
     assert.doesNotMatch(adminSource, /إدارة البلاغات قيد التجهيز/);
 });
 

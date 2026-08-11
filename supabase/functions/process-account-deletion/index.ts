@@ -61,20 +61,26 @@ Deno.serve(async (req) => {
     return json(origin, { error: 'Valid request_id is required' }, 400)
   }
 
-  const { data: deletionRequest, error: requestError } = await adminClient
-    .from('account_deletion_requests')
-    .select('id,user_id,status')
-    .eq('id', payload.request_id)
-    .maybeSingle()
-  if (requestError || !deletionRequest?.user_id || !['pending', 'processing'].includes(deletionRequest.status)) {
-    return json(origin, { error: 'Deletion request is unavailable' }, 404)
+  // The database claims the job with a conditional UPDATE. Exactly one worker
+  // can move a pending/failed request into processing.
+  const { data: claimedRows, error: claimError } = await adminClient.rpc('claim_account_deletion_request', {
+    p_request_id: payload.request_id,
+    p_admin_id: authData.user.id,
+  })
+  const deletionRequest = Array.isArray(claimedRows) ? claimedRows[0] : claimedRows
+  if (claimError) {
+    console.error('Deletion claim failed', claimError.message)
+    return json(origin, { error: 'Unable to claim deletion request' }, 500)
+  }
+  if (!deletionRequest?.user_id) {
+    return json(origin, { error: 'Deletion request is already processing or unavailable' }, 409)
   }
 
   const targetUserId = deletionRequest.user_id
-  await adminClient.from('account_deletion_requests').update({ status: 'processing', reviewed_at: new Date().toISOString() }).eq('id', deletionRequest.id)
 
   try {
-    const { data: listings } = await adminClient.from('listings').select('images').eq('user_id', targetUserId)
+    const { data: listings, error: listingsError } = await adminClient.from('listings').select('images').eq('user_id', targetUserId)
+    if (listingsError) throw listingsError
     const listingPaths = (listings || []).flatMap((row) => Array.isArray(row.images) ? row.images : [])
       .map((image) => storagePath(String(image), 'listing-images')).filter(Boolean) as string[]
     if (listingPaths.length) {
@@ -82,7 +88,8 @@ Deno.serve(async (req) => {
       if (listingStorageError) throw listingStorageError
     }
 
-    const { data: profile } = await adminClient.from('profiles').select('avatar_url').eq('id', targetUserId).maybeSingle()
+    const { data: profile, error: profileError } = await adminClient.from('profiles').select('avatar_url').eq('id', targetUserId).maybeSingle()
+    if (profileError) throw profileError
     const avatarPath = storagePath(String(profile?.avatar_url || ''), 'profile-avatars')
     if (avatarPath) {
       const { error: avatarStorageError } = await adminClient.storage.from('profile-avatars').remove([avatarPath])
@@ -92,11 +99,22 @@ Deno.serve(async (req) => {
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(targetUserId)
     if (deleteError) throw deleteError
 
-    await adminClient.from('account_deletion_requests').update({ status: 'completed', reviewed_at: new Date().toISOString() }).eq('id', deletionRequest.id)
+    const { data: completed, error: completionError } = await adminClient.rpc('complete_account_deletion_request', {
+      p_request_id: deletionRequest.request_id,
+      p_admin_id: authData.user.id,
+    })
+    if (completionError || completed !== true) {
+      throw completionError || new Error('Deletion completion was not persisted')
+    }
     return json(origin, { ok: true })
   } catch (error) {
-    await adminClient.from('account_deletion_requests').update({ status: 'pending' }).eq('id', deletionRequest.id)
-    console.error('Account deletion failed', error instanceof Error ? error.message : 'Unknown error')
-    return json(origin, { error: 'Account deletion failed safely' }, 500)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const { data: failed, error: failureError } = await adminClient.rpc('fail_account_deletion_request', {
+      p_request_id: deletionRequest.request_id,
+      p_admin_id: authData.user.id,
+      p_failure_reason: message,
+    })
+    console.error('Account deletion failed', message, failureError?.message || '', failed)
+    return json(origin, { error: 'Account deletion failed; the request is marked for safe retry' }, 500)
   }
 })

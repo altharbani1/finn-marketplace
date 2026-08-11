@@ -691,10 +691,12 @@ class FinnSeniorProductionEngine {
             const imagePaths = (deletedListing.images || [])
                 .map(url => this.storagePathFromUrl(url, deletedListing.owner_id))
                 .filter(Boolean);
+            let cleanupWarning = '';
             if (imagePaths.length) {
-                await this.requireClient().storage.from('listing-images').remove(imagePaths);
+                const { error: cleanupError } = await this.requireClient().storage.from('listing-images').remove(imagePaths);
+                if (cleanupError) cleanupWarning = 'حُذف الإعلان، لكن تعذر تنظيف بعض الصور وسيُعاد تنظيفها لاحقًا.';
             }
-            return this.getListings();
+            return { deleted: true, cleanupWarning };
         }
         const listing = await this.getListingById(listingId);
         if (!listing) throw new Error('الإعلان غير موجود أو لا تملك صلاحية حذفه.');
@@ -711,7 +713,7 @@ class FinnSeniorProductionEngine {
         if (imagePaths.length) {
             await this.requireClient().storage.from('listing-images').remove(imagePaths);
         }
-        return this.getListings();
+        return { deleted: true, cleanupWarning: '' };
     }
 
     async updateListingStatus(listingId, status) {
@@ -738,6 +740,88 @@ class FinnSeniorProductionEngine {
             verified: Boolean(profile.verified_seller),
             createdAt: profile.created_at
         }));
+    }
+
+    async getAdminDashboardSummary() {
+        const { data, error } = await this.requireClient().rpc('get_admin_dashboard_summary');
+        if (error) throw new Error(`تعذر جلب مؤشرات لوحة الإدارة: ${error.message}`);
+        return {
+            listings: Number(data?.listings || 0),
+            users: Number(data?.users || 0),
+            verified: Number(data?.verified || 0),
+            pendingReports: Number(data?.pending_reports || 0),
+            openDeletions: Number(data?.open_deletions || 0)
+        };
+    }
+
+    async getAdminListingsPage({ page = 0, pageSize = 25, search = '', status = null } = {}) {
+        const { data, error } = await this.requireClient().rpc('get_admin_listings_page', {
+            p_page: page, p_page_size: pageSize, p_search: search || null, p_status: status || null
+        });
+        if (error) throw new Error(`تعذر جلب الإعلانات: ${error.message}`);
+        return {
+            items: (data?.items || []).map(item => ({
+                id: item.id, title: item.title || '', price: Number(item.price || 0),
+                isFree: Boolean(item.is_free), category: item.category_type,
+                subCategory: item.sub_category || '', city: item.city || '',
+                status: item.status || 'active', createdAt: item.created_at
+            })),
+            total: Number(data?.total || 0), page: Number(data?.page || 0), pageSize: Number(data?.page_size || pageSize)
+        };
+    }
+
+    async getAdminProfilesPage({ page = 0, pageSize = 25, search = '' } = {}) {
+        const { data, error } = await this.requireClient().rpc('get_admin_profiles_page', {
+            p_page: page, p_page_size: pageSize, p_search: search || null
+        });
+        if (error) throw new Error(`تعذر جلب الأعضاء: ${error.message}`);
+        return {
+            items: (data?.items || []).map(profile => ({
+                id: profile.id, name: profile.full_name || 'عضو', phone: profile.phone_number || 'غير مضاف',
+                role: profile.role || 'user', verified: Boolean(profile.verified_seller),
+                createdAt: profile.created_at, updatedAt: profile.updated_at
+            })),
+            total: Number(data?.total || 0), page: Number(data?.page || 0), pageSize: Number(data?.page_size || pageSize)
+        };
+    }
+
+    async updateAdminProfile(userId, role, verified) {
+        if (!['user', 'seller', 'company', 'admin'].includes(role)) throw new Error('الدور المحدد غير صالح.');
+        const { error } = await this.requireClient().rpc('admin_update_profile', {
+            p_user_id: userId, p_role: role, p_verified: Boolean(verified)
+        });
+        if (error) throw new Error(`تعذر تحديث صلاحيات العضو: ${error.message}`);
+    }
+
+    async getAdminReportsPage({ page = 0, pageSize = 25, status = null } = {}) {
+        const { data, error } = await this.requireClient().rpc('get_admin_reports_page', {
+            p_page: page, p_page_size: pageSize, p_status: status || null
+        });
+        if (error) throw new Error(`تعذر جلب البلاغات: ${error.message}`);
+        return {
+            items: (data?.items || []).map(report => ({
+                id: report.id, listingId: report.listing_id, listingTitle: report.listing_title,
+                reporterName: report.reporter_name, reason: report.reason || '', status: report.status,
+                createdAt: report.created_at, reviewedAt: report.reviewed_at,
+                resolutionNote: report.resolution_note || ''
+            })),
+            total: Number(data?.total || 0), page: Number(data?.page || 0), pageSize: Number(data?.page_size || pageSize)
+        };
+    }
+
+    async getAdminDeletionRequestsPage({ page = 0, pageSize = 25 } = {}) {
+        const { data, error } = await this.requireClient().rpc('get_admin_deletion_requests_page', {
+            p_page: page, p_page_size: pageSize
+        });
+        if (error) throw new Error(`تعذر جلب طلبات حذف الحساب: ${error.message}`);
+        return {
+            items: (data?.items || []).map(request => ({
+                id: request.id, userId: request.user_id, email: request.email || 'حساب محذوف',
+                reason: request.reason || '', status: request.status, requestedAt: request.requested_at,
+                reviewedAt: request.reviewed_at, failureReason: request.failure_reason || ''
+            })),
+            total: Number(data?.total || 0), page: Number(data?.page || 0), pageSize: Number(data?.page_size || pageSize)
+        };
     }
 
     async getAdminReports() {
@@ -789,8 +873,8 @@ class FinnSeniorProductionEngine {
         const { data, error } = await this.requireClient().functions.invoke('process-account-deletion', {
             body: { request_id: requestId }
         });
-        if (error || !data?.ok) throw new Error('تعذر تنفيذ حذف الحساب بأمان. لم تُحذف البيانات جزئيًا.');
-        return this.getAdminAccountDeletionRequests();
+        if (error || !data?.ok) throw new Error(data?.error || 'تعذر تنفيذ حذف الحساب بأمان. يمكنك إعادة المحاولة من الحالة المسجلة.');
+        return true;
     }
 
     async updateReportStatus(reportId, status) {
@@ -802,6 +886,16 @@ class FinnSeniorProductionEngine {
             .eq('id', reportId);
         if (error) throw new Error(`تعذر تحديث البلاغ: ${error.message}`);
         return this.getAdminReports();
+    }
+
+    async updateAdminReport(reportId, expectedStatus, status, resolutionNote = '') {
+        const { error } = await this.requireClient().rpc('admin_update_report', {
+            p_report_id: reportId,
+            p_expected_status: expectedStatus,
+            p_status: status,
+            p_resolution_note: resolutionNote || null
+        });
+        if (error) throw new Error(`تعذر تحديث البلاغ: ${error.message}`);
     }
 
     async deleteComment(listingId, commentId) {

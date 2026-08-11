@@ -1,5 +1,7 @@
 -- =====================================================================
 -- 🚀 SUPABASE PRODUCTION POSTGRESQL SCHEMA FOR FINNMARKET
+-- Historical bootstrap reference. Production and new environments MUST use
+-- the ordered files in supabase/migrations; do not execute this file alone.
 -- Complete Schema with RLS, Storage Buckets, Roles, & Indexes
 -- =====================================================================
 
@@ -143,14 +145,20 @@ ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
--- Profiles Policies
-CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+-- Profiles Policies. Private phone/role columns are never granted for bulk reads.
+REVOKE SELECT ON public.profiles FROM authenticated;
+GRANT SELECT (id, full_name, avatar_url, rating, verified_seller, created_at)
+ON public.profiles TO authenticated;
+CREATE POLICY "Authenticated profiles are viewable" ON public.profiles FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated
+USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- Listings Policies
 CREATE POLICY "Active listings viewable by everyone" ON public.listings FOR SELECT USING (status = 'active' OR auth.uid() = user_id);
-CREATE POLICY "Authenticated users can create listings" ON public.listings FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Users can update own listings" ON public.listings FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Authenticated users can create listings" ON public.listings FOR INSERT TO authenticated
+WITH CHECK (auth.uid() IS NOT NULL AND auth.uid() = user_id);
+CREATE POLICY "Users can update own listings" ON public.listings FOR UPDATE TO authenticated
+USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete own listings" ON public.listings FOR DELETE USING (auth.uid() = user_id);
 
 -- Comments Policies

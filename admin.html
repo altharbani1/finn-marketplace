@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة الإدارة والتحكم الشاملة | FinnMarket Admin</title>
     <meta name="robots" content="noindex,nofollow,noarchive">
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+
     <!-- Custom CSS v6.0 -->
     <link rel="stylesheet" href="css/main.css?v=13.0">
     <link rel="stylesheet" href="css/components.css?v=14.0">
@@ -173,6 +173,45 @@
             border: 1px solid var(--border-color);
             font-size: 13px;
         }
+
+        .admin-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .admin-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+        .admin-state { padding:18px; margin-bottom:16px; border-radius:var(--radius-md); background:var(--bg-surface-subtle); color:var(--text-muted); }
+        .admin-state.error { background:#fef2f2; color:#991b1b; }
+        .admin-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:16px; }
+        .admin-action-group { display:flex; flex-wrap:wrap; gap:6px; }
+        .admin-role-select { min-height:44px; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0 10px; }
+        .status-pill.failed { background:#fef2f2; color:#991b1b; }
+        .admin-accent { color:#b91c1c; }
+        .admin-brand-badge { background:#fef2f2; color:#991b1b; }
+        .admin-name { font-size:15px; font-weight:800; }
+        .admin-role-caption { font-size:11px; color:#991b1b; font-weight:700; }
+        .admin-nav-icon { margin-left:8px; }
+        .admin-danger-badge { background:#b91c1c; }
+        .admin-page-title { font-size:22px; font-weight:800; margin-bottom:20px; }
+        .admin-section-title { font-size:20px; font-weight:800; }
+        .admin-section-title-spaced { font-size:20px; font-weight:800; margin-bottom:20px; }
+        .admin-deletion-title { font-size:20px; font-weight:800; margin-bottom:8px; }
+        .admin-deletion-copy { color:var(--text-muted); font-size:13px; margin-bottom:18px; }
+        .kpi-icon-listings { background:#0056d6; }
+        .kpi-icon-users { background:#047857; }
+        .kpi-icon-verified { background:#b45309; }
+        .kpi-icon-reports { background:#6d28d9; }
+        .kpi-value { font-size:24px; font-weight:900; }
+        .kpi-label { font-size:12px; color:var(--text-muted); }
+        .admin-heading-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+        .admin-listing-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+        .admin-card-title { font-size:18px; font-weight:800; }
+        .admin-refresh { height:44px; font-size:12px; }
+        .admin-city-box { background:var(--bg-surface-subtle); padding:20px; border-radius:var(--radius-md); }
+        .admin-city-title { font-size:15px; font-weight:800; margin-bottom:12px; }
+        .admin-city-list { display:flex; flex-wrap:wrap; gap:6px; max-height:140px; overflow-y:auto; }
+        @media (max-width: 600px) {
+            .admin-card { padding:16px; }
+            .search-admin-input { width:100%; min-height:44px; }
+            .admin-sidebar nav { display:flex; overflow-x:auto; gap:6px; padding-bottom:6px; }
+            .admin-nav-item { min-width:max-content; }
+        }
     </style>
 </head>
 <body>
@@ -181,9 +220,9 @@
     <header class="navbar">
         <div class="container navbar-inner">
             <a href="index.html" class="brand-logo">
-                <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i>
+                <i class="fa-solid fa-shield-halved admin-accent"></i>
                 <span>FinnMarket Admin</span>
-                <span class="brand-badge" style="background: #fef2f2; color: #ef4444;">التحكم والرقابة</span>
+                <span class="brand-badge admin-brand-badge">التحكم والرقابة</span>
             </a>
 
             <div class="nav-actions">
@@ -200,78 +239,79 @@
             <div class="admin-user-profile-card">
                 <img src="assets/default-avatar.svg" class="admin-avatar" id="adminAvatarImg" alt="صورة مدير المنصة">
                 <div>
-                    <h4 style="font-size: 15px; font-weight: 800;" id="adminNameTxt">مدير المنصة</h4>
-                    <span style="font-size: 11px; color: #ef4444; font-weight: 700;">صلاحيات كاملة (Admin)</span>
+                    <h4 class="admin-name" id="adminNameTxt">مدير المنصة</h4>
+                    <span class="admin-role-caption">صلاحيات كاملة (Admin)</span>
                 </div>
             </div>
 
-            <nav aria-label="أقسام لوحة التحكم">
-                <button type="button" class="admin-nav-item active" onclick="switchAdminTab('overview', this)">
-                    <span><i class="fa-solid fa-chart-pie" style="margin-left: 8px;"></i> الإحصائيات</span>
+            <nav aria-label="أقسام لوحة التحكم" role="tablist">
+                <button type="button" class="admin-nav-item active" id="adminTabOverview" role="tab" aria-selected="true" aria-controls="tabOverview" data-admin-tab="overview">
+                    <span><i class="fa-solid fa-chart-pie admin-nav-icon"></i> الإحصائيات</span>
                 </button>
-                <button type="button" class="admin-nav-item" onclick="switchAdminTab('listings', this)">
-                    <span><i class="fa-solid fa-boxes-stacked" style="margin-left: 8px;"></i> إدارة الإعلانات</span>
+                <button type="button" class="admin-nav-item" id="adminTabListings" role="tab" aria-selected="false" aria-controls="tabListings" data-admin-tab="listings">
+                    <span><i class="fa-solid fa-boxes-stacked admin-nav-icon"></i> إدارة الإعلانات</span>
                     <span class="admin-badge-count" id="badgeAdsCount">0</span>
                 </button>
-                <button type="button" class="admin-nav-item" onclick="switchAdminTab('users', this)">
-                    <span><i class="fa-solid fa-users-gear" style="margin-left: 8px;"></i> الأعضاء والتراخيص</span>
+                <button type="button" class="admin-nav-item" id="adminTabUsers" role="tab" aria-selected="false" aria-controls="tabUsers" data-admin-tab="users">
+                    <span><i class="fa-solid fa-users-gear admin-nav-icon"></i> الأعضاء والتراخيص</span>
                 </button>
-                <button type="button" class="admin-nav-item" onclick="switchAdminTab('reports', this)">
-                    <span><i class="fa-solid fa-flag" style="margin-left: 8px;"></i> البلاغات والمراقبة</span>
-                    <span class="admin-badge-count" id="badgeReportsCount" style="background: #ef4444;">0</span>
+                <button type="button" class="admin-nav-item" id="adminTabReports" role="tab" aria-selected="false" aria-controls="tabReports" data-admin-tab="reports">
+                    <span><i class="fa-solid fa-flag admin-nav-icon"></i> البلاغات والمراقبة</span>
+                    <span class="admin-badge-count admin-danger-badge" id="badgeReportsCount">0</span>
                 </button>
-                <button type="button" class="admin-nav-item" onclick="switchAdminTab('deletions', this)">
-                    <span><i class="fa-solid fa-user-slash" style="margin-left: 8px;"></i> طلبات حذف الحساب</span>
-                    <span class="admin-badge-count" id="badgeDeletionCount" style="background:#b91c1c;">0</span>
+                <button type="button" class="admin-nav-item" id="adminTabDeletions" role="tab" aria-selected="false" aria-controls="tabDeletions" data-admin-tab="deletions">
+                    <span><i class="fa-solid fa-user-slash admin-nav-icon"></i> طلبات حذف الحساب</span>
+                    <span class="admin-badge-count admin-danger-badge" id="badgeDeletionCount">0</span>
                 </button>
-                <button type="button" class="admin-nav-item" onclick="switchAdminTab('cities', this)">
-                    <span><i class="fa-solid fa-city" style="margin-left: 8px;"></i> المدن والتصنيفات</span>
+                <button type="button" class="admin-nav-item" id="adminTabCities" role="tab" aria-selected="false" aria-controls="tabCities" data-admin-tab="cities">
+                    <span><i class="fa-solid fa-city admin-nav-icon"></i> المدن والتصنيفات</span>
                 </button>
             </nav>
         </aside>
 
         <!-- Main Content Area -->
         <section id="adminContentContainer">
-            
+            <div id="adminGlobalStatus" class="admin-state" role="status" aria-live="polite">جارٍ التحقق من صلاحيات الإدارة…</div>
+
             <!-- Tab 1: Overview KPIs -->
-            <div id="tabOverview">
-                <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">نظرة عامة ومؤشرات الأداء (KPIs)</h2>
-                
+            <div id="tabOverview" role="tabpanel" aria-labelledby="adminTabOverview">
+                <h2 class="admin-page-title">نظرة عامة ومؤشرات الأداء (KPIs)</h2>
+
                 <div class="admin-kpi-grid">
                     <div class="kpi-box">
-                        <div class="kpi-icon" style="background: #0063fb;"><i class="fa-solid fa-layer-group"></i></div>
+                        <div class="kpi-icon kpi-icon-listings"><i class="fa-solid fa-layer-group"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="kpiTotalAds">0</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">إجمالي الإعلانات النشطة</div>
+                            <div class="kpi-value" id="kpiTotalAds">0</div>
+                            <div class="kpi-label">إجمالي الإعلانات النشطة</div>
                         </div>
                     </div>
                     <div class="kpi-box">
-                        <div class="kpi-icon" style="background: #10b981;"><i class="fa-solid fa-user-check"></i></div>
+                        <div class="kpi-icon kpi-icon-users"><i class="fa-solid fa-user-check"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="kpiUsersCount">0</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">الحسابات المسجلة</div>
+                            <div class="kpi-value" id="kpiUsersCount">0</div>
+                            <div class="kpi-label">الحسابات المسجلة</div>
                         </div>
                     </div>
                     <div class="kpi-box">
-                        <div class="kpi-icon" style="background: #f59e0b;"><i class="fa-solid fa-star"></i></div>
+                        <div class="kpi-icon kpi-icon-verified"><i class="fa-solid fa-star"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="kpiVerifiedCount">0</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">الحسابات الموثقة</div>
+                            <div class="kpi-value" id="kpiVerifiedCount">0</div>
+                            <div class="kpi-label">الحسابات الموثقة</div>
                         </div>
                     </div>
                     <div class="kpi-box">
-                        <div class="kpi-icon" style="background: #8b5cf6;"><i class="fa-solid fa-comments"></i></div>
+                        <div class="kpi-icon kpi-icon-reports"><i class="fa-solid fa-comments"></i></div>
                         <div>
-                            <div style="font-size: 24px; font-weight: 900;" id="kpiPendingReports">0</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">بلاغات قيد المراجعة</div>
+                            <div class="kpi-value" id="kpiPendingReports">0</div>
+                            <div class="kpi-label">بلاغات قيد المراجعة</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="admin-card">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                        <h3 style="font-size: 18px; font-weight: 800;">أحدث الإعلانات المدرجة للتحقق والمراجعة</h3>
-                        <button class="btn btn-outline" style="height: 36px; font-size: 12px;" onclick="renderAllAdminTables()">
+                    <div class="admin-heading-row">
+                        <h3 class="admin-card-title">أحدث الإعلانات المدرجة للتحقق والمراجعة</h3>
+                        <button type="button" class="btn btn-outline admin-refresh" id="refreshAdminData">
                             <i class="fa-solid fa-rotate"></i> تحديث البيانات
                         </button>
                     </div>
@@ -280,63 +320,69 @@
             </div>
 
             <!-- Tab 2: Full Listings Moderation Queue -->
-            <div id="tabListings" style="display: none;">
+            <div id="tabListings" role="tabpanel" aria-labelledby="adminTabListings" hidden>
                 <div class="admin-card">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                        <h2 style="font-size: 20px; font-weight: 800;">إدارة وحظر وتفعيل كافة الإعلانات</h2>
-                        <input type="search" class="search-admin-input" id="searchAdminAdsInput" aria-label="البحث في الإعلانات بالكلمة أو المدينة" placeholder="بحث بالكلمة أو المدينة..." oninput="filterAdminListingsTable(this.value)">
+                    <div class="admin-listing-toolbar">
+                        <h2 class="admin-section-title">إدارة وحظر وتفعيل كافة الإعلانات</h2>
+                        <input type="search" class="search-admin-input" id="searchAdminAdsInput" aria-label="البحث في الإعلانات بالكلمة أو المدينة" placeholder="بحث بالكلمة أو المدينة...">
                     </div>
                     <div id="fullListingsTableWrapper"></div>
+                    <div id="listingsPagination" class="admin-pagination"></div>
                 </div>
             </div>
 
             <!-- Tab 3: Users & Roles Management -->
-            <div id="tabUsers" style="display: none;">
+            <div id="tabUsers" role="tabpanel" aria-labelledby="adminTabUsers" hidden>
                 <div class="admin-card">
-                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">إدارة الأعضاء، الأدوار، وتراخيص التجار</h2>
-                    <table class="data-table">
+                    <div class="admin-toolbar"><h2 class="admin-section-title">إدارة الأعضاء والأدوار والتوثيق</h2><input type="search" class="search-admin-input" id="searchAdminUsersInput" aria-label="البحث في الأعضاء" placeholder="بحث بالاسم أو الجوال..."></div>
+                    <div class="admin-table-scroll"><table class="data-table">
+                        <caption class="sr-only">قائمة أعضاء المنصة وإجراءات الصلاحيات</caption>
                         <thead>
                             <tr>
                                 <th>العضو / التاجر</th>
                                 <th>رقم الجوال</th>
                                 <th>الدور</th>
                                 <th>التوثيق</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
                             <!-- Populated dynamically -->
                         </tbody>
-                    </table>
+                    </table></div>
+                    <div id="usersPagination" class="admin-pagination"></div>
                 </div>
             </div>
 
             <!-- Tab 4: Reports & Content Control -->
-            <div id="tabReports" style="display: none;">
+            <div id="tabReports" role="tabpanel" aria-labelledby="adminTabReports" hidden>
                 <div class="admin-card">
-                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">بلاغات المحتوى والمخالفات</h2>
+                    <div class="admin-toolbar"><h2 class="admin-section-title">بلاغات المحتوى والمخالفات</h2><select id="reportsStatusFilter" class="admin-role-select" aria-label="تصفية البلاغات"><option value="">كل الحالات</option><option value="pending">قيد المراجعة</option><option value="reviewed">تحت المراجعة</option><option value="resolved">تم الحل</option><option value="dismissed">مرفوض</option></select></div>
                     <div id="reportsContainer"></div>
+                    <div id="reportsPagination" class="admin-pagination"></div>
                 </div>
             </div>
 
             <!-- Tab 5: Cities & Categories Management -->
-            <div id="tabCities" style="display: none;">
+            <div id="tabCities" role="tabpanel" aria-labelledby="adminTabCities" hidden>
                 <div class="admin-card">
-                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">المدن والتصنيفات المعتمدة</h2>
-                    
+                    <h2 class="admin-section-title-spaced">المدن والتصنيفات المعتمدة</h2>
+
                     <div>
-                        <div style="background: var(--bg-surface-subtle); padding: 20px; border-radius: var(--radius-md);">
-                            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">المدن المعتمدة حالياً (<span id="citiesCountBadge">0</span>)</h4>
-                            <div id="citiesListAdmin" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto;"></div>
+                        <div class="admin-city-box">
+                            <h4 class="admin-city-title">المدن المعتمدة حالياً (<span id="citiesCountBadge">0</span>)</h4>
+                            <div id="citiesListAdmin" class="admin-city-list"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="tabDeletions" style="display:none;">
+            <div id="tabDeletions" role="tabpanel" aria-labelledby="adminTabDeletions" hidden>
                 <div class="admin-card">
-                    <h2 style="font-size:20px; font-weight:800; margin-bottom:8px;">طلبات حذف الحساب والبيانات</h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:18px;">تحقق من الطلب والالتزامات النظامية قبل التنفيذ. الإجراء نهائي ويحذف حساب Auth وبياناته المرتبطة وصوره.</p>
+                    <h2 class="admin-deletion-title">طلبات حذف الحساب والبيانات</h2>
+                    <p class="admin-deletion-copy">تحقق من الطلب والالتزامات النظامية قبل التنفيذ. الإجراء نهائي ويحذف حساب Auth وبياناته المرتبطة وصوره.</p>
                     <div id="deletionRequestsContainer"></div>
+                    <div id="deletionsPagination" class="admin-pagination"></div>
                 </div>
             </div>
 
@@ -348,276 +394,6 @@
     <script src="js/data.js?v=10.0"></script>
     <script src="js/security.js?v=10.0"></script>
     <script src="js/supabase-config.js?v=16.0"></script>
-    <script>
-        let allListings = [];
-        let allUsers = [];
-        let allReports = [];
-        let allDeletionRequests = [];
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const authUser = await finnDB.getAuthUser();
-            if (!authUser || authUser.role !== 'admin') {
-                alert('غير مصرح لك بالدخول إلى لوحة الإدارة.');
-                window.location.replace('index.html');
-                return;
-            }
-            document.getElementById('adminNameTxt').textContent = authUser.name;
-            document.getElementById('adminAvatarImg').src = safeHttpUrl(authUser.avatar, DEFAULT_AVATAR);
-
-            [allListings, allUsers, allReports, allDeletionRequests] = await Promise.all([
-                finnDB.getAdminListings(),
-                finnDB.getAdminProfiles(),
-                finnDB.getAdminReports(),
-                finnDB.getAdminAccountDeletionRequests()
-            ]);
-            document.getElementById('kpiTotalAds').textContent = allListings.length;
-            document.getElementById('badgeAdsCount').textContent = allListings.length;
-            document.getElementById('kpiUsersCount').textContent = allUsers.length;
-            document.getElementById('kpiVerifiedCount').textContent = allUsers.filter(user => user.verified).length;
-            updateReportsCounters();
-            updateDeletionRequests();
-            
-            renderAllAdminTables();
-            renderUsersTable();
-            renderCitiesAdmin();
-            renderReports();
-            renderDeletionRequests();
-        });
-
-        function switchAdminTab(tab, el) {
-            document.querySelectorAll('.admin-nav-item').forEach(item => item.classList.remove('active'));
-            el.classList.add('active');
-
-            document.getElementById('tabOverview').style.display = 'none';
-            document.getElementById('tabListings').style.display = 'none';
-            document.getElementById('tabUsers').style.display = 'none';
-            document.getElementById('tabReports').style.display = 'none';
-            document.getElementById('tabCities').style.display = 'none';
-            document.getElementById('tabDeletions').style.display = 'none';
-
-            if (tab === 'overview') document.getElementById('tabOverview').style.display = 'block';
-            if (tab === 'listings') document.getElementById('tabListings').style.display = 'block';
-            if (tab === 'users') document.getElementById('tabUsers').style.display = 'block';
-            if (tab === 'reports') document.getElementById('tabReports').style.display = 'block';
-            if (tab === 'cities') document.getElementById('tabCities').style.display = 'block';
-            if (tab === 'deletions') document.getElementById('tabDeletions').style.display = 'block';
-        }
-
-        function updateDeletionRequests() {
-            document.getElementById('badgeDeletionCount').textContent = allDeletionRequests.filter(request => ['pending', 'processing'].includes(request.status)).length;
-        }
-
-        function renderDeletionRequests() {
-            const container = document.getElementById('deletionRequestsContainer');
-            if (!allDeletionRequests.length) {
-                container.innerHTML = '<p class="profile-state-card">لا توجد طلبات حذف حساب.</p>';
-                return;
-            }
-            const labels = { pending: 'قيد المراجعة', processing: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغي' };
-            container.innerHTML = `<table class="data-table"><thead><tr><th>الحساب</th><th>السبب</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead><tbody>${allDeletionRequests.map(request => `
-                <tr>
-                    <td>${escapeHTML(request.email)}</td>
-                    <td style="white-space:normal; max-width:320px;">${escapeHTML(request.reason || 'لم يذكر سببًا')}</td>
-                    <td>${new Date(request.requestedAt).toLocaleDateString('ar-SA')}</td>
-                    <td><strong>${escapeHTML(labels[request.status] || request.status)}</strong>${request.status === 'pending' ? `<button type="button" class="btn btn-outline" style="margin-top:8px; color:var(--color-danger);" onclick="processDeletionRequest('${request.id}')">تنفيذ الحذف النهائي</button>` : ''}</td>
-                </tr>`).join('')}</tbody></table>`;
-        }
-
-        async function processDeletionRequest(requestId) {
-            if (!confirm('هذا الإجراء نهائي: سيُحذف حساب المستخدم وإعلاناته وصوره. هل راجعت الطلب وتريد المتابعة؟')) return;
-            const repeatedConfirmation = prompt('للتأكيد اكتب كلمة: حذف');
-            if (repeatedConfirmation !== 'حذف') return;
-            try {
-                allDeletionRequests = await finnDB.processAccountDeletionRequest(requestId);
-                updateDeletionRequests();
-                renderDeletionRequests();
-                alert('تم حذف الحساب وبياناته المرتبطة بنجاح.');
-            } catch (error) {
-                alert(error.message || 'تعذر تنفيذ حذف الحساب.');
-            }
-        }
-
-        function renderAllAdminTables() {
-            const tableHTML = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>عنوان الإعلان</th>
-                            <th>القطاع</th>
-                            <th>المدينة</th>
-                            <th>السعر</th>
-                            <th>الحالة</th>
-                            <th>التحكم والإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${allListings.map(item => `
-                            <tr>
-                                <td style="font-weight: 800;">${escapeHTML(item.title)}</td>
-                                <td>${escapeHTML(item.subCategory)}</td>
-                                <td>${escapeHTML(item.city)}</td>
-                                <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
-                                <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
-                                <td>
-                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
-                                    
-                                    ${item.status === 'rejected' ? `
-                                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #059669; border-color: #059669;" onclick="toggleListingStatus('${item.id}', 'active')">تفعيل</button>
-                                    ` : `
-                                        <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #d97706; border-color: #f59e0b;" onclick="toggleListingStatus('${item.id}', 'rejected')">حظر</button>
-                                    `}
-
-                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #ef4444; border-color: #ef4444;" onclick="deleteAdminListing('${item.id}')">حذف</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-
-            document.getElementById('overviewTableWrapper').innerHTML = tableHTML;
-            document.getElementById('fullListingsTableWrapper').innerHTML = tableHTML;
-        }
-
-        function filterAdminListingsTable(query) {
-            const q = query.toLowerCase();
-            const filtered = allListings.filter(l => l.title.toLowerCase().includes(q) || l.city.toLowerCase().includes(q));
-            
-            const tableHTML = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>عنوان الإعلان</th>
-                            <th>القطاع</th>
-                            <th>المدينة</th>
-                            <th>السعر</th>
-                            <th>الحالة</th>
-                            <th>التحكم والإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filtered.map(item => `
-                            <tr>
-                                <td style="font-weight: 800;">${escapeHTML(item.title)}</td>
-                                <td>${escapeHTML(item.subCategory)}</td>
-                                <td>${escapeHTML(item.city)}</td>
-                                <td style="color: var(--color-primary); font-weight: 900;">${item.price.toLocaleString('ar-SA')} ر.س</td>
-                                <td><span class="status-pill ${item.status || 'active'}">${item.status === 'rejected' ? 'مظور / مرفوض' : 'نشط ومعتمد'}</span></td>
-                                <td>
-                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px;" onclick="window.location.href='listing.html?id=${item.id}'">معاينة</button>
-                                    <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px; color: #ef4444; border-color: #ef4444;" onclick="deleteAdminListing('${item.id}')">حذف</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            document.getElementById('fullListingsTableWrapper').innerHTML = tableHTML;
-        }
-
-        async function toggleListingStatus(id, newStatus) {
-            const item = allListings.find(l => l.id === id);
-            if (item) {
-                try {
-                    await finnDB.updateListingStatus(id, newStatus);
-                    item.status = newStatus;
-                    renderAllAdminTables();
-                    alert(`تم تحديث حالة الإعلان إلى (${newStatus === 'active' ? 'نشط' : 'محظور'}).`);
-                } catch (error) {
-                    alert(error.message || 'تعذر تحديث حالة الإعلان.');
-                }
-            }
-        }
-
-        async function deleteAdminListing(id) {
-            if (confirm('هل أنت تأكد كمسؤول من حذف هذا الإعلان نهائياً من السيرفر؟')) {
-                allListings = await finnDB.deleteListing(id);
-                document.getElementById('kpiTotalAds').textContent = allListings.length;
-                document.getElementById('badgeAdsCount').textContent = allListings.length;
-                renderAllAdminTables();
-                alert('تم حذف الإعلان كلياً من المنصة.');
-            }
-        }
-
-        function renderUsersTable() {
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = allUsers.map(u => `
-                <tr>
-                    <td style="font-weight: 800;">${escapeHTML(u.name)}</td>
-                    <td>${escapeHTML(u.phone)}</td>
-                    <td>${escapeHTML(u.role)}</td>
-                    <td>
-                        <span class="status-pill ${u.verified ? 'active' : 'pending'}">${u.verified ? 'موثق' : 'غير موثق'}</span>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateReportsCounters() {
-            const pendingCount = allReports.filter(report => report.status === 'pending').length;
-            document.getElementById('badgeReportsCount').textContent = pendingCount;
-            document.getElementById('kpiPendingReports').textContent = pendingCount;
-        }
-
-        function renderReports() {
-            const container = document.getElementById('reportsContainer');
-            if (!allReports.length) {
-                container.innerHTML = `
-                    <div style="text-align:center; padding:40px; background:var(--bg-surface-subtle); border-radius:var(--radius-md);">
-                        <i class="fa-solid fa-shield-check" style="font-size:40px; color:#10b981; margin-bottom:12px;"></i>
-                        <h3 style="font-size:16px; font-weight:800;">لا توجد بلاغات مسجلة</h3>
-                    </div>
-                `;
-                return;
-            }
-            const statusLabels = { pending: 'قيد المراجعة', reviewed: 'تمت المراجعة', resolved: 'تم الحل', dismissed: 'مرفوض' };
-            container.innerHTML = `
-                <table class="data-table">
-                    <thead><tr><th>الإعلان</th><th>المبلّغ</th><th>السبب</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead>
-                    <tbody>${allReports.map(report => `
-                        <tr>
-                            <td><a href="listing.html?id=${encodeURIComponent(report.listingId)}" style="color:var(--color-primary); font-weight:800;">${escapeHTML(report.listingTitle)}</a></td>
-                            <td>${escapeHTML(report.reporterName)}</td>
-                            <td style="max-width:320px; white-space:normal;">${escapeHTML(report.reason)}</td>
-                            <td>${new Date(report.createdAt).toLocaleDateString('ar-SA')}</td>
-                            <td>
-                                <span class="status-pill ${escapeHTML(report.status)}">${statusLabels[report.status] || escapeHTML(report.status)}</span>
-                                ${report.status === 'pending' ? `
-                                    <div style="display:flex; gap:6px; margin-top:8px;">
-                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:var(--color-primary);" onclick="setReportStatus('${report.id}', 'reviewed')">بدء المراجعة</button>
-                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#64748b;" onclick="setReportStatus('${report.id}', 'dismissed')">رفض البلاغ</button>
-                                    </div>
-                                ` : report.status === 'reviewed' ? `
-                                    <div style="display:flex; gap:6px; margin-top:8px;">
-                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#059669;" onclick="setReportStatus('${report.id}', 'resolved')">تم الحل</button>
-                                        <button class="btn btn-outline" style="padding:3px 8px; font-size:11px; color:#64748b;" onclick="setReportStatus('${report.id}', 'dismissed')">رفض البلاغ</button>
-                                    </div>
-                                ` : ''}
-                            </td>
-                        </tr>
-                    `).join('')}</tbody>
-                </table>
-            `;
-        }
-
-        async function setReportStatus(reportId, status) {
-            try {
-                allReports = await finnDB.updateReportStatus(reportId, status);
-                updateReportsCounters();
-                renderReports();
-            } catch (error) {
-                alert(error.message || 'تعذر تحديث البلاغ.');
-            }
-        }
-
-        function renderCitiesAdmin() {
-            document.getElementById('citiesCountBadge').textContent = INITIAL_CITIES.length;
-            const container = document.getElementById('citiesListAdmin');
-            container.innerHTML = INITIAL_CITIES.map(c => `
-                <span style="background: white; border: 1px solid var(--border-color); padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700;">${c}</span>
-            `).join('');
-        }
-
-    </script>
+    <script src="js/admin.js?v=1.0"></script>
 </body>
 </html>
