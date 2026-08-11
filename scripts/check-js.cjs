@@ -3,7 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const jsFiles = ['js/data.js', 'js/security.js', 'js/supabase-config.js', 'js/app.js'];
+const jsFiles = ['js/data.js', 'js/security.js', 'js/supabase-config.js', 'js/app.js', 'js/admin.js'];
 const htmlFiles = fs.readdirSync(root).filter(file => file.endsWith('.html'));
 
 for (const relativePath of jsFiles) {
