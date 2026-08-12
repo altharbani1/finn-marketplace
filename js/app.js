@@ -386,7 +386,8 @@ class FinnMarketApp {
 
     renderCategoryBar() {
         const catNav = document.getElementById('catNavList');
-        if (!catNav) return;
+        const heroTags = document.getElementById('heroTags');
+        if (!catNav || !heroTags) return;
 
         catNav.innerHTML = INITIAL_CATEGORIES.map(cat => `
             <li class="cat-nav-item ${this.state.category === cat.id ? 'active' : ''}">
@@ -396,11 +397,13 @@ class FinnMarketApp {
                 </button>
             </li>
         `).join('');
-        document.querySelectorAll('.hero-tag-btn[data-cat]').forEach(button => {
-            const active = button.dataset.cat === this.state.category;
-            button.classList.toggle('active', active);
-            button.setAttribute('aria-pressed', String(active));
-        });
+        heroTags.innerHTML = INITIAL_CATEGORIES.map(cat => `
+            <button type="button" class="hero-tag-btn ${this.state.category === cat.id ? 'active' : ''}"
+                data-cat="${escapeHTML(cat.id)}" aria-pressed="${this.state.category === cat.id}">
+                <i class="fa-solid ${escapeHTML(cat.icon)}" aria-hidden="true"></i>
+                <span>${escapeHTML(cat.name)}</span>
+            </button>
+        `).join('');
     }
 
     renderCityOptions() {
@@ -1034,14 +1037,16 @@ class FinnMarketApp {
             this.submitSearch(event.currentTarget.value);
         });
 
-        document.getElementById('catNavList')?.addEventListener('click', (e) => {
+        const handleCategorySelection = (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
             this.state.category = btn.dataset.cat;
             this.state.showFavoritesOnly = false;
             this.renderCategoryBar();
             this.applyFiltersAndRender();
-        });
+        };
+        document.getElementById('catNavList')?.addEventListener('click', handleCategorySelection);
+        document.getElementById('heroTags')?.addEventListener('click', handleCategorySelection);
 
         document.getElementById('adIsFree')?.addEventListener('change', () => this.syncFreePriceField());
 

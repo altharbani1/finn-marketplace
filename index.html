@@ -66,18 +66,8 @@
             <h1 class="hero-title">السوق الشامل الموثوق لجميع احتياجاتك</h1>
             <p class="hero-subtitle">تصفح العقارات، السيارات، اليخوت، الأثاث المستعمل، الوظائف، والمنتجات المجانية بأعلى معايير الأمان والسرعة.</p>
 
-            <div class="hero-tags">
-                <button type="button" class="hero-tag-btn active" data-cat="all" aria-pressed="true" onclick="app.state.category='all'; app.renderCategoryBar(); app.applyFiltersAndRender();">الكل</button>
-                <button type="button" class="hero-tag-btn" data-cat="real_estate" aria-pressed="false" onclick="app.state.category='real_estate'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-house-chimney"></i> العقارات</button>
-                <button type="button" class="hero-tag-btn" data-cat="vehicles" aria-pressed="false" onclick="app.state.category='vehicles'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-car"></i> السيارات</button>
-                <button type="button" class="hero-tag-btn" data-cat="contracting" aria-pressed="false" onclick="app.state.category='contracting'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-helmet-safety"></i> المقاولات</button>
-                <button type="button" class="hero-tag-btn" data-cat="services" aria-pressed="false" onclick="app.state.category='services'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-handshake-angle"></i> الخدمات</button>
-                <button type="button" class="hero-tag-btn" data-cat="furniture" aria-pressed="false" onclick="app.state.category='furniture'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-couch"></i> الأثاث</button>
-                <button type="button" class="hero-tag-btn" data-cat="electronics" aria-pressed="false" onclick="app.state.category='electronics'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-tv"></i> الأجهزة</button>
-                <button type="button" class="hero-tag-btn" data-cat="jobs" aria-pressed="false" onclick="app.state.category='jobs'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-briefcase"></i> الوظائف</button>
-                <button type="button" class="hero-tag-btn" data-cat="freebies" aria-pressed="false" style="background: rgba(16,185,129,0.3); border-color: #10b981;" onclick="app.state.category='freebies'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-gift"></i> إهداء مجاني</button>
-                <button type="button" class="hero-tag-btn" data-cat="boats" aria-pressed="false" onclick="app.state.category='boats'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-ship"></i> القوارب والبحري</button>
-                <button type="button" class="hero-tag-btn" data-cat="motorbikes" aria-pressed="false" onclick="app.state.category='motorbikes'; app.renderCategoryBar(); app.applyFiltersAndRender();"><i class="fa-solid fa-motorcycle"></i> الدراجات</button>
+            <div class="hero-tags" id="heroTags" aria-label="أقسام الإعلانات البارزة">
+                <!-- Injected from the same category source as the upper navigation. -->
             </div>
         </div>
     </section>
