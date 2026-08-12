@@ -149,6 +149,9 @@
             <button type="button" class="profile-tab-item" id="tabSettings" role="tab" aria-selected="false" aria-controls="sectionSettings" onclick="switchProfileTab('settings')">
                 <i class="fa-solid fa-gear"></i> إعدادات الحساب والتوثيق
             </button>
+            <button type="button" class="profile-tab-item" id="tabNotifications" role="tab" aria-selected="false" aria-controls="sectionNotifications" onclick="switchProfileTab('notifications')">
+                <i class="fa-solid fa-bell"></i> إشعارات الثقة (<span id="trustNotificationsCount">0</span>)
+            </button>
         </div>
 
         <!-- Tab 1: My Active Ads Grid -->
@@ -156,6 +159,10 @@
             <div class="listings-grid" id="myAdsGrid">
                 <!-- Rendered dynamically -->
             </div>
+        </section>
+
+        <section id="sectionNotifications" role="tabpanel" aria-labelledby="tabNotifications" style="display:none;">
+            <div id="trustNotificationsList" style="display:grid;gap:12px;max-width:760px;"></div>
         </section>
 
         <!-- Tab 2: Saved Favorites Grid -->
@@ -247,8 +254,9 @@
                 await renderMyFavs();
                 populateSettingsForm();
                 await loadAccountDeletionRequest();
+                await renderTrustNotifications();
                 const requestedTab = new URLSearchParams(window.location.search).get('tab');
-                if (['myAds', 'favs', 'settings'].includes(requestedTab)) switchProfileTab(requestedTab);
+                if (['myAds', 'favs', 'settings', 'notifications'].includes(requestedTab)) switchProfileTab(requestedTab);
             } catch (error) {
                 document.querySelector('main').innerHTML = `
                     <div class="profile-state-card" role="alert">
@@ -295,6 +303,7 @@
             document.getElementById('sectionMyAds').style.display = 'none';
             document.getElementById('sectionFavs').style.display = 'none';
             document.getElementById('sectionSettings').style.display = 'none';
+            document.getElementById('sectionNotifications').style.display = 'none';
 
             if (tab === 'myAds') {
                 document.getElementById('tabMyAds').classList.add('active');
@@ -308,10 +317,25 @@
                 document.getElementById('tabSettings').classList.add('active');
                 document.getElementById('tabSettings').setAttribute('aria-selected', 'true');
                 document.getElementById('sectionSettings').style.display = 'block';
+            } else if (tab === 'notifications') {
+                document.getElementById('tabNotifications').classList.add('active');
+                document.getElementById('tabNotifications').setAttribute('aria-selected', 'true');
+                document.getElementById('sectionNotifications').style.display = 'block';
             }
             const url = new URL(window.location.href);
             url.searchParams.set('tab', tab);
             history.replaceState(null, '', `${url.pathname}${url.search}`);
+        }
+
+        async function renderTrustNotifications() {
+            const items = await finnDB.getTrustNotifications();
+            document.getElementById('trustNotificationsCount').textContent = items.filter(item => !item.readAt).length;
+            document.getElementById('trustNotificationsList').innerHTML = items.length ? items.map(item => `<article style="background:white;border:1px solid var(--border-color);border-radius:var(--radius-md);padding:18px;${item.readAt ? '' : 'border-right:4px solid var(--color-primary);'}"><div style="display:flex;justify-content:space-between;gap:12px;"><div><h3 style="font-size:16px;margin-bottom:5px;">${escapeHTML(item.title)}</h3><p style="font-size:13px;color:var(--text-muted);">${escapeHTML(item.message)}</p><small>${new Date(item.createdAt).toLocaleString('ar-SA')}</small></div>${item.readAt ? '' : `<button type="button" class="btn btn-outline" style="height:34px;" onclick="markTrustNotificationRead('${item.id}')">تحديد كمقروء</button>`}</div></article>`).join('') : '<div class="profile-state-card"><i class="fa-regular fa-bell"></i><h2>لا توجد إشعارات</h2><p>ستظهر هنا نتائج البلاغات وردود المعلنين.</p></div>';
+        }
+
+        async function markTrustNotificationRead(id) {
+            try { await finnDB.markTrustNotificationRead(id); await renderTrustNotifications(); }
+            catch (error) { alert(error.message || 'تعذر تحديث الإشعار.'); }
         }
 
         async function renderMyAds() {

@@ -429,19 +429,30 @@ class FinnSeniorProductionEngine {
     }
 
     async getSellerRating(sellerId) {
-        if (!sellerId) return { average: 0, count: 0 };
-        const { data, error } = await this.requireClient().from('seller_ratings')
-            .select('rating')
-            .eq('seller_id', sellerId);
+        if (!sellerId) return { average: 0, count: 0, distribution: {}, reviews: [] };
+        const { data, error } = await this.requireClient().rpc('get_seller_rating_summary', {
+            p_seller_id: sellerId,
+            p_limit: 20
+        });
         if (error) throw new Error(`تعذر جلب تقييم المعلن: ${error.message}`);
-        const ratings = (data || []).map(item => Number(item.rating));
-        const average = ratings.length
-            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
-            : 0;
-        return { average, count: ratings.length };
+        return {
+            average: Number(data?.average || 0),
+            count: Number(data?.count || 0),
+            distribution: data?.distribution || {},
+            reviews: (data?.reviews || []).map(review => ({
+                id: review.id,
+                rating: Number(review.rating),
+                reviewText: review.review_text || '',
+                sellerReply: review.seller_reply || '',
+                sellerRepliedAt: review.seller_replied_at,
+                reviewerName: review.reviewer_name || 'عضو',
+                createdAt: review.created_at,
+                updatedAt: review.updated_at
+            }))
+        };
     }
 
-    async rateSeller(listingId, sellerId, rating) {
+    async rateSeller(listingId, sellerId, rating, reviewText = '') {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول لإضافة تقييم.');
         if (authUser.id === sellerId) throw new Error('لا يمكنك تقييم نفسك.');
@@ -450,24 +461,64 @@ class FinnSeniorProductionEngine {
         const { error } = await this.requireClient().rpc('upsert_seller_rating', {
             p_listing_id: listingId,
             p_seller_id: sellerId,
-            p_rating: score
+            p_rating: score,
+            p_review_text: reviewText.trim() || null
         });
         if (error) throw new Error(`تعذر حفظ التقييم: ${error.message}`);
         return this.getSellerRating(sellerId);
     }
 
-    async submitReport(listingId, reason) {
+    async submitReport(listingId, report) {
         const authUser = await this.getAuthUser();
         if (!authUser) throw new Error('يجب تسجيل الدخول لإرسال بلاغ.');
-        const reportReason = reason.trim();
-        if (!reportReason || reportReason.length > 2000) throw new Error('اكتب سببًا واضحًا لا يتجاوز 2000 حرف.');
-        const { error } = await this.requireClient().from('reports').insert({
-            listing_id: listingId,
-            reporter_id: authUser.id,
-            reason: reportReason
+        const payload = typeof report === 'string' ? { category: 'other', details: report, evidenceUrls: [] } : report;
+        const details = String(payload?.details || '').trim();
+        const evidenceUrls = (payload?.evidenceUrls || []).map(url => String(url).trim()).filter(Boolean);
+        if (details && (details.length < 5 || details.length > 2000)) throw new Error('اجعل التفاصيل بين 5 و2000 حرف، أو اتركها فارغة.');
+        if (evidenceUrls.length > 3 || evidenceUrls.some(url => !/^https:\/\//i.test(url) || url.length > 500)) {
+            throw new Error('يسمح بثلاثة روابط HTTPS فقط، وبحد أقصى 500 حرف للرابط.');
+        }
+        const { error } = await this.requireClient().rpc('submit_trust_report', {
+            p_listing_id: listingId,
+            p_rating_id: null,
+            p_category: payload?.category || 'other',
+            p_details: details,
+            p_evidence_urls: evidenceUrls
         });
         if (error?.code === '23505') throw new Error('لديك بلاغ قيد المراجعة على هذا الإعلان بالفعل.');
         if (error) throw new Error(`تعذر إرسال البلاغ: ${error.message}`);
+    }
+
+    async submitRatingReport(ratingId, category, details, evidenceUrls = []) {
+        const { error } = await this.requireClient().rpc('submit_trust_report', {
+            p_listing_id: null, p_rating_id: ratingId, p_category: category,
+            p_details: details.trim(), p_evidence_urls: evidenceUrls
+        });
+        if (error?.code === '23505') throw new Error('لديك بلاغ مفتوح على هذا التقييم بالفعل.');
+        if (error) throw new Error(`تعذر إرسال بلاغ التقييم: ${error.message}`);
+    }
+
+    async replyToSellerRating(ratingId, reply) {
+        const { error } = await this.requireClient().rpc('reply_to_seller_rating', {
+            p_rating_id: ratingId, p_reply: reply.trim()
+        });
+        if (error) throw new Error(`تعذر حفظ رد المعلن: ${error.message}`);
+    }
+
+    async getTrustNotifications(limit = 50) {
+        const { data, error } = await this.requireClient().from('trust_notifications')
+            .select('id, kind, title, message, related_report_id, related_rating_id, read_at, created_at')
+            .order('created_at', { ascending: false }).limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
+        if (error) throw new Error(`تعذر جلب الإشعارات: ${error.message}`);
+        return (data || []).map(item => ({ id: item.id, kind: item.kind, title: item.title,
+            message: item.message, reportId: item.related_report_id, ratingId: item.related_rating_id,
+            readAt: item.read_at, createdAt: item.created_at }));
+    }
+
+    async markTrustNotificationRead(notificationId) {
+        const { error } = await this.requireClient().from('trust_notifications')
+            .update({ read_at: new Date().toISOString() }).eq('id', notificationId);
+        if (error) throw new Error(`تعذر تحديث الإشعار: ${error.message}`);
     }
 
     async uploadListingImages(listingId, images, userId) {
@@ -793,15 +844,20 @@ class FinnSeniorProductionEngine {
         if (error) throw new Error(`تعذر تحديث صلاحيات العضو: ${error.message}`);
     }
 
-    async getAdminReportsPage({ page = 0, pageSize = 25, status = null } = {}) {
+    async getAdminReportsPage({ page = 0, pageSize = 25, status = null, targetType = null, category = null, priority = null, search = '' } = {}) {
         const { data, error } = await this.requireClient().rpc('get_admin_reports_page', {
-            p_page: page, p_page_size: pageSize, p_status: status || null
+            p_page: page, p_page_size: pageSize, p_status: status || null,
+            p_target_type: targetType || null, p_category: category || null,
+            p_priority: priority ? Number(priority) : null, p_search: search.trim() || null
         });
         if (error) throw new Error(`تعذر جلب البلاغات: ${error.message}`);
         return {
             items: (data?.items || []).map(report => ({
-                id: report.id, listingId: report.listing_id, listingTitle: report.listing_title,
-                reporterName: report.reporter_name, reason: report.reason || '', status: report.status,
+                id: report.id, listingId: report.listing_id, ratingId: report.rating_id,
+                targetType: report.target_type, targetTitle: report.target_title,
+                reporterName: report.reporter_name, category: report.category,
+                details: report.details || '', evidenceUrls: report.evidence_urls || [],
+                priority: Number(report.priority || 1), status: report.status,
                 createdAt: report.created_at, reviewedAt: report.reviewed_at,
                 resolutionNote: report.resolution_note || ''
             })),
@@ -888,12 +944,13 @@ class FinnSeniorProductionEngine {
         return this.getAdminReports();
     }
 
-    async updateAdminReport(reportId, expectedStatus, status, resolutionNote = '') {
+    async updateAdminReport(reportId, expectedStatus, status, resolutionNote = '', hideContent = false) {
         const { error } = await this.requireClient().rpc('admin_update_report', {
             p_report_id: reportId,
             p_expected_status: expectedStatus,
             p_status: status,
-            p_resolution_note: resolutionNote || null
+            p_resolution_note: resolutionNote || null,
+            p_hide_content: Boolean(hideContent)
         });
         if (error) throw new Error(`تعذر تحديث البلاغ: ${error.message}`);
     }
