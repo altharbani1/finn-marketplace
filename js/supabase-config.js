@@ -181,7 +181,7 @@ class FinnSeniorProductionEngine {
             images: Array.isArray(item.images) && item.images.length ? item.images : [DEFAULT_LISTING_IMAGE],
             seller: {
                 id: item.user_id,
-                name: profile.full_name || 'معلن',
+                name: item.seller_name || profile.full_name || 'معلن',
                 avatar: profile.avatar_url || DEFAULT_AVATAR,
                 phone: '',
                 rating: Number(profile.rating || 0),
@@ -191,6 +191,17 @@ class FinnSeniorProductionEngine {
             specs: item.attributes || {},
             comments: []
         };
+    }
+
+    async attachPublicSellerNames(items) {
+        if (!items?.length) return [];
+        const listingIds = [...new Set(items.map(item => item.id).filter(Boolean))].slice(0, 100);
+        const { data, error } = await this.requireClient().rpc('get_public_listing_sellers', {
+            p_listing_ids: listingIds
+        });
+        if (error) throw new Error(`تعذر جلب أسماء المعلنين: ${error.message}`);
+        const sellerNames = new Map((data || []).map(row => [row.listing_id, row.seller_name]));
+        return items.map(item => ({ ...item, seller_name: sellerNames.get(item.id) || 'معلن' }));
     }
 
     async getListings(page = 0, pageSize = 30) {
@@ -204,7 +215,8 @@ class FinnSeniorProductionEngine {
             .order('created_at', { ascending: false })
             .range(from, from + safeSize - 1);
         if (error) throw new Error(`تعذر جلب الإعلانات: ${error.message}`);
-        return (data || []).map((item) => this.mapListing(item));
+        const hydrated = await this.attachPublicSellerNames(data || []);
+        return hydrated.map((item) => this.mapListing(item));
     }
 
     async searchListings(query, page = 0, pageSize = 30) {
@@ -219,7 +231,8 @@ class FinnSeniorProductionEngine {
             p_offset: safePage * safeSize
         });
         if (error) throw new Error(`تعذر تنفيذ البحث: ${error.message}`);
-        return (data || []).map((item) => this.mapListing(item));
+        const hydrated = await this.attachPublicSellerNames(data || []);
+        return hydrated.map((item) => this.mapListing(item));
     }
 
     async getAdminListings() {

@@ -354,7 +354,8 @@
                     </div>
                     <div class="listing-body">
                         <h3 class="listing-card-title"><a href="listing.html?id=${encodeURIComponent(item.id)}">${escapeHTML(item.title)}</a></h3>
-                        <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
+                        <div class="listing-location-tag"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span></div>
+                        <div class="listing-footer-info"><span class="listing-seller-name"><i class="fa-regular fa-user" aria-hidden="true"></i> ${escapeHTML(currentUser.name || 'معلن')}</span><time class="listing-published-date"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</time></div>
                         <div style="display: flex; gap: 8px; margin-top: 10px;">
                             <button class="btn btn-outline" style="flex: 1; height: 36px; font-size: 12px;" onclick="event.stopPropagation(); window.location.href='index.html?edit=${encodeURIComponent(item.id)}'">
                                 <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
@@ -391,7 +392,8 @@
                     </div>
                     <div class="listing-body">
                         <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
-                        <div class="listing-price-tag">${item.price.toLocaleString('ar-SA')} ر.س</div>
+                        <div class="listing-location-tag"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span></div>
+                        <div class="listing-footer-info"><span class="listing-seller-name"><i class="fa-regular fa-user" aria-hidden="true"></i> ${escapeHTML(item.seller?.name || 'معلن')}</span><time class="listing-published-date"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</time></div>
                     </div>
                     </a>
                 </article>

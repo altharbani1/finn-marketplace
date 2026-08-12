@@ -621,7 +621,6 @@ class FinnMarketApp {
             const isFav = this.favorites.includes(item.id);
             const badgeClass = item.isFree ? 'badge-freebie' : `badge-${item.category}`;
             const badgeText = item.isFree ? 'إهداء مجاني' : item.subCategory;
-            const formattedPrice = item.isFree ? 'مجاناً 0 ر.س' : `${item.price.toLocaleString('ar-SA')} ر.س`;
             const hasListingImage = item.images?.[0] && item.images[0] !== DEFAULT_LISTING_IMAGE;
 
             return `
@@ -633,15 +632,15 @@ class FinnMarketApp {
                         <div class="listing-body">
                             <div class="listing-card-meta-row">
                                 <span class="badge-tag listing-card-category ${escapeHTML(badgeClass)}">${escapeHTML(badgeText)}</span>
-                                <div class="listing-meta-sub">
-                                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                                    <span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span>
-                                </div>
                             </div>
                             <h3 class="listing-card-title">${escapeHTML(item.title)}</h3>
-                            <div class="listing-price-tag ${item.isFree ? 'free' : ''}">${formattedPrice}</div>
+                            <div class="listing-location-tag">
+                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                <span>${escapeHTML([item.city, item.neighborhood].filter(Boolean).join(' - '))}</span>
+                            </div>
                             <div class="listing-footer-info">
-                                <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</span>
+                                <span class="listing-seller-name"><i class="fa-regular fa-user" aria-hidden="true"></i> ${escapeHTML(item.seller?.name || 'معلن')}</span>
+                                <time class="listing-published-date"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(item.timeAgo)}</time>
                             </div>
                         </div>
                     </a>
