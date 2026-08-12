@@ -71,7 +71,7 @@ test('seller ratings and reports have real storage and protected policies', () =
     assert.match(databaseSource, /async submitReport/);
     assert.match(databaseSource, /async getAdminReports/);
     assert.match(adminScript, /async function loadReports\(\)/);
-    assert.match(adminScript, /data-status="reviewed"/);
+    assert.match(adminScript, /data-status="in_review"/);
     assert.match(adminScript, /data-status="resolved"/);
     assert.doesNotMatch(adminSource, /إدارة البلاغات قيد التجهيز/);
 });

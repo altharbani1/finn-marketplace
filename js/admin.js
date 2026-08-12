@@ -7,7 +7,7 @@ const adminState = {
     loaded: new Set(),
     listings: { items: [], total: 0, page: 0, pageSize: 25, search: '' },
     users: { items: [], total: 0, page: 0, pageSize: 25, search: '' },
-    reports: { items: [], total: 0, page: 0, pageSize: 25, status: '' },
+    reports: { items: [], total: 0, page: 0, pageSize: 25, status: '', targetType: '', category: '', priority: '', search: '' },
     deletions: { items: [], total: 0, page: 0, pageSize: 25 }
 };
 
@@ -121,18 +121,20 @@ async function loadUsers() {
 }
 
 function reportActions(report) {
-    if (report.status === 'pending') return `<button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="pending" data-status="reviewed">بدء المراجعة</button><button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="pending" data-status="dismissed">رفض</button>`;
-    if (report.status === 'reviewed') return `<button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="reviewed" data-status="resolved">تم الحل</button><button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="reviewed" data-status="dismissed">رفض</button>`;
+    if (report.status === 'pending') return `<button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="pending" data-status="in_review">بدء المراجعة</button><button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="pending" data-status="dismissed">رفض</button>`;
+    if (report.status === 'in_review') return `<button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="in_review" data-status="resolved" data-target-type="${report.targetType}">تم الحل</button><button type="button" class="btn btn-outline" data-action="report-status" data-id="${report.id}" data-current="in_review" data-status="dismissed">رفض</button>`;
     return '';
 }
 
 async function loadReports() {
     adminStatus('جارٍ جلب صفحة البلاغات…');
     Object.assign(adminState.reports, await finnDB.getAdminReportsPage(adminState.reports));
-    document.getElementById('reportsContainer').innerHTML = adminState.reports.items.length ? `<div class="admin-table-scroll"><table class="data-table"><caption class="sr-only">بلاغات المحتوى وإجراءات معالجتها</caption><thead><tr><th>الإعلان</th><th>المبلّغ</th><th>السبب</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead><tbody>${adminState.reports.items.map(report => `<tr>
-        <td>${report.listingId ? `<a href="listing.html?id=${encodeURIComponent(report.listingId)}">${escapeHTML(report.listingTitle)}</a>` : escapeHTML(report.listingTitle)}</td>
-        <td>${escapeHTML(report.reporterName)}</td><td>${escapeHTML(report.reason)}</td><td>${formatDate(report.createdAt)}</td>
-        <td><span class="status-pill ${escapeHTML(report.status)}">${escapeHTML(({ pending: 'قيد المراجعة', reviewed: 'تحت المراجعة', resolved: 'تم الحل', dismissed: 'مرفوض' })[report.status] || report.status)}</span><div class="admin-action-group">${reportActions(report)}</div>${report.resolutionNote ? `<small>ملاحظة: ${escapeHTML(report.resolutionNote)}</small>` : ''}</td>
+    const categories = { fraud: 'احتيال', prohibited: 'محظور', misleading: 'مضلل', duplicate: 'مكرر', abuse: 'إساءة', spam: 'مزعج', privacy: 'خصوصية', other: 'آخر' };
+    const priorities = { 1: 'عادية', 2: 'متوسطة', 3: 'عاجلة' };
+    document.getElementById('reportsContainer').innerHTML = adminState.reports.items.length ? `<div class="admin-table-scroll"><table class="data-table"><caption class="sr-only">بلاغات المحتوى وإجراءات معالجتها</caption><thead><tr><th>المحتوى</th><th>التصنيف</th><th>الأولوية</th><th>التفاصيل والأدلة</th><th>التاريخ</th><th>الحالة والإجراء</th></tr></thead><tbody>${adminState.reports.items.map(report => `<tr>
+        <td>${report.listingId ? `<a href="listing.html?id=${encodeURIComponent(report.listingId)}">${escapeHTML(report.targetTitle)}</a>` : `تقييم — ${escapeHTML(report.targetTitle)}`}<small>المبلّغ: ${escapeHTML(report.reporterName)}</small></td>
+        <td>${escapeHTML(categories[report.category] || report.category)}</td><td><span class="status-pill ${report.priority === 3 ? 'rejected' : report.priority === 2 ? 'pending' : 'active'}">${escapeHTML(priorities[report.priority])}</span></td><td>${escapeHTML(report.details)}${report.evidenceUrls.length ? `<details><summary>الأدلة (${report.evidenceUrls.length})</summary>${report.evidenceUrls.map(url => `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">فتح الدليل</a>`).join(' ')}</details>` : ''}</td><td>${formatDate(report.createdAt)}</td>
+        <td><span class="status-pill ${escapeHTML(report.status)}">${escapeHTML(({ pending: 'جديد', in_review: 'تحت المراجعة', resolved: 'تم الحل', dismissed: 'مرفوض' })[report.status] || report.status)}</span><div class="admin-action-group">${reportActions(report)}</div>${report.resolutionNote ? `<small>ملاحظة: ${escapeHTML(report.resolutionNote)}</small>` : ''}</td>
     </tr>`).join('')}</tbody></table></div>` : '<p class="admin-state">لا توجد بلاغات مطابقة.</p>';
     document.getElementById('reportsPagination').innerHTML = pagerHTML('reports');
     adminState.loaded.add('reports');
@@ -214,8 +216,12 @@ async function handleAction(button) {
         adminStatus('تم حفظ صلاحيات العضو وتسجيل العملية في سجل التدقيق.');
     });
     if (action === 'report-status') await runButton(button, async () => {
-        const note = prompt('أدخل ملاحظة القرار (اختياري، حتى 1000 حرف):', '') ?? '';
-        await finnDB.updateAdminReport(id, button.dataset.current, button.dataset.status, note);
+        const finalDecision = ['resolved', 'dismissed'].includes(button.dataset.status);
+        const note = prompt(`أدخل ملاحظة ${finalDecision ? 'القرار (مطلوبة)' : 'المراجعة (اختيارية)'}، حتى 1000 حرف:`, '') ?? '';
+        if (finalDecision && note.trim().length < 3) throw new Error('ملاحظة القرار مطلوبة ويجب ألا تقل عن 3 أحرف.');
+        const hideContent = button.dataset.status === 'resolved' && button.dataset.targetType === 'rating'
+            ? confirm('هل ثبتت مخالفة التقييم وتريد إخفاءه من سجل المعلن؟') : false;
+        await finnDB.updateAdminReport(id, button.dataset.current, button.dataset.status, note, hideContent);
         await Promise.all([loadReports(), loadSummary()]);
     });
     if (action === 'deletion-process') {
@@ -261,6 +267,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         document.getElementById('reportsStatusFilter').addEventListener('change', event => {
             adminState.reports.status = event.target.value; adminState.reports.page = 0; loadReports();
+        });
+        [['Target', 'targetType'], ['Category', 'category'], ['Priority', 'priority']].forEach(([name, key]) => document.getElementById(`reports${name}Filter`).addEventListener('change', event => {
+            adminState.reports[key] = event.target.value; adminState.reports.page = 0; loadReports();
+        }));
+        document.getElementById('searchAdminReportsInput').addEventListener('input', event => {
+            clearTimeout(searchTimer); searchTimer = setTimeout(() => { adminState.reports.search = event.target.value; adminState.reports.page = 0; loadReports(); }, 350);
         });
         document.getElementById('adminContentContainer').addEventListener('click', async event => {
             const pageButton = event.target.closest('[data-page-key]');

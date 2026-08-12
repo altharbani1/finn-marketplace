@@ -230,13 +230,17 @@
 
     <div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportDialogTitle" aria-hidden="true" hidden inert>
         <div class="modal-box" style="max-width: 520px; padding: 28px;" tabindex="-1">
-            <button class="modal-close-btn" onclick="closeReportModal()" aria-label="إغلاق البلاغ"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-            <h2 id="reportDialogTitle" style="font-size: 20px; font-weight: 900; margin-bottom: 8px;"><i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> الإبلاغ عن الإعلان</h2>
+            <button type="button" class="modal-close-btn" onclick="closeReportModal()" aria-label="إغلاق البلاغ"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            <h2 id="reportDialogTitle" style="font-size: 20px; font-weight: 900; margin-bottom: 8px;"><i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> إرسال بلاغ</h2>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">اشرح المخالفة بوضوح. سيظهر البلاغ للمشرفين فقط.</p>
             <div class="auth-notice info" style="margin-bottom: 14px;"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> نظام البلاغات فعّال ومحمي؛ تُرسل البيانات مباشرة إلى لوحة المشرفين.</div>
-            <label class="filter-label" for="reportReason">سبب البلاغ</label>
-            <textarea id="reportReason" class="form-input" maxlength="2000" style="height: 130px; padding: 12px;" placeholder="مثال: معلومات مضللة، محتوى محظور، أو محاولة احتيال..."></textarea>
-            <button class="btn btn-primary" id="submitReportButton" style="width:100%; margin-top:12px; background:var(--color-danger);" onclick="submitListingReport()">
+            <label class="filter-label" for="reportCategory">نوع المخالفة</label>
+            <select id="reportCategory" class="form-input" style="padding:12px; margin-bottom:12px;"><option value="fraud">احتيال</option><option value="prohibited">محتوى أو منتج محظور</option><option value="misleading">معلومات أو سعر مضلل</option><option value="duplicate">إعلان مكرر</option><option value="abuse">إساءة</option><option value="spam">رسائل مزعجة</option><option value="privacy">انتهاك الخصوصية</option><option value="other">سبب آخر</option></select>
+            <label class="filter-label" for="reportReason">تفاصيل البلاغ</label>
+            <textarea id="reportReason" class="form-input" maxlength="2000" style="height: 110px; padding: 12px;" placeholder="اشرح المخالفة بوضوح، أو اترك التفاصيل فارغة..."></textarea>
+            <label class="filter-label" for="reportEvidence" style="margin-top:12px;">روابط الأدلة (اختياري)</label>
+            <textarea id="reportEvidence" class="form-input" maxlength="1502" style="height:75px; padding:12px;" placeholder="حتى 3 روابط HTTPS، رابط واحد في كل سطر"></textarea>
+            <button type="button" class="btn btn-primary" id="submitReportButton" style="width:100%; margin-top:12px; background:var(--color-danger);" onclick="submitListingReport()">
                 <i class="fa-solid fa-paper-plane"></i> إرسال البلاغ للمراجعة
             </button>
         </div>
@@ -251,6 +255,7 @@
         let currentItem = null;
         let currentUser = null;
         let reportReturnFocus = null;
+        let activeReportRatingId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = await finnDB.getAuthUser();
@@ -405,7 +410,7 @@
                     return;
                 }
                 if (event.key === 'Tab') {
-                    const focusable = [...reportModal.querySelectorAll('button:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])')].filter(element => element.getClientRects().length);
+                    const focusable = [...reportModal.querySelectorAll('button:not([disabled]), textarea, select, input, [tabindex]:not([tabindex="-1"])')].filter(element => element.getClientRects().length);
                     const first = focusable[0];
                     const last = focusable[focusable.length - 1];
                     if (event.shiftKey && document.activeElement === first) {
@@ -592,12 +597,16 @@
                                 <strong style="font-size:13px;">تقييمات المعلن</strong>
                                 <span id="sellerRatingDisplay" style="font-size:13px; color:var(--text-muted);">${currentItem.ratingStats?.count ? `${currentItem.ratingStats.average} من 5 (${currentItem.ratingStats.count})` : 'لا توجد تقييمات'}</span>
                             </div>
+                            ${currentItem.ratingStats?.count ? `<div style="display:grid;gap:4px;margin:10px 0;">${[5,4,3,2,1].map(score => { const amount = Number(currentItem.ratingStats.distribution?.[score] || 0); const width = Math.round(amount * 100 / currentItem.ratingStats.count); return `<div style="display:grid;grid-template-columns:28px 1fr 24px;gap:6px;align-items:center;font-size:11px;"><span>${score}★</span><span style="height:6px;background:#e5e7eb;border-radius:9px;overflow:hidden;"><i style="display:block;width:${width}%;height:100%;background:#f59e0b;"></i></span><span>${amount}</span></div>`; }).join('')}</div>` : ''}
                             ${!isOwner ? `
+                                <label class="filter-label" for="ratingReviewText">تعليق التقييم (اختياري)</label>
+                                <textarea id="ratingReviewText" class="form-input" maxlength="1000" style="height:70px;padding:9px;" placeholder="شارك تجربتك باحترام..."></textarea>
                                 <div style="display:flex; gap:4px;" aria-label="تقييم المعلن من خمس نجوم">
                                     ${[1,2,3,4,5].map(score => `<button type="button" class="star-btn" style="font-size:24px; border:0; background:transparent; color:#f59e0b; cursor:pointer;" onclick="submitSellerRating(${score})" aria-label="تقييم المعلن ${score} من 5 نجوم">★</button>`).join('')}
                                 </div>
                                 <small style="color:var(--text-muted);">يمكنك تعديل تقييمك باختيار نجمة أخرى.</small>
                             ` : ''}
+                            <div style="margin-top:16px;display:grid;gap:10px;">${(currentItem.ratingStats?.reviews || []).map(review => `<article style="border:1px solid var(--border-color);border-radius:10px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><strong>${escapeHTML(review.reviewerName)}</strong><span style="color:#f59e0b;">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</span></div>${review.reviewText ? `<p style="font-size:13px;margin-top:6px;white-space:pre-wrap;">${escapeHTML(review.reviewText)}</p>` : ''}${review.sellerReply ? `<div style="margin-top:8px;padding:8px;background:#f8fafc;border-radius:8px;font-size:12px;"><strong>رد المعلن:</strong> ${escapeHTML(review.sellerReply)}</div>` : ''}<div style="display:flex;gap:6px;margin-top:8px;">${isOwner ? `<button type="button" class="btn btn-outline" style="height:30px;font-size:11px;" onclick="replyToRating('${review.id}')">${review.sellerReply ? 'تعديل الرد' : 'الرد'}</button>` : ''}${currentUser ? `<button type="button" class="btn btn-outline" style="height:30px;font-size:11px;color:var(--color-danger);" onclick="openReportModal('${review.id}')">إبلاغ عن التقييم</button>` : ''}</div></article>`).join('')}</div>
                         </div>
                     </div>
                 </div>
@@ -641,7 +650,8 @@
                 return;
             }
             try {
-                currentItem.ratingStats = await finnDB.rateSeller(currentItem.id, currentItem.userId, score);
+                const reviewText = document.getElementById('ratingReviewText')?.value || '';
+                currentItem.ratingStats = await finnDB.rateSeller(currentItem.id, currentItem.userId, score, reviewText);
                 await renderListingPageContent();
                 alert('تم حفظ تقييمك بنجاح.');
             } catch (error) {
@@ -649,12 +659,14 @@
             }
         }
 
-        function openReportModal() {
+        function openReportModal(ratingId = null) {
             if (!currentUser) {
                 window.location.href = `index.html?login=1&next=${encodeURIComponent(`listing.html?id=${currentItem.id}`)}`;
                 return;
             }
             const modal = document.getElementById('reportModal');
+            activeReportRatingId = ratingId || null;
+            document.getElementById('reportDialogTitle').innerHTML = `<i class="fa-solid fa-flag" style="color: var(--color-danger);"></i> ${activeReportRatingId ? 'الإبلاغ عن التقييم' : 'الإبلاغ عن الإعلان'}`;
             reportReturnFocus = document.activeElement;
             modal.hidden = false;
             modal.inert = false;
@@ -673,19 +685,25 @@
             }
             if (reportReturnFocus?.isConnected) reportReturnFocus.focus();
             reportReturnFocus = null;
+            activeReportRatingId = null;
         }
 
         async function submitListingReport() {
             const input = document.getElementById('reportReason');
+            const category = document.getElementById('reportCategory');
+            const evidenceInput = document.getElementById('reportEvidence');
             const button = document.getElementById('submitReportButton');
-            if (!input?.value.trim()) {
-                alert('اكتب سبب البلاغ أولاً.');
+            if (input?.value.trim() && input.value.trim().length < 5) {
+                alert('اجعل التفاصيل 5 أحرف على الأقل، أو اتركها فارغة.');
                 return;
             }
+            const evidenceUrls = (evidenceInput?.value || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean);
             button.disabled = true;
             try {
-                await finnDB.submitReport(currentItem.id, input.value);
+                if (activeReportRatingId) await finnDB.submitRatingReport(activeReportRatingId, category.value, input.value, evidenceUrls);
+                else await finnDB.submitReport(currentItem.id, { category: category.value, details: input.value, evidenceUrls });
                 input.value = '';
+                evidenceInput.value = '';
                 closeReportModal();
                 alert('تم إرسال البلاغ للمشرفين وسيتم مراجعته.');
             } catch (error) {
@@ -693,6 +711,16 @@
             } finally {
                 button.disabled = false;
             }
+        }
+
+        async function replyToRating(ratingId) {
+            const reply = prompt('اكتب ردًا مهنيًا على التقييم (2–1000 حرف):', '');
+            if (reply === null) return;
+            try {
+                await finnDB.replyToSellerRating(ratingId, reply);
+                currentItem.ratingStats = await finnDB.getSellerRating(currentItem.userId);
+                await renderListingPageContent();
+            } catch (error) { alert(error.message || 'تعذر حفظ الرد.'); }
         }
 
         async function handleDeleteAd(id) {
