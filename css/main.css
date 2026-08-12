@@ -501,7 +501,7 @@ button {
     margin-bottom: 4px;
 }
 
-.listings-grid.list-view .listing-price-tag {
+.listings-grid.list-view .listing-location-tag {
     font-size: 18px;
 }
 
@@ -622,15 +622,21 @@ button {
     overflow: hidden;
 }
 
-.listing-price-tag {
+.listing-location-tag {
     font-size: 18px;
-    font-weight: 900;
+    font-weight: 800;
     color: var(--color-primary);
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
 }
 
-.listing-price-tag.free {
-    color: var(--cat-freebies);
+.listing-location-tag span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .listing-footer-info {
@@ -642,6 +648,28 @@ button {
     margin-top: 6px;
     padding-top: 6px;
     border-top: 1px solid var(--bg-surface-subtle);
+}
+
+.listing-seller-name,
+.listing-published-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.listing-seller-name {
+    color: var(--text-muted);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.listing-published-date {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    direction: rtl;
 }
 
 /* Button UI System */
