@@ -5,7 +5,7 @@
 
 .legal-hero,
 .legal-card {
-    background: #fff;
+    background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: clamp(22px, 5vw, 42px);
@@ -33,13 +33,13 @@
 .legal-card p,
 .legal-card li { line-height: 1.9; color: var(--text-secondary); }
 .legal-card ul { padding-right: 22px; }
-.legal-note { background: #f8fafc; border-right: 4px solid var(--color-primary); padding: 14px 16px; border-radius: 10px; }
+.legal-note { background: var(--bg-surface-subtle); border-right: 4px solid var(--color-primary); padding: 14px 16px; border-radius: 10px; }
 .legal-form-field { margin-bottom: 18px; }
 .legal-form-field label { display: block; font-weight: 700; margin-bottom: 7px; }
 
 .site-footer {
     border-top: 1px solid var(--border-color);
-    background: #fff;
+    background: var(--bg-surface);
     padding: 26px 0;
     margin-top: 48px;
 }
