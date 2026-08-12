@@ -24,21 +24,21 @@
     --cat-motorbikes: #ec4899;
 
     /* Neutral System Colors */
-    --bg-body: #f8fafc;
+    --bg-body: #f3f4f6;
     --bg-surface: #ffffff;
-    --bg-surface-subtle: #f1f5f9;
-    --border-color: #e2e8f0;
-    --border-color-dark: #cbd5e1;
+    --bg-surface-subtle: #eef0f3;
+    --border-color: #d1d5db;
+    --border-color-dark: #9ca3af;
     
     /* Typography Colors */
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --text-light: #94a3b8;
+    --text-main: #111827;
+    --text-muted: #374151;
+    --text-light: #4b5563;
 
     /* Shadows & Glassmorphism */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.09);
+    --shadow-md: 0 5px 14px rgba(17, 24, 39, 0.12);
+    --shadow-lg: 0 14px 32px rgba(17, 24, 39, 0.16);
     
     /* Border Radius */
     --radius-sm: 6px;
@@ -63,6 +63,7 @@ body {
     font-family: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: var(--bg-body);
     color: var(--text-main);
+    font-weight: 500;
     line-height: 1.5;
     direction: rtl;
     -webkit-font-smoothing: antialiased;
@@ -87,6 +88,18 @@ a {
 
 button {
     font-family: inherit;
+}
+
+input,
+textarea,
+select {
+    color: var(--text-main);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.9;
 }
 
 .container {
